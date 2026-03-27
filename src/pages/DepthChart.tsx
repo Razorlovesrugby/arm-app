@@ -1,9 +1,25 @@
 import { useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useDepthChart, PositionColumn } from '../hooks/useDepthChart'
-import { Player } from '../lib/supabase'
+import { Player, Position } from '../lib/supabase'
 import PlayerFormSheet from '../components/PlayerFormSheet'
 
-// ─── Badge colours (mirrors Section B design tokens) ────────────────────────
+// ─── Badge colours ────────────────────────────────────────────────────────────
 const STATUS_COLOUR: Record<string, { bg: string; text: string }> = {
   Active:      { bg: '#DCFCE7', text: '#15803D' },
   Injured:     { bg: '#FEF3C7', text: '#B45309' },
@@ -11,44 +27,83 @@ const STATUS_COLOUR: Record<string, { bg: string; text: string }> = {
   Retired:     { bg: '#F3F4F6', text: '#4B5563' },
 }
 
-// ─── Compact player chip used inside each column ─────────────────────────────
+// ─── Sortable player chip ─────────────────────────────────────────────────────
 interface ChipProps {
   player: Player
   onTap: (player: Player) => void
 }
 
-function PlayerChip({ player, onTap }: ChipProps) {
+function SortablePlayerChip({ player, onTap }: ChipProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: player.id })
+
   const badge = STATUS_COLOUR[player.status] ?? { bg: '#F3F4F6', text: '#4B5563' }
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    background: '#FFFFFF',
+    border: isDragging ? '1px solid #6B21A8' : '1px solid #E5E7EB',
+    borderRadius: '8px',
+    padding: '8px 10px',
+    marginBottom: '6px',
+    cursor: isDragging ? 'grabbing' : 'grab',
+    textAlign: 'left' as const,
+    gap: '8px',
+    minHeight: '44px',
+    touchAction: 'none',
+    userSelect: 'none',
+    boxShadow: isDragging ? '0 4px 12px rgba(107,33,168,0.15)' : 'none',
+  }
+
   return (
-    <button
-      onClick={() => onTap(player)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        background: '#FFFFFF',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
-        padding: '8px 10px',
-        marginBottom: '6px',
-        cursor: 'pointer',
-        textAlign: 'left',
-        gap: '8px',
-        minHeight: '44px',
-      }}
-    >
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {/* Drag handle indicator */}
       <span style={{
-        fontSize: '13px',
-        fontWeight: '500',
-        color: '#111827',
-        flex: 1,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        fontSize: '12px',
+        color: '#D1D5DB',
+        flexShrink: 0,
+        lineHeight: 1,
       }}>
-        {player.name}
+        ⠿
       </span>
+
+      {/* Name — tappable area */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onTap(player)
+        }}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          flex: 1,
+          textAlign: 'left',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontWeight: '500',
+          color: '#111827',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {player.name}
+      </button>
+
+      {/* Status badge */}
       <span style={{
         fontSize: '10px',
         fontWeight: '600',
@@ -58,22 +113,40 @@ function PlayerChip({ player, onTap }: ChipProps) {
         color: badge.text,
         whiteSpace: 'nowrap',
         flexShrink: 0,
-        textTransform: 'uppercase',
+        textTransform: 'uppercase' as const,
         letterSpacing: '0.3px',
       }}>
         {player.status}
       </span>
-    </button>
+    </div>
   )
 }
 
-// ─── Single position column ───────────────────────────────────────────────────
+// ─── Single position column with its own DndContext ───────────────────────────
 interface ColumnProps {
   col: PositionColumn
   onTap: (player: Player) => void
+  onReorder: (position: Position, newIds: string[]) => Promise<void>
 }
 
-function Column({ col, onTap }: ColumnProps) {
+function Column({ col, onTap, onReorder }: ColumnProps) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = col.players.findIndex((p) => p.id === active.id)
+    const newIndex = col.players.findIndex((p) => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(col.players, oldIndex, newIndex)
+    onReorder(col.position, reordered.map((p) => p.id))
+  }
+
   return (
     <div style={{
       minWidth: '172px',
@@ -116,7 +189,7 @@ function Column({ col, onTap }: ColumnProps) {
         </span>
       </div>
 
-      {/* Player chips */}
+      {/* Sortable list */}
       {col.players.length === 0 ? (
         <p style={{
           fontSize: '12px',
@@ -127,9 +200,24 @@ function Column({ col, onTap }: ColumnProps) {
           No players
         </p>
       ) : (
-        col.players.map((player) => (
-          <PlayerChip key={player.id} player={player} onTap={onTap} />
-        ))
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={col.players.map((p) => p.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {col.players.map((player) => (
+              <SortablePlayerChip
+                key={player.id}
+                player={player}
+                onTap={onTap}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   )
@@ -137,12 +225,12 @@ function Column({ col, onTap }: ColumnProps) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function DepthChart() {
-  const { columns, loading, error, refetch } = useDepthChart()
+  const { columns, loading, error, updateOrder, refetch } = useDepthChart()
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
 
-  const handleTap = (player: Player) => setEditingPlayer(player)
-  const handleClose = () => setEditingPlayer(null)
-  const handleSaved = () => { setEditingPlayer(null); refetch() }
+  const handleTap    = (player: Player) => setEditingPlayer(player)
+  const handleClose  = () => setEditingPlayer(null)
+  const handleSaved  = () => { setEditingPlayer(null); refetch() }
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
@@ -157,7 +245,8 @@ export default function DepthChart() {
         color: '#6B7280',
       }}>
         <div style={{
-          width: '32px', height: '32px',
+          width: '32px',
+          height: '32px',
           border: '3px solid #E5E7EB',
           borderTopColor: '#6B21A8',
           borderRadius: '50%',
@@ -199,11 +288,11 @@ export default function DepthChart() {
           Depth Chart
         </h1>
         <p style={{ fontSize: '13px', color: '#6B7280', margin: '4px 0 0' }}>
-          Tap a player to edit · Drag to reorder
+          Drag ⠿ to reorder · Tap name to edit
         </p>
       </div>
 
-      {/* Scrollable columns board */}
+      {/* Horizontally scrollable columns */}
       <div style={{
         overflowX: 'auto',
         overflowY: 'visible',
@@ -215,12 +304,16 @@ export default function DepthChart() {
       }}>
         {columns.map((col) => (
           <div key={col.position} style={{ scrollSnapAlign: 'start' }}>
-            <Column col={col} onTap={handleTap} />
+            <Column
+              col={col}
+              onTap={handleTap}
+              onReorder={updateOrder}
+            />
           </div>
         ))}
       </div>
 
-      {/* Edit player sheet — reuses Phase 3 component */}
+      {/* Edit player sheet */}
       {editingPlayer && (
         <PlayerFormSheet
           player={editingPlayer}
