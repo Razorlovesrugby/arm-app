@@ -98,3 +98,49 @@
 
 ### Paste this at the start of next session
 "Continuing ARM Phase 5 from CP-5.1. Phases 1–4 complete. The app has auth, nav shell, PWA, Roster tab (full CRUD + CSV export), and Depth Chart tab (11 position columns, drag-to-reorder with dnd-kit, persisted to Supabase, tap-to-edit). Live at https://arm-app-black.vercel.app. Phase 5 builds the Weeks tab: create week, auto-insert week_teams, shareable availability link with UUID token, and week dropdown switcher."
+
+---
+
+## Session Summary — Phase 5 Complete — 2026-03-27
+
+### PRD version confirmed
+- PRD v1.7 (Final) read in full. Used as source of truth.
+- Key v1.7 additions noted and implemented:
+  - Multiple open weeks allowed (no limit)
+  - Two link buttons: Copy Link + Share (native OS share sheet, pre-formatted message)
+  - `submitted_primary_position` + `submitted_secondary_positions` columns in `availability_responses` (migration 004 added)
+  - Availability form field order confirmed: Name → Phone → Availability → Positions → Note (Phase 6)
+
+### Phase 5 — Weeks Tab — Completed
+
+- CP-5.1 — `useWeeks` hook: fetches all weeks with nested `week_teams`, exposes `openWeeks`/`closedWeeks` derived lists, `createWeek` function (inserts week + auto-inserts 5 `week_teams` rows + generates UUID token via `crypto.randomUUID()`). Refetches after create.
+- CP-5.2 — Weeks tab renders week list: label, date range, Open/Closed status badge. Auto-selects most recent open week on load. Shows "No weeks yet" empty state with CTA.
+- CP-5.3 — Create Week form: bottom sheet (mobile) / centred modal (desktop). Date pickers for start + end date (defaults to current Mon–Sun). Auto-generated label ("Week of 17 Mar") updates live from start date unless user edits manually. Validation on save. Creates week + 5 `week_teams` rows in Supabase.
+- CP-5.4 — Link panel on week detail card (open weeks only): URL pill display, Copy Link button (clipboard, 2s "Copied!" feedback), Share button (native `navigator.share` with pre-formatted message: "Belsize Park RFC — [label]. Please submit your availability for this week: [URL]. Takes 30 seconds, no login needed."). Fallback to clipboard copy if `navigator.share` not available.
+- CP-5.5 — Week dropdown switcher: compact `<select>` showing all weeks (label + status). Auto-populates. All-weeks list rendered below active week card when 2+ weeks exist.
+- CP-5.6 — Migration `004_availability_positions.sql`: adds `submitted_primary_position` (TEXT) and `submitted_secondary_positions` (JSONB) to `availability_responses`. Ready to apply before Phase 6.
+
+**New / modified files:**
+- `src/hooks/useWeeks.ts` (new)
+- `src/pages/Weeks.tsx` (stub → full implementation, 682 lines)
+- `supabase/migrations/004_availability_positions.sql` (new)
+
+### Infrastructure note
+- GitHub push blocked by VM network proxy (same as Phase 4).
+- **Action required:** Run `git push origin main` from your terminal or GitHub Codespaces.
+- Commit hash: `a4cd448` — all Phase 5 changes in one commit.
+- **Also required:** Run migration `004_availability_positions.sql` in Supabase SQL editor before Phase 6.
+
+### Current state
+- Last clean checkpoint: CP-5.6
+- All changes committed locally: Yes
+- Pushed to GitHub: **No — requires manual push**
+- Tests passing: N/A
+
+### Next session starts at
+- **CP-6.1** — Availability form public page (`/availability/:token`): renders form from week token, validates token, shows week label
+- Files to touch: `src/pages/AvailabilityForm.tsx` (replace stub), possibly new `src/hooks/useAvailability.ts`
+- Decisions pending: None — PRD v1.7 §4.4.3 + §5.9 are the spec
+
+### Paste this at the start of next session
+"Continuing ARM Phase 6 from CP-6.1. Phases 1–5 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV), Depth Chart (drag-to-reorder, persisted), and a full Weeks tab (create week, UUID token, Copy Link + Share buttons, week switcher). Live at https://arm-app-black.vercel.app after manual push. Phase 6 builds the public Availability Submission form: /availability/:token page, matching logic, auto-create player, position sync on Available, store responses, success/error states, Supabase real-time for coach view."
