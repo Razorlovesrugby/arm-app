@@ -19,7 +19,7 @@ export default function Layout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', minHeight: '100dvh' }}>
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
 
       {/* ── Sidebar (tablet/desktop ≥ 768px) ── */}
       <aside
@@ -131,7 +131,6 @@ export default function Layout() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          minHeight: '100vh',
           minHeight: '100dvh',
           // Leave room for bottom tab bar on mobile
           paddingBottom: 'calc(64px + env(safe-area-inset-bottom))',

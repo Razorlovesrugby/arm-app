@@ -13,7 +13,6 @@ export default function AvailabilityForm() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '100vh',
         minHeight: '100dvh',
         padding: '32px 24px',
         background: '#F8F8F8',
