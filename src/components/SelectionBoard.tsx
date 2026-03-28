@@ -4,7 +4,6 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
-  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -182,13 +181,21 @@ function FilledRow({
         </span>
       )}
       <ShirtBadge number={shirtNumber} filled={true} />
-      {/* Only this inner area is tappable — avoids conflicts with drag handle and × button */}
-      <div
-        style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+      {/* Native button for tap — most reliable across iOS Safari */}
+      <button
         onClick={onTap}
-        role="button"
-        tabIndex={0}
-        onKeyDown={e => e.key === 'Enter' && onTap()}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
       >
         <PlayerAvatar player={player} size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -215,7 +222,7 @@ function FilledRow({
             {player.primary_position ? ` · ${player.primary_position}` : ''}
           </p>
         </div>
-      </div>
+      </button>
       <button
         onClick={e => { e.stopPropagation(); onRemove() }}
         style={{
@@ -289,7 +296,6 @@ interface SortableFilledRowProps {
 
 function SortableFilledRow({ id, shirtNumber, player, onRemove, onTap }: SortableFilledRowProps) {
   const {
-    attributes,
     listeners,
     setNodeRef,
     transform,
@@ -302,8 +308,10 @@ function SortableFilledRow({ id, shirtNumber, player, onRemove, onTap }: Sortabl
     transition,
   }
 
+  // NOTE: {attributes} intentionally omitted — it adds role="button" to the wrapper
+  // which causes iOS Safari to swallow click events on child interactive elements
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    <div ref={setNodeRef} style={style}>
       <FilledRow
         shirtNumber={shirtNumber}
         player={player}
@@ -336,9 +344,10 @@ function TeamSheet({
   onEmptySlotTap,
 }: TeamSheetProps) {
   const sensors = useSensors(
-    // distance constraint lets click/tap events fire before drag activates
+    // PointerSensor works for both mouse (desktop) and touch (iOS 13.4+/Android).
+    // distance:8 means drag only activates after 8px movement — taps register normally.
+    // TouchSensor removed: it sets touch-action:none and competes with iOS click synthesis.
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   )
 
   function handleDragEnd(event: DragEndEvent) {
