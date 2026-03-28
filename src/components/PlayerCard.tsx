@@ -12,6 +12,7 @@ const STATUS_BADGE: Record<string, { bg: string; color: string }> = {
   Injured:     { bg: '#FEF3C7', color: '#B45309' },
   Unavailable: { bg: '#FEE2E2', color: '#B91C1C' },
   Retired:     { bg: '#F3F4F6', color: '#4B5563' },
+  Archived:    { bg: '#F3F4F6', color: '#374151' },
 }
 
 const TYPE_BADGE: Record<string, { bg: string; color: string }> = {

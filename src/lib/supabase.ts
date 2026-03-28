@@ -19,7 +19,7 @@ export type Position =
   | 'Unspecified'
 
 export type PlayerType = 'Performance' | 'Open' | "Women's"
-export type PlayerStatus = 'Active' | 'Injured' | 'Unavailable' | 'Retired'
+export type PlayerStatus = 'Active' | 'Injured' | 'Unavailable' | 'Retired' | 'Archived'
 export type Availability = 'Available' | 'TBC' | 'Unavailable'
 export type WeekStatus = 'Open' | 'Closed'
 
@@ -73,8 +73,17 @@ export interface AvailabilityResponse {
   availability: Availability
   submitted_primary_position: Position | null
   submitted_secondary_positions: Position[]
-  note: string | null
+  availability_note: string | null   // player-submitted week-specific note (v1.8 rename)
   created_at: string
+}
+
+export interface ArchiveGameNote {
+  id: string
+  week_team_id: string
+  player_id: string | null           // nullable — supports deleted players
+  player_name_snapshot: string
+  game_notes: string | null
+  updated_at: string
 }
 
 export interface TeamSelection {
@@ -91,7 +100,7 @@ export const POSITIONS: Position[] = [
 ]
 
 export const PLAYER_TYPES: PlayerType[] = ['Performance', 'Open', "Women's"]
-export const PLAYER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired']
+export const PLAYER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired', 'Archived']
 
 /** Normalise a phone number: strip spaces, dashes, parentheses */
 export function normalisePhone(phone: string): string {

@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react'
 import { Search, Plus, Filter, X } from 'lucide-react'
 import { usePlayers } from '../hooks/usePlayers'
-import { Player, PlayerStatus, PlayerType, Position, POSITIONS, PLAYER_TYPES, PLAYER_STATUSES } from '../lib/supabase'
+import { Player, PlayerStatus, PlayerType, Position, POSITIONS, PLAYER_TYPES } from '../lib/supabase'
 import PlayerCard from '../components/PlayerCard'
 import PlayerFormSheet from '../components/PlayerFormSheet'
 import DeletePlayerDialog from '../components/DeletePlayerDialog'
+
+// Statuses shown in the Roster filter dropdown — Archived is handled by its own toggle
+const ROSTER_FILTER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired']
 
 type SortKey = 'name' | 'position' | 'status'
 
@@ -17,6 +20,7 @@ export default function Roster() {
   const [filterType, setFilterType] = useState<PlayerType | ''>('')
   const [filterPosition, setFilterPosition] = useState<Position | ''>('')
   const [showFilters, setShowFilters] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
   const [sortKey] = useState<SortKey>('name')
 
   // Sheet / modal state
@@ -27,6 +31,9 @@ export default function Roster() {
   // Derived: filtered + sorted list
   const filtered = useMemo(() => {
     let list = [...players]
+
+    // Archived hidden by default — only shown when toggle is on
+    if (!showArchived) list = list.filter(p => p.status !== 'Archived')
 
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -49,9 +56,9 @@ export default function Roster() {
     })
 
     return list
-  }, [players, search, filterStatus, filterType, filterPosition, sortKey])
+  }, [players, search, filterStatus, filterType, filterPosition, sortKey, showArchived])
 
-  const activeFilters = [filterStatus, filterType, filterPosition].filter(Boolean).length
+  const activeFilters = [filterStatus, filterType, filterPosition].filter(Boolean).length + (showArchived ? 1 : 0)
 
   function openAdd() {
     setEditingPlayer(null)
@@ -67,6 +74,7 @@ export default function Roster() {
     setFilterStatus('')
     setFilterType('')
     setFilterPosition('')
+    setShowArchived(false)
   }
 
   function exportCSV() {
@@ -202,7 +210,7 @@ export default function Roster() {
             style={selectStyle}
           >
             <option value="">All statuses</option>
-            {PLAYER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            {ROSTER_FILTER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
 
           <select
@@ -222,6 +230,28 @@ export default function Roster() {
             <option value="">All positions</option>
             {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
+
+          {/* Show Archived toggle */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            fontSize: '13px', color: '#374151', cursor: 'pointer',
+            padding: '7px 10px',
+            border: '1px solid',
+            borderColor: showArchived ? '#6B21A8' : '#E5E7EB',
+            borderRadius: '8px',
+            background: showArchived ? '#F3E8FF' : '#FFFFFF',
+            userSelect: 'none',
+          }}>
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={e => setShowArchived(e.target.checked)}
+              style={{ accentColor: '#6B21A8', width: '14px', height: '14px', cursor: 'pointer' }}
+            />
+            <span style={{ color: showArchived ? '#6B21A8' : '#374151', fontWeight: showArchived ? '600' : '400' }}>
+              Show Archived
+            </span>
+          </label>
 
           {activeFilters > 0 && (
             <button
