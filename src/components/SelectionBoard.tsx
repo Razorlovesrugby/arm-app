@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, ChevronDown, X, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
+import { Users, X, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -181,8 +181,6 @@ interface AssignRowProps {
 }
 
 function AssignRow({ player, teams, onAssign, onTap }: AssignRowProps) {
-  const [open, setOpen] = useState(false)
-
   return (
     <div
       style={{
@@ -227,78 +225,34 @@ function AssignRow({ player, teams, onAssign, onTap }: AssignRowProps) {
         {availLabel(player.latestAvailability)}
       </span>
 
-      {/* Team dropdown */}
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <button
-          onClick={() => setOpen(v => !v)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '6px 10px',
-            borderRadius: '8px',
-            border: '1px solid #E5E7EB',
-            background: '#F8F8F8',
-            fontSize: '13px',
-            fontWeight: '600',
-            color: '#374151',
-            cursor: 'pointer',
-          }}
-        >
-          Add to
-          <ChevronDown size={13} />
-        </button>
-
-        {open && (
-          <>
-            <div
-              onClick={() => setOpen(false)}
-              style={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 40,
-              }}
-            />
-            <div style={{
-              position: 'absolute',
-              right: 0,
-              top: 'calc(100% + 4px)',
-              zIndex: 50,
-              background: '#FFFFFF',
-              border: '1px solid #E5E7EB',
-              borderRadius: '10px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-              minWidth: '120px',
-              overflow: 'hidden',
-            }}>
-              {teams.map(team => (
-                <button
-                  key={team.weekTeamId}
-                  onClick={() => {
-                    setOpen(false)
-                    onAssign(team.weekTeamId)
-                  }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '10px 14px',
-                    textAlign: 'left',
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#111827',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid #F3F4F6',
-                  }}
-                >
-                  {team.teamName}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      {/* Native select — works reliably on iOS + Android touch */}
+      <select
+        value=""
+        onChange={e => {
+          if (e.target.value) onAssign(e.target.value)
+        }}
+        style={{
+          flexShrink: 0,
+          padding: '7px 10px',
+          borderRadius: '8px',
+          border: '1px solid #E5E7EB',
+          background: '#F8F8F8',
+          fontSize: '13px',
+          fontWeight: '600',
+          color: '#374151',
+          cursor: 'pointer',
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          minWidth: '80px',
+        }}
+      >
+        <option value="" disabled>Add to…</option>
+        {teams.map(team => (
+          <option key={team.weekTeamId} value={team.weekTeamId}>
+            {team.teamName}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
