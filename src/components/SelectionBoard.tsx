@@ -175,7 +175,6 @@ function FilledRow({
       border: `1px solid ${isDragging ? '#6B21A8' : '#E5E7EB'}`,
       opacity: isDragging ? 0.6 : 1,
       transition: 'border-color 0.1s',
-      cursor: 'pointer',
     }}>
       {dragHandle && (
         <span style={{ color: '#D1D5DB', cursor: 'grab', flexShrink: 0, display: 'flex' }}>
@@ -183,8 +182,9 @@ function FilledRow({
         </span>
       )}
       <ShirtBadge number={shirtNumber} filled={true} />
+      {/* Only this inner area is tappable — avoids conflicts with drag handle and × button */}
       <div
-        style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px' }}
+        style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
         onClick={onTap}
         role="button"
         tabIndex={0}
@@ -336,8 +336,9 @@ function TeamSheet({
   onEmptySlotTap,
 }: TeamSheetProps) {
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    // distance constraint lets click/tap events fire before drag activates
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   )
 
   function handleDragEnd(event: DragEndEvent) {
