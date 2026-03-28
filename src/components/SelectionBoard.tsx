@@ -225,11 +225,15 @@ function AssignRow({ player, teams, onAssign, onTap }: AssignRowProps) {
         {availLabel(player.latestAvailability)}
       </span>
 
-      {/* Native select — works reliably on iOS + Android touch */}
+      {/* Uncontrolled native select — avoids iOS controlled-select issues */}
       <select
-        value=""
+        defaultValue=""
         onChange={e => {
-          if (e.target.value) onAssign(e.target.value)
+          const val = e.target.value
+          if (val) {
+            onAssign(val)
+            e.target.value = '' // reset to placeholder after selection
+          }
         }}
         style={{
           flexShrink: 0,
@@ -241,12 +245,10 @@ function AssignRow({ player, teams, onAssign, onTap }: AssignRowProps) {
           fontWeight: '600',
           color: '#374151',
           cursor: 'pointer',
-          appearance: 'none',
-          WebkitAppearance: 'none',
           minWidth: '80px',
         }}
       >
-        <option value="" disabled>Add to…</option>
+        <option value="">Add to…</option>
         {teams.map(team => (
           <option key={team.weekTeamId} value={team.weekTeamId}>
             {team.teamName}
@@ -636,20 +638,6 @@ export default function SelectionBoard({
     )
   }
 
-  if (error) {
-    return (
-      <div style={{
-        background: '#FEE2E2',
-        borderRadius: '10px',
-        padding: '14px 16px',
-        color: '#B91C1C',
-        fontSize: '14px',
-      }}>
-        Error: {error}
-      </div>
-    )
-  }
-
   // ─── Desktop drag-drop handlers ────────────────────────────────────────────
 
   function findTeamContainingPlayer(playerId: string): string | null {
@@ -731,6 +719,15 @@ export default function SelectionBoard({
 
     return (
       <div>
+        {/* Inline error banner */}
+        {error && (
+          <div style={{
+            background: '#FEE2E2', borderRadius: '8px', padding: '10px 14px',
+            color: '#B91C1C', fontSize: '13px', marginBottom: '12px',
+          }}>
+            Save failed: {error}
+          </div>
+        )}
         {/* Mobile nav bar */}
         <div style={{
           display: 'flex',
@@ -855,6 +852,15 @@ export default function SelectionBoard({
   const activePlayer = activeId ? playerMap[activeId] : null
 
   return (
+    <>
+    {error && (
+      <div style={{
+        background: '#FEE2E2', borderRadius: '8px', padding: '10px 14px',
+        color: '#B91C1C', fontSize: '13px', marginBottom: '12px',
+      }}>
+        Save failed: {error}
+      </div>
+    )}
     <DndContext
       sensors={desktopSensors}
       collisionDetection={closestCenter}
@@ -898,5 +904,6 @@ export default function SelectionBoard({
         )}
       </DragOverlay>
     </DndContext>
+    </>
   )
 }
