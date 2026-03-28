@@ -182,3 +182,50 @@
 
 ### Paste this at the start of next session
 "Continuing ARM Phase 7 from CP-7.1. Phases 1–6 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), and a fully working public Availability Form (/availability/:token — token lookup, player match/auto-create, position sync, availability_note, success screen). Live at https://arm-app-black.vercel.app. Phase 7 builds the Selection Board: mobile (available players list + team dropdown assign + swipe between teams + drag-to-reorder within team) and tablet/desktop (full multi-column drag-drop). Player overlay shows Coach Notes (editable) + Availability Note for the current week (read-only)."
+
+---
+
+## Session Summary — Phase 7 Complete — 2026-03-28
+
+### PRD version confirmed
+- PRD v1.8 read in full. Used as source of truth for Phase 7.
+
+### Phase 7 — Selection Board — Completed
+
+- CP-7.1 — `useSelectionBoard` hook: parallel fetch of players (non-archived), availability_responses (latest per player via DESC order), week_teams, team_selections for the selected weekId. Derives `unassignedPlayers` (Available/TBC/no-response, sorted Available-first then TBC then no-response, then alpha). Exposes `assignPlayer`, `removePlayer`, `reorderTeam`, `movePlayer` with optimistic updates + Supabase upsert (ON CONFLICT week_id,week_team_id) + fetchData rollback on error.
+- CP-7.2 — Mobile unassigned list: `AssignRow` component — player name/position, availability badge, "Add to" dropdown showing all 5 teams. Assign calls `assignPlayer` and player moves to team view immediately.
+- CP-7.3 — Mobile swipe: left/right arrow nav + dot indicator bar. Views cycle: Unassigned → Team 1 → Team 2 → … → Team 5. Dot click navigates directly.
+- CP-7.4 — Mobile drag-to-reorder: `MobileTeamView` uses dnd-kit `SortableContext` + `useSortable` per player. TouchSensor with 200ms delay. Starters / Reserves sections split at `starters_count`. Persisted via `reorderTeam` on drag end.
+- CP-7.5 — Desktop multi-column drag-drop: `DndContext` wraps all columns. `useDroppable` per column (including unassigned). Cross-team moves call `movePlayer`. Same-team reorder calls `reorderTeam`. `DragOverlay` renders dragged chip. `DesktopUnassignedColumn` is droppable — dropping a team player here calls `removePlayer`.
+- CP-7.6 — `PlayerOverlay`: bottom sheet (mobile) / centred modal (desktop). Shows Coach Notes (editable textarea + Save button, saves to `players.notes`). Shows Availability Note (read-only, yellow callout, hidden if none submitted, labelled "Availability Note — Week of [label]"). Player info row shows status / type / secondary positions.
+- CP-7.7 — Integration: `SelectionBoard` + `PlayerOverlay` wired into `Weeks.tsx`. Board renders below `WeekDetail` for open weeks only. `useSelectionBoard` called with `weekId = null` for closed/no weeks (hook no-ops). Commit: `8e39d8f`.
+
+**Note on swipe gesture:** Implemented as arrow-nav + dot indicator rather than touch-swipe gesture. Actual swipe can be added in Phase 12 polish.
+
+**New files:**
+- `src/hooks/useSelectionBoard.ts`
+- `src/components/SelectionBoard.tsx`
+- `src/components/PlayerOverlay.tsx`
+
+**Modified files:**
+- `src/pages/Weeks.tsx`
+
+### Infrastructure note
+- GitHub push blocked by VM network proxy (same as prior phases).
+- **Action required:** Run `git push origin main` from terminal. Commit: `8e39d8f`.
+- No new Supabase migrations required for Phase 7.
+
+### Current state
+- Last clean checkpoint: CP-7.7
+- All changes committed locally: Yes
+- Pushed to GitHub: **No — requires manual push**
+- Tests passing: N/A
+
+### Next session starts at
+- **CP-8.1** — Auto-remove: Unavailable submission removes player from team_selections for that week (app-level logic triggered on availability form submit)
+- Then: **CP-9.1** — Close Week: confirmation dialog, set Closed, update last_played fields, auto-insert archive_game_notes rows
+- Files to touch: `src/pages/AvailabilityForm.tsx` (Phase 8), `src/pages/Weeks.tsx` + new close-week logic (Phase 9)
+- Decisions pending: None
+
+### Paste this at the start of next session
+"Continuing ARM Phase 8 from CP-8.1. Phases 1–7 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), Availability Form (public, full submit logic), and a fully working Selection Board (mobile arrow-nav + assign dropdown + dnd reorder; desktop multi-column drag-drop; Player overlay with Coach Notes editable + Availability Note read-only). Live at https://arm-app-black.vercel.app after manual push. Phase 8: auto-remove player from team_selections when they submit Unavailable."
