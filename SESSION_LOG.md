@@ -144,3 +144,41 @@
 
 ### Paste this at the start of next session
 "Continuing ARM Phase 6 from CP-6.1. Phases 1–5 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV), Depth Chart (drag-to-reorder, persisted), and a full Weeks tab (create week, UUID token, Copy Link + Share buttons, week switcher). Live at https://arm-app-black.vercel.app after manual push. Phase 6 builds the public Availability Submission form: /availability/:token page, matching logic, auto-create player, position sync on Available, store responses, success/error states, Supabase real-time for coach view."
+
+---
+
+## Session Summary — Phase 6 Complete — 2026-03-28
+
+### PRD version confirmed
+- PRD v1.8 read in full. Used as source of truth for Phase 6.
+
+### Phase 6 — Schema Migration + Availability Form — Completed
+
+- CP-6.1 — Migration 005: renamed `availability_responses.note → availability_note`, expanded `players.status` CHECK to include `Archived`, created `archive_game_notes` table (with partial unique index + RLS). TypeScript types updated: `PlayerStatus += Archived`, `AvailabilityResponse.note → availability_note`, `ArchiveGameNote` interface added, `PLAYER_STATUSES += Archived`. Roster: `showArchived` toggle (Archived hidden by default, purple checkbox in filter panel, included in activeFilters count, `clearFilters` resets it). `PlayerCard` Archived badge colour fixed (`#374151`).
+- CP-6.2–6.5 — `AvailabilityForm.tsx` (full rewrite from stub, 595 lines): token resolution via anon Supabase query (invalid / closed / open states); form fields in PRD order (name → phone → availability card-radio → positions hidden when Unavailable → availability_note); submit logic: phone match → name ilike match → auto-create (Unspecified / Open / Active, placeholder email + DOB); position sync on Available submissions only; stores `availability_note` + `submitted_primary_position` + `submitted_secondary_positions`; success screen with player first name + availability label; 16px inputs (prevents iOS zoom); safe-area-inset padding.
+
+**New / modified files:**
+- `supabase/migrations/005_phase6.sql` (new)
+- `src/lib/supabase.ts` (PlayerStatus, AvailabilityResponse, ArchiveGameNote, PLAYER_STATUSES)
+- `src/pages/Roster.tsx` (showArchived toggle)
+- `src/components/PlayerCard.tsx` (Archived badge)
+- `src/pages/AvailabilityForm.tsx` (stub → full implementation)
+
+### Infrastructure note
+- GitHub push blocked by VM network proxy.
+- **Action required:** Run `git push origin main` from terminal. Commits: `b71a504` (CP-6.1), `6e4c9ce` (CP-6.2–6.5).
+- Migration `005_phase6.sql` already applied to Supabase (confirmed by user this session).
+
+### Current state
+- Last clean checkpoint: CP-6.5
+- All changes committed locally: Yes
+- Pushed to GitHub: **No — requires manual push**
+- Tests passing: N/A
+
+### Next session starts at
+- **CP-7.1** — Selection Board: mobile layout (available players list + team dropdown assign)
+- Files to touch: `src/pages/Weeks.tsx` (add Selection Board tab/section), new `src/hooks/useSelectionBoard.ts`, new `src/components/SelectionBoard.tsx`
+- Decisions pending: None — PRD v1.8 §Selection Board locked
+
+### Paste this at the start of next session
+"Continuing ARM Phase 7 from CP-7.1. Phases 1–6 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), and a fully working public Availability Form (/availability/:token — token lookup, player match/auto-create, position sync, availability_note, success screen). Live at https://arm-app-black.vercel.app. Phase 7 builds the Selection Board: mobile (available players list + team dropdown assign + swipe between teams + drag-to-reorder within team) and tablet/desktop (full multi-column drag-drop). Player overlay shows Coach Notes (editable) + Availability Note for the current week (read-only)."
