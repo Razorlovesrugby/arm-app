@@ -661,7 +661,6 @@ export default function Weeks() {
             </div>
 
             <SelectionBoard
-              week={selectedWeek}
               playerMap={playerMap}
               unassignedPlayers={unassignedPlayers}
               teams={boardTeams}

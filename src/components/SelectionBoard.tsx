@@ -21,7 +21,6 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { PlayerWithAvailability, TeamSelectionState } from '../hooks/useSelectionBoard'
-import { WeekWithTeams } from '../hooks/useWeeks'
 
 // ─── Availability badge helpers ───────────────────────────────────────────────
 
@@ -429,7 +428,6 @@ interface DesktopColumnProps {
   playerMap: Record<string, PlayerWithAvailability>
   onRemove: (playerId: string) => void
   onPlayerTap: (player: PlayerWithAvailability) => void
-  activeId: string | null
 }
 
 function DesktopColumn({
@@ -437,7 +435,6 @@ function DesktopColumn({
   playerMap,
   onRemove,
   onPlayerTap,
-  activeId,
 }: DesktopColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: `col-${team.weekTeamId}` })
 
@@ -555,13 +552,11 @@ function DesktopColumn({
 interface DesktopUnassignedColumnProps {
   unassignedPlayers: PlayerWithAvailability[]
   onPlayerTap: (player: PlayerWithAvailability) => void
-  activeId: string | null
 }
 
 function DesktopUnassignedColumn({
   unassignedPlayers,
   onPlayerTap,
-  activeId,
 }: DesktopUnassignedColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: 'col-unassigned' })
 
@@ -624,7 +619,6 @@ function DesktopUnassignedColumn({
 // ─── Main SelectionBoard component ───────────────────────────────────────────
 
 export interface SelectionBoardProps {
-  week: WeekWithTeams
   playerMap: Record<string, PlayerWithAvailability>
   unassignedPlayers: PlayerWithAvailability[]
   teams: TeamSelectionState[]
@@ -638,7 +632,6 @@ export interface SelectionBoardProps {
 }
 
 export default function SelectionBoard({
-  week,
   playerMap,
   unassignedPlayers,
   teams,
@@ -658,7 +651,6 @@ export default function SelectionBoard({
 
   // Desktop drag state
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [activeFromTeamId, setActiveFromTeamId] = useState<string | null>(null)
 
   const desktopSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -714,9 +706,7 @@ export default function SelectionBoard({
   }
 
   function handleDesktopDragStart(event: DragStartEvent) {
-    const id = String(event.active.id)
-    setActiveId(id)
-    setActiveFromTeamId(findTeamContainingPlayer(id))
+    setActiveId(String(event.active.id))
   }
 
   function handleDesktopDragOver(_event: DragOverEvent) {
@@ -726,7 +716,6 @@ export default function SelectionBoard({
   function handleDesktopDragEnd(event: DragEndEvent) {
     const { active, over } = event
     setActiveId(null)
-    setActiveFromTeamId(null)
     if (!over) return
 
     const draggedId = String(active.id)
@@ -930,7 +919,6 @@ export default function SelectionBoard({
         <DesktopUnassignedColumn
           unassignedPlayers={unassignedPlayers}
           onPlayerTap={onPlayerTap}
-          activeId={activeId}
         />
 
         {/* Team columns */}
@@ -941,7 +929,6 @@ export default function SelectionBoard({
             playerMap={playerMap}
             onRemove={playerId => onRemovePlayer(playerId, team.weekTeamId)}
             onPlayerTap={onPlayerTap}
-            activeId={activeId}
           />
         ))}
       </div>
