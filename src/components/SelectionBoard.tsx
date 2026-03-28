@@ -175,8 +175,19 @@ function FilledRow({
       opacity: isDragging ? 0.6 : 1,
       transition: 'border-color 0.1s',
     }}>
+      {/* Large drag handle — easier to grip on mobile */}
       {dragHandle && (
-        <span style={{ color: '#D1D5DB', cursor: 'grab', flexShrink: 0, display: 'flex' }}>
+        <span style={{
+          color: '#9CA3AF',
+          cursor: 'grab',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 36,
+          height: 44,
+          margin: '-4px -4px -4px -6px',
+        }}>
           {dragHandle}
         </span>
       )}
@@ -189,7 +200,7 @@ function FilledRow({
           minWidth: 0,
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '0px',
           background: 'none',
           border: 'none',
           padding: 0,
@@ -197,7 +208,6 @@ function FilledRow({
           textAlign: 'left',
         }}
       >
-        <PlayerAvatar player={player} size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
             margin: 0,
@@ -318,7 +328,7 @@ function SortableFilledRow({ id, shirtNumber, player, onRemove, onTap }: Sortabl
         onRemove={onRemove}
         onTap={onTap}
         isDragging={isDragging}
-        dragHandle={<span {...listeners}><GripVertical size={16} /></span>}
+        dragHandle={<span {...listeners}><GripVertical size={22} /></span>}
       />
     </div>
   )
