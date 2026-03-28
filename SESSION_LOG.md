@@ -215,10 +215,20 @@
 - **Action required:** Run `git push origin main` from terminal. Commit: `8e39d8f`.
 - No new Supabase migrations required for Phase 7.
 
+- CP-7.8 — **Selection Board redesign** (this session): full rewrite of `SelectionBoard.tsx` to match product mockup.
+  - Team tabs: scrollable pill-style tabs at top, one per team, with live player-count badge
+  - TeamSheet: numbered position rows 1–15 (starters) + bench rows for any extra players; each row shows shirt-number circle, rugby position label (Loosehead Prop → Fullback), colored avatar circle with player initials + availability dot
+  - FilledRow: avatar + name + position label + drag handle (dnd-kit long-press reorder) + × remove button; tap player to open PlayerOverlay
+  - EmptyRow: dashed placeholder row showing shirt number + position name; tap scrolls to Unassigned pool
+  - SortableFilledRow: dnd-kit useSortable with 200ms touch delay for in-team reorder; persists via reorderTeam
+  - UnassignedPool: collapsible panel below team sheet; each player shows avatar + name + position + avail badge + purple "+" button; "+" appends player to the currently active team tab
+  - Removed old multi-column desktop drag-drop layout; single tabbed UI works on all screen sizes
+  - Props interface unchanged; Weeks.tsx integration unaffected. Commit: `f8cdd62`
+
 ### Current state
-- Last clean checkpoint: CP-7.7
+- Last clean checkpoint: CP-7.8
 - All changes committed locally: Yes
-- Pushed to GitHub: **No — requires manual push**
+- Pushed to GitHub: **No — requires manual push** (commits since last push: f8cdd62 + earlier session commits)
 - Tests passing: N/A
 
 ### Next session starts at
@@ -228,4 +238,4 @@
 - Decisions pending: None
 
 ### Paste this at the start of next session
-"Continuing ARM Phase 8 from CP-8.1. Phases 1–7 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), Availability Form (public, full submit logic), and a fully working Selection Board (mobile arrow-nav + assign dropdown + dnd reorder; desktop multi-column drag-drop; Player overlay with Coach Notes editable + Availability Note read-only). Live at https://arm-app-black.vercel.app after manual push. Phase 8: auto-remove player from team_selections when they submit Unavailable."
+"Continuing ARM Phase 8 from CP-8.1. Phases 1–7 complete and committed. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), Availability Form (public, full submit logic), and a fully working Selection Board (tabbed team view, numbered rugby position rows, colored avatar circles with initials + availability dot, dnd-kit drag-to-reorder, unassigned pool with "+" assign buttons, PlayerOverlay with editable Coach Notes). Live at https://arm-app-black.vercel.app after manual push. Phase 8: auto-remove player from team_selections when they submit Unavailable."
