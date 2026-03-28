@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Copy, Share2, Plus, Check, ChevronDown, Link } from 'lucide-react'
+import { Calendar, Copy, Share2, Plus, Check, ChevronDown, Link, Users } from 'lucide-react'
 import { useWeeks, WeekWithTeams } from '../hooks/useWeeks'
+import { useSelectionBoard, PlayerWithAvailability } from '../hooks/useSelectionBoard'
+import SelectionBoard from '../components/SelectionBoard'
+import PlayerOverlay from '../components/PlayerOverlay'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -507,6 +510,7 @@ export default function Weeks() {
   const { weeks, loading, error, refetch, createWeek } = useWeeks()
   const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [overlayPlayer, setOverlayPlayer] = useState<PlayerWithAvailability | null>(null)
 
   // Auto-select most recent open week on first load
   useEffect(() => {
@@ -517,6 +521,19 @@ export default function Weeks() {
   }, [weeks, selectedWeekId])
 
   const selectedWeek = weeks.find(w => w.id === selectedWeekId) ?? null
+
+  // Selection Board state (always called — weekId null when no week selected)
+  const {
+    playerMap,
+    unassignedPlayers,
+    teams: boardTeams,
+    loading: boardLoading,
+    error: boardError,
+    assignPlayer,
+    removePlayer,
+    reorderTeam,
+    movePlayer,
+  } = useSelectionBoard(selectedWeek?.status === 'Open' ? selectedWeekId : null)
 
   if (loading) {
     return (
@@ -615,6 +632,50 @@ export default function Weeks() {
         {/* Selected week detail */}
         {selectedWeek && <WeekDetail week={selectedWeek} />}
 
+        {/* Selection Board — open weeks only */}
+        {selectedWeek && selectedWeek.status === 'Open' && (
+          <div style={{ marginTop: '24px' }}>
+            {/* Section header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '14px',
+            }}>
+              <Users size={16} color="#6B21A8" />
+              <p style={{
+                margin: 0,
+                fontSize: '15px',
+                fontWeight: '700',
+                color: '#111827',
+              }}>
+                Selection Board
+              </p>
+              <span style={{
+                marginLeft: 'auto',
+                fontSize: '12px',
+                color: '#9CA3AF',
+              }}>
+                {unassignedPlayers.length} unassigned
+              </span>
+            </div>
+
+            <SelectionBoard
+              week={selectedWeek}
+              playerMap={playerMap}
+              unassignedPlayers={unassignedPlayers}
+              teams={boardTeams}
+              loading={boardLoading}
+              error={boardError}
+              onAssignPlayer={assignPlayer}
+              onRemovePlayer={removePlayer}
+              onReorderTeam={reorderTeam}
+              onMovePlayer={movePlayer}
+              onPlayerTap={setOverlayPlayer}
+            />
+          </div>
+        )}
+
         {/* All weeks list — shown when 2+ weeks exist */}
         {weeks.length > 1 && (
           <div style={{ marginTop: '24px' }}>
@@ -674,6 +735,15 @@ export default function Weeks() {
             setSelectedWeekId(null)
           }}
           createWeek={createWeek}
+        />
+      )}
+
+      {/* Player overlay */}
+      {overlayPlayer && selectedWeek && (
+        <PlayerOverlay
+          player={overlayPlayer}
+          weekLabel={selectedWeek.label}
+          onClose={() => setOverlayPlayer(null)}
         />
       )}
     </>
