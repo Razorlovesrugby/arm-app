@@ -64,6 +64,7 @@ export interface WeekTeam {
   team_name: string
   sort_order: number
   starters_count: number
+  visible: boolean          // CP7-A: controls tab visibility
 }
 
 export interface AvailabilityResponse {
@@ -91,7 +92,10 @@ export interface TeamSelection {
   week_id: string
   week_team_id: string
   player_order: string[]
+  captain_id: string | null  // CP7-A: nullable, one per row
   saved_at: string
+  created_at: string
+  updated_at: string
 }
 
 export const POSITIONS: Position[] = [

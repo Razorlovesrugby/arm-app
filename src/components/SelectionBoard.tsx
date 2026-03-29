@@ -1,12 +1,20 @@
-import { useState, CSSProperties, ReactNode } from 'react'
-import { X, GripVertical, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+// src/components/SelectionBoard.tsx
+// CP7-A Core Rebuild — clean build per spec
+// Layout: Header → TeamTabs → BoardScrollArea → AddPlayersPill (fixed)
+// Drag: dnd-kit PointerSensor + TouchSensor + DragOverlay ghost
+// Sheets: Pool (unassigned players) rendered inline below board when open
+
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   DndContext,
-  closestCenter,
+  DragOverlay,
   PointerSensor,
+  TouchSensor,
+  closestCenter,
   useSensor,
   useSensors,
-  DragEndEvent,
+  type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -15,740 +23,704 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { PlayerWithAvailability, TeamSelectionState } from '../hooks/useSelectionBoard'
+import type { Week } from '../lib/supabase'
+import { useSelectionBoard, type SelectionTeam } from '../hooks/useSelectionBoard'
+import PlayerOverlay from './PlayerOverlay'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  '#6B21A8', '#1D4ED8', '#0F766E', '#B45309', '#BE185D',
-  '#7C3AED', '#0369A1', '#047857', '#92400E', '#9F1239',
-  '#0891B2', '#65A30D', '#C2410C',
-]
-
 const RUGBY_POSITIONS: Record<number, string> = {
-  1: 'Loosehead Prop',   2: 'Hooker',            3: 'Tighthead Prop',
+  1: 'Loosehead Prop',   2: 'Hooker',             3: 'Tighthead Prop',
   4: 'Lock',             5: 'Lock',               6: 'Blindside Flanker',
   7: 'Openside Flanker', 8: 'Number 8',           9: 'Scrum-half',
   10: 'Fly-half',        11: 'Left Wing',          12: 'Inside Centre',
   13: 'Outside Centre',  14: 'Right Wing',         15: 'Fullback',
 }
 
+const BOTTOM_NAV_H = 72  // px — matches Layout.tsx nav height
+const PILL_H = 78        // px — pill wrapper height (10+50+16 padding)
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface SelectionBoardProps {
+  weekId: string | null
+  weeks: Week[]
+  onWeekChange?: (weekId: string) => void  // reserved for CP7-B
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getAvatarColor(name: string): string {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) & 0xffff
-  }
-  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length]
+function availDotColor(avail: string | null | undefined): string | null {
+  if (avail === 'Available') return '#22c55e'
+  if (avail === 'TBC') return '#f59e0b'
+  return null
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  }
-  return name.slice(0, 2).toUpperCase()
-}
+// ─── Ghost Row ────────────────────────────────────────────────────────────────
 
-function availDotColor(avail: string | null): string {
-  if (avail === 'Available') return '#16A34A'
-  if (avail === 'TBC') return '#D97706'
-  if (avail === 'Unavailable') return '#DC2626'
-  return '#D1D5DB'
-}
-
-function availLabel(avail: string | null): string {
-  if (avail === 'Available') return 'Available'
-  if (avail === 'TBC') return 'TBC'
-  if (avail === 'Unavailable') return 'Unavailable'
-  return 'No response'
-}
-
-function availBg(avail: string | null): { bg: string; color: string } {
-  if (avail === 'Available') return { bg: '#DCFCE7', color: '#15803D' }
-  if (avail === 'TBC') return { bg: '#FEF3C7', color: '#B45309' }
-  if (avail === 'Unavailable') return { bg: '#FEE2E2', color: '#B91C1C' }
-  return { bg: '#F3F4F6', color: '#6B7280' }
-}
-
-// ─── PlayerAvatar ─────────────────────────────────────────────────────────────
-
-interface PlayerAvatarProps {
-  player: PlayerWithAvailability
-  size?: number
-}
-
-function PlayerAvatar({ player, size = 36 }: PlayerAvatarProps) {
-  const color = getAvatarColor(player.name)
-  const initials = getInitials(player.name)
+function GhostRow({ slot, startersCount }: { slot: number; startersCount: number }) {
+  const hint = slot <= startersCount ? RUGBY_POSITIONS[slot] : null
   return (
-    <div style={{
-      width: size,
-      height: size,
-      borderRadius: '50%',
-      background: color,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      position: 'relative',
-    }}>
-      <span style={{
-        color: '#fff',
-        fontSize: size * 0.38,
-        fontWeight: '700',
-        letterSpacing: '0.02em',
-        lineHeight: 1,
-      }}>
-        {initials}
+    <div
+      style={{
+        height: 52,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '0 12px',
+        borderBottom: '1px solid #0f0f0f',
+        opacity: 0.3,
+        background: '#000',
+      }}
+    >
+      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
+        {slot}
       </span>
-      {/* Availability dot */}
-      <span style={{
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: size * 0.32,
-        height: size * 0.32,
-        borderRadius: '50%',
-        background: availDotColor(player.latestAvailability),
-        border: '2px solid #fff',
-      }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.2)' }}>Unfilled</span>
+        {hint && (
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 8 }}>{hint}</span>
+        )}
+      </div>
     </div>
   )
 }
 
-// ─── Shirt number badge ───────────────────────────────────────────────────────
-
-function ShirtBadge({ number, filled }: { number: number; filled: boolean }) {
-  return (
-    <div style={{
-      width: 28,
-      height: 28,
-      borderRadius: '50%',
-      background: filled ? '#1E1B4B' : '#E5E7EB',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    }}>
-      <span style={{
-        color: filled ? '#fff' : '#9CA3AF',
-        fontSize: '12px',
-        fontWeight: '700',
-        lineHeight: 1,
-      }}>
-        {number}
-      </span>
-    </div>
-  )
-}
-
-// ─── Filled position row ──────────────────────────────────────────────────────
+// ─── Filled Row ───────────────────────────────────────────────────────────────
 
 interface FilledRowProps {
-  shirtNumber: number
-  player: PlayerWithAvailability
+  slot: number
+  playerId: string
+  playerName: string
+  primaryPosition: string | null
+  availColor: string | null
+  isCaptain: boolean
+  isDragOverlay?: boolean
+  onTapInfo: () => void
   onRemove: () => void
-  onTap: () => void
-  dragHandle?: ReactNode
-  isDragging?: boolean
+  sheetOpen: boolean
 }
 
 function FilledRow({
-  shirtNumber,
-  player,
-  onRemove,
-  onTap,
-  dragHandle,
-  isDragging = false,
+  slot, playerId, playerName, primaryPosition, availColor,
+  isCaptain, isDragOverlay = false, onTapInfo, onRemove, sheetOpen,
 }: FilledRowProps) {
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      padding: '8px 12px',
-      background: isDragging ? '#F3E8FF' : '#FFFFFF',
-      borderRadius: '10px',
-      border: `1px solid ${isDragging ? '#6B21A8' : '#E5E7EB'}`,
-      opacity: isDragging ? 0.6 : 1,
-      transition: 'border-color 0.1s',
-    }}>
-      {/* Large drag handle — easier to grip on mobile */}
-      {dragHandle && (
-        <span style={{
-          color: '#9CA3AF',
-          cursor: 'grab',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 36,
-          height: 44,
-          margin: '-4px -4px -4px -6px',
-        }}>
-          {dragHandle}
-        </span>
-      )}
-      <ShirtBadge number={shirtNumber} filled={true} />
-      {/* Native button for tap — most reliable across iOS Safari */}
-      <button
-        onClick={onTap}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0px',
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#111827',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}>
-            {player.name}
-          </p>
-          <p style={{
-            margin: '1px 0 0',
-            fontSize: '11px',
-            color: '#6B7280',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}>
-            {RUGBY_POSITIONS[shirtNumber] || `#${shirtNumber}`}
-            {player.primary_position ? ` · ${player.primary_position}` : ''}
-          </p>
-        </div>
-      </button>
-      <button
-        onClick={e => { e.stopPropagation(); onRemove() }}
-        style={{
-          background: 'none',
-          border: 'none',
-          padding: '4px',
-          cursor: 'pointer',
-          color: '#9CA3AF',
-          display: 'flex',
-          alignItems: 'center',
-          borderRadius: '4px',
-          flexShrink: 0,
-        }}
-        aria-label="Remove from team"
-      >
-        <X size={15} />
-      </button>
-    </div>
-  )
-}
-
-// ─── Empty position row ───────────────────────────────────────────────────────
-
-interface EmptyRowProps {
-  shirtNumber: number
-  onTap: () => void
-}
-
-function EmptyRow({ shirtNumber, onTap }: EmptyRowProps) {
-  const posLabel = shirtNumber <= 15 ? RUGBY_POSITIONS[shirtNumber] : `Replacement ${shirtNumber - 15}`
-  return (
-    <button
-      onClick={onTap}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: '8px 12px',
-        background: '#FAFAFA',
-        borderRadius: '10px',
-        border: '1px dashed #D1D5DB',
-        width: '100%',
-        cursor: 'pointer',
-        textAlign: 'left',
-      }}
-    >
-      <ShirtBadge number={shirtNumber} filled={false} />
-      <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#F3F4F6', flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: '13px', color: '#9CA3AF', fontStyle: 'italic' }}>
-          Unfilled
-        </p>
-        <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#D1D5DB' }}>
-          {posLabel}
-        </p>
-      </div>
-      <Plus size={16} style={{ color: '#9CA3AF', flexShrink: 0 }} />
-    </button>
-  )
-}
-
-// ─── Sortable filled row (dnd-kit wrapper) ────────────────────────────────────
-
-interface SortableFilledRowProps {
-  id: string
-  shirtNumber: number
-  player: PlayerWithAvailability
-  onRemove: () => void
-  onTap: () => void
-}
-
-function SortableFilledRow({ id, shirtNumber, player, onRemove, onTap }: SortableFilledRowProps) {
   const {
+    attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
     isDragging,
-  } = useSortable({ id })
+  } = useSortable({ id: playerId, disabled: isDragOverlay })
 
-  const style: CSSProperties = {
+  const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 1 : undefined,
   }
 
-  // NOTE: {attributes} intentionally omitted — it adds role="button" to the wrapper
-  // which causes iOS Safari to swallow click events on child interactive elements
   return (
-    <div ref={setNodeRef} style={style}>
-      <FilledRow
-        shirtNumber={shirtNumber}
-        player={player}
-        onRemove={onRemove}
-        onTap={onTap}
-        isDragging={isDragging}
-        dragHandle={<span {...listeners}><GripVertical size={22} /></span>}
-      />
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        height: 52,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '0 8px 0 12px',
+        borderBottom: '1px solid #0f0f0f',
+        background: '#000',
+      }}
+    >
+      {/* Slot number */}
+      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>
+        {slot}
+      </span>
+
+      {/* Player info — only tap target for overlay */}
+      <div
+        onClick={sheetOpen ? undefined : onTapInfo}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          cursor: sheetOpen ? 'default' : 'pointer',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {playerName}
+          </span>
+          {isCaptain && (
+            <span style={{
+              background: '#6B21A8', color: '#fff', fontSize: 9, fontWeight: 700,
+              padding: '2px 5px', borderRadius: 3, flexShrink: 0,
+            }}>C</span>
+          )}
+        </div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {primaryPosition ?? '—'}
+        </div>
+      </div>
+
+      {/* Availability dot */}
+      {availColor && (
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: availColor, flexShrink: 0 }} />
+      )}
+
+      {/* Drag handle — 44×44 touch target, only trigger for drag */}
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 44, height: 44, flexShrink: 0,
+          cursor: 'grab', touchAction: 'none',
+          color: 'rgba(255,255,255,0.18)', fontSize: 18,
+        }}
+      >
+        ⠿
+      </div>
+
+      {/* Remove button */}
+      <RemoveButton onRemove={onRemove} />
     </div>
   )
 }
 
-// ─── Team sheet ───────────────────────────────────────────────────────────────
+// ─── Remove Button ────────────────────────────────────────────────────────────
 
-interface TeamSheetProps {
-  team: TeamSelectionState
-  playerMap: Record<string, PlayerWithAvailability>
-  onRemove: (playerId: string) => void
-  onReorder: (weekTeamId: string, newIds: string[]) => void
-  onPlayerTap: (player: PlayerWithAvailability) => void
-  onEmptySlotTap: () => void
+function RemoveButton({ onRemove }: { onRemove: () => void }) {
+  const [pressed, setPressed] = useState(false)
+  return (
+    <button
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => { setPressed(false); onRemove() }}
+      onPointerLeave={() => setPressed(false)}
+      style={{
+        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+        border: pressed ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)',
+        background: pressed ? 'rgba(239,68,68,0.15)' : 'transparent',
+        color: pressed ? '#ef4444' : 'rgba(255,255,255,0.35)',
+        fontSize: 12, cursor: 'pointer', display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.1s',
+        // Expand touch target via padding trick
+        padding: 8, margin: -8,
+      }}
+      aria-label="Remove player"
+    >
+      ✕
+    </button>
+  )
 }
 
-function TeamSheet({
-  team,
-  playerMap,
-  onRemove,
-  onReorder,
-  onPlayerTap,
-  onEmptySlotTap,
-}: TeamSheetProps) {
-  const sensors = useSensors(
-    // PointerSensor works for both mouse (desktop) and touch (iOS 13.4+/Android).
-    // distance:8 means drag only activates after 8px movement — taps register normally.
-    // TouchSensor removed: it sets touch-action:none and competes with iOS click synthesis.
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+// ─── Bench Divider ────────────────────────────────────────────────────────────
+
+function BenchDivider() {
+  return (
+    <div style={{ position: 'relative', margin: '6px 0', display: 'flex', alignItems: 'center' }}>
+      <div style={{ flex: 1, borderTop: '1px dashed rgba(107,33,168,0.35)' }} />
+      <span style={{
+        position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+        background: '#000', padding: '0 8px',
+        fontSize: 10, fontWeight: 700, color: 'rgba(107,33,168,0.55)',
+        letterSpacing: '0.8px', textTransform: 'uppercase',
+      }}>
+        BENCH
+      </span>
+    </div>
   )
+}
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (!over || active.id === over.id) return
-    const oldIndex = team.playerIds.indexOf(String(active.id))
-    const newIndex = team.playerIds.indexOf(String(over.id))
-    if (oldIndex === -1 || newIndex === -1) return
-    onReorder(team.weekTeamId, arrayMove(team.playerIds, oldIndex, newIndex))
-  }
+// ─── Section Header ───────────────────────────────────────────────────────────
 
-  const startersCount = team.startersCount // default 15
-  const starters = team.playerIds.slice(0, startersCount)
-  const bench = team.playerIds.slice(startersCount)
+function SectionHeader({ label, count, total }: { label: string; count: number; total?: number }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 12px 4px' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+        {total !== undefined ? `${count} / ${total}` : count}
+      </span>
+    </div>
+  )
+}
 
-  // Build rows for starters: filled or empty
-  const starterRows = Array.from({ length: startersCount }, (_, i) => {
-    const playerId = starters[i] ?? null
-    const player = playerId ? playerMap[playerId] : null
-    return { shirtNumber: i + 1, playerId, player }
+// ─── Save Badge ───────────────────────────────────────────────────────────────
+
+function SaveBadge({ status, onRetry }: { status: 'idle' | 'saved' | 'error'; onRetry: () => void }) {
+  if (status === 'idle') return null
+  if (status === 'saved') return (
+    <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>✓ Saved</span>
+  )
+  return (
+    <button
+      onClick={onRetry}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#ef4444', padding: 0 }}
+    >
+      Save failed — tap to retry
+    </button>
+  )
+}
+
+// ─── Pool Sheet ───────────────────────────────────────────────────────────────
+
+type PoolFilter = 'All' | 'Available' | 'TBC' | 'Forward' | 'Back'
+
+const FORWARD_POSITIONS = ['Prop', 'Hooker', 'Lock', 'Flanker', 'Number 8']
+const BACK_POSITIONS = ['Scrum-half', 'Fly-half', 'Centre', 'Wing', 'Fullback']
+
+interface PoolSheetProps {
+  teamName: string
+  unassigned: ReturnType<typeof useSelectionBoard>['unassignedPlayers']
+  availabilityMap: ReturnType<typeof useSelectionBoard>['availabilityMap']
+  onAssign: (playerId: string) => void
+  onClose: () => void
+}
+
+function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onClose }: PoolSheetProps) {
+  const [activeFilter, setActiveFilter] = useState<PoolFilter>('All')
+
+  const FILTERS: PoolFilter[] = ['All', 'Available', 'TBC', 'Forward', 'Back']
+
+  const filtered = unassigned.filter(p => {
+    const av = availabilityMap[p.id]?.availability
+    const pos = p.primary_position ?? ''
+    if (activeFilter === 'All') return true
+    if (activeFilter === 'Available') return av === 'Available'
+    if (activeFilter === 'TBC') return av === 'TBC'
+    if (activeFilter === 'Forward') return FORWARD_POSITIONS.includes(pos)
+    if (activeFilter === 'Back') return BACK_POSITIONS.includes(pos)
+    return true
   })
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+      }}
     >
-      <SortableContext
-        items={team.playerIds}
-        strategy={verticalListSortingStrategy}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          {/* Starters section label */}
-          <p style={{
-            margin: '0 0 6px',
-            fontSize: '11px',
-            fontWeight: '700',
-            color: '#6B7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.07em',
-          }}>
-            Starters — {starters.length}/{startersCount}
-          </p>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}
+      />
 
-          {starterRows.map(({ shirtNumber, playerId, player }) => {
-            if (player && playerId) {
-              return (
-                <SortableFilledRow
-                  key={playerId}
-                  id={playerId}
-                  shirtNumber={shirtNumber}
-                  player={player}
-                  onRemove={() => onRemove(playerId)}
-                  onTap={() => onPlayerTap(player)}
-                />
-              )
-            }
-            return (
-              <EmptyRow
-                key={`empty-${shirtNumber}`}
-                shirtNumber={shirtNumber}
-                onTap={onEmptySlotTap}
-              />
-            )
-          })}
-
-          {/* Bench section */}
-          {bench.length > 0 && (
-            <>
-              <p style={{
-                margin: '12px 0 6px',
-                fontSize: '11px',
-                fontWeight: '700',
-                color: '#6B7280',
-                textTransform: 'uppercase',
-                letterSpacing: '0.07em',
-              }}>
-                Bench — {bench.length}
-              </p>
-              {bench.map((playerId, i) => {
-                const player = playerMap[playerId]
-                if (!player) return null
-                return (
-                  <SortableFilledRow
-                    key={playerId}
-                    id={playerId}
-                    shirtNumber={startersCount + i + 1}
-                    player={player}
-                    onRemove={() => onRemove(playerId)}
-                    onTap={() => onPlayerTap(player)}
-                  />
-                )
-              })}
-            </>
-          )}
+      {/* Sheet */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        background: '#111', borderRadius: '16px 16px 0 0',
+        maxHeight: '88vh', display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px', flexShrink: 0 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Add to {teamName}</span>
+          <button
+            onClick={onClose}
+            style={{ width: 28, height: 28, borderRadius: '50%', background: '#222', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >✕</button>
         </div>
-      </SortableContext>
-    </DndContext>
-  )
-}
 
-// ─── Unassigned pool ──────────────────────────────────────────────────────────
-
-interface UnassignedPoolProps {
-  players: PlayerWithAvailability[]
-  onAssignToTeam: (playerId: string) => void
-  activeTeamName: string
-}
-
-function UnassignedPool({ players, onAssignToTeam, activeTeamName }: UnassignedPoolProps) {
-  const [expanded, setExpanded] = useState(true)
-
-  return (
-    <div style={{
-      marginTop: '20px',
-      border: '1px solid #E5E7EB',
-      borderRadius: '12px',
-      overflow: 'hidden',
-    }}>
-      {/* Pool header */}
-      <button
-        onClick={() => setExpanded(v => !v)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '100%',
-          padding: '12px 14px',
-          background: '#F8F8F8',
-          border: 'none',
-          cursor: 'pointer',
-          borderBottom: expanded ? '1px solid #E5E7EB' : 'none',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{
-            fontSize: '13px',
-            fontWeight: '700',
-            color: '#111827',
-          }}>
-            Unassigned Players
-          </span>
-          <span style={{
-            background: players.length > 0 ? '#6B21A8' : '#E5E7EB',
-            color: players.length > 0 ? '#fff' : '#9CA3AF',
-            borderRadius: '999px',
-            fontSize: '11px',
-            fontWeight: '700',
-            padding: '1px 7px',
-          }}>
-            {players.length}
-          </span>
+        {/* Filter chips */}
+        <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto', flexShrink: 0, borderBottom: '1px solid #1f1f1f', WebkitOverflowScrolling: 'touch' }}>
+          {FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              style={{
+                padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+                background: activeFilter === f ? '#6B21A8' : '#1a1a1a',
+                color: activeFilter === f ? '#fff' : 'rgba(255,255,255,0.5)',
+              }}
+            >
+              {f}
+            </button>
+          ))}
         </div>
-        {expanded ? <ChevronUp size={16} color="#9CA3AF" /> : <ChevronDown size={16} color="#9CA3AF" />}
-      </button>
 
-      {expanded && (
-        <div style={{ background: '#fff' }}>
-          {players.length === 0 ? (
-            <p style={{
-              margin: 0,
-              padding: '16px 14px',
-              fontSize: '13px',
-              color: '#9CA3AF',
-              textAlign: 'center',
-              fontStyle: 'italic',
-            }}>
-              All available players have been assigned
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {players.map((player, i) => {
-                const { bg, color: badgeColor } = availBg(player.latestAvailability)
-                return (
-                  <div
-                    key={player.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 14px',
-                      borderBottom: i < players.length - 1 ? '1px solid #F3F4F6' : 'none',
-                    }}
-                  >
-                    <PlayerAvatar player={player} size={36} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        margin: 0,
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#111827',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}>
-                        {player.name}
-                      </p>
-                      <p style={{
-                        margin: '1px 0 0',
-                        fontSize: '11px',
-                        color: '#6B7280',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}>
-                        {player.primary_position || 'Unspecified'}
-                      </p>
-                    </div>
-                    <span style={{
-                      background: bg,
-                      color: badgeColor,
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      padding: '2px 7px',
-                      borderRadius: '999px',
-                      flexShrink: 0,
-                    }}>
-                      {availLabel(player.latestAvailability)}
-                    </span>
-                    {/* Assign button */}
-                    <button
-                      onClick={() => onAssignToTeam(player.id)}
-                      title={`Add to ${activeTeamName}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 30,
-                        height: 30,
-                        borderRadius: '50%',
-                        background: '#6B21A8',
-                        border: 'none',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        color: '#fff',
-                      }}
-                    >
-                      <Plus size={15} />
-                    </button>
-                  </div>
-                )
-              })}
+        {/* Player list */}
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 16px', fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+              {unassigned.length === 0 ? 'All players assigned' : 'No players match this filter'}
             </div>
+          ) : (
+            filtered.map(p => {
+              const av = availabilityMap[p.id]?.availability ?? null
+              const dotColor = availDotColor(av)
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => onAssign(p.id)}
+                  style={{
+                    height: 56, display: 'flex', alignItems: 'center',
+                    padding: '0 16px', borderBottom: '1px solid #1a1a1a',
+                    cursor: 'pointer', gap: 12,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.primary_position ?? 'Unspecified'} · {p.player_type}
+                    </div>
+                  </div>
+                  {av && (
+                    <span style={{ fontSize: 12, fontWeight: 600, color: dotColor ?? undefined, flexShrink: 0 }}>
+                      {av}
+                    </span>
+                  )}
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    background: 'rgba(107,33,168,0.2)', border: '1px solid rgba(107,33,168,0.4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#a855f7', fontSize: 18, fontWeight: 700,
+                  }}>+</div>
+                </div>
+              )
+            })
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
-// ─── Main SelectionBoard ──────────────────────────────────────────────────────
+// ─── Board Content ────────────────────────────────────────────────────────────
+// The sortable board rows for the active team
 
-interface SelectionBoardProps {
-  playerMap: Record<string, PlayerWithAvailability>
-  unassignedPlayers: PlayerWithAvailability[]
-  teams: TeamSelectionState[]
-  loading: boolean
-  error: string | null
-  onAssignPlayer: (playerId: string, toWeekTeamId: string) => Promise<void>
-  onRemovePlayer: (playerId: string, fromWeekTeamId: string) => Promise<void>
-  onReorderTeam: (weekTeamId: string, newPlayerIds: string[]) => Promise<void>
-  onMovePlayer: (playerId: string, fromWeekTeamId: string | null, toWeekTeamId: string) => Promise<void>
-  onPlayerTap: (player: PlayerWithAvailability) => void
+interface BoardContentProps {
+  team: SelectionTeam
+  availabilityMap: ReturnType<typeof useSelectionBoard>['availabilityMap']
+  sheetOpen: boolean
+  onTapPlayer: (playerId: string) => void
+  onRemove: (playerId: string) => void
 }
 
-export default function SelectionBoard({
-  playerMap,
-  unassignedPlayers,
-  teams,
-  loading,
-  error,
-  onAssignPlayer,
-  onRemovePlayer,
-  onReorderTeam,
-  onPlayerTap,
-}: SelectionBoardProps) {
-  const [activeTeamIndex, setActiveTeamIndex] = useState(0)
+function BoardContent({ team, availabilityMap, sheetOpen, onTapPlayer, onRemove }: BoardContentProps) {
+  const { weekTeam, players, captainId } = team
+  const startersCount = weekTeam.starters_count ?? 15
+  const benchCount = 8
+  const totalSlots = startersCount + benchCount
 
-  const activeTeam = teams[activeTeamIndex] ?? teams[0] ?? null
+  // Build slot array: filled players + ghost slots
+  const starterPlayers = players.slice(0, startersCount)
+  const benchPlayers = players.slice(startersCount)
 
-  if (loading) {
-    return (
-      <div style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF', fontSize: '14px' }}>
-        Loading selection board…
-      </div>
-    )
-  }
-
-  if (teams.length === 0) {
-    return (
-      <div style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>
-        No teams found for this week.
-      </div>
-    )
-  }
+  const startersAssigned = starterPlayers.filter(Boolean).length
+  const benchAssigned = benchPlayers.filter(Boolean).length
 
   return (
-    <div>
-      {/* Inline error banner */}
-      {error && (
-        <div style={{
-          marginBottom: '10px',
-          padding: '8px 12px',
-          background: '#FEE2E2',
-          borderRadius: '8px',
-          fontSize: '12px',
-          color: '#B91C1C',
-        }}>
-          Save failed: {error}
-        </div>
-      )}
+    <>
+      {/* Starters section */}
+      <SectionHeader label="STARTERS" count={startersAssigned} total={startersCount} />
+      {Array.from({ length: startersCount }, (_, i) => {
+        const slot = i + 1
+        const p = players[i]
+        if (!p) return <GhostRow key={`ghost-starter-${slot}`} slot={slot} startersCount={startersCount} />
+        const av = availabilityMap[p.id]?.availability ?? null
+        return (
+          <FilledRow
+            key={p.id}
+            slot={slot}
+            playerId={p.id}
+            playerName={p.name}
+            primaryPosition={p.primary_position}
+            availColor={availDotColor(av)}
+            isCaptain={captainId === p.id}
+            sheetOpen={sheetOpen}
+            onTapInfo={() => onTapPlayer(p.id)}
+            onRemove={() => onRemove(p.id)}
+          />
+        )
+      })}
 
-      {/* ── Team tab bar ─────────────────────────────────────────────────── */}
+      {/* Bench divider */}
+      <BenchDivider />
+
+      {/* Bench section */}
+      <SectionHeader label="BENCH" count={benchAssigned} />
+      {Array.from({ length: benchCount }, (_, i) => {
+        const slot = startersCount + i + 1
+        const p = players[startersCount + i]
+        if (!p) return <GhostRow key={`ghost-bench-${slot}`} slot={slot} startersCount={startersCount} />
+        const av = availabilityMap[p.id]?.availability ?? null
+        return (
+          <FilledRow
+            key={p.id}
+            slot={slot}
+            playerId={p.id}
+            playerName={p.name}
+            primaryPosition={p.primary_position}
+            availColor={availDotColor(av)}
+            isCaptain={captainId === p.id}
+            sheetOpen={sheetOpen}
+            onTapInfo={() => onTapPlayer(p.id)}
+            onRemove={() => onRemove(p.id)}
+          />
+        )
+      })}
+
+      {/* Bottom padding so last row isn't hidden behind pill */}
+      <div style={{ height: PILL_H + BOTTOM_NAV_H }} />
+    </>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function SelectionBoard({ weekId, weeks }: SelectionBoardProps) {
+  const board = useSelectionBoard(weekId)
+  const { teams, unassignedPlayers, availabilityMap, allPlayers, loading, error, saveStatus, assignPlayer, removePlayer, reorderTeam, setCaptain } = board
+
+  // ── Active team state ──────────────────────────────────────────────────
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(null)
+
+  // Auto-select first visible team on data load
+  useEffect(() => {
+    if (teams.length > 0 && !activeTeamId) {
+      setActiveTeamId(teams[0].weekTeam.id)
+    }
+    if (teams.length === 0) setActiveTeamId(null)
+  }, [teams])
+
+  const activeTeam = teams.find(t => t.weekTeam.id === activeTeamId) ?? teams[0] ?? null
+
+  // ── Sheet state ────────────────────────────────────────────────────────
+  const [poolOpen, setPoolOpen] = useState(false)
+  const [overlayPlayerId, setOverlayPlayerId] = useState<string | null>(null)
+  const sheetOpen = poolOpen || overlayPlayerId !== null
+
+  // ── Drag state ─────────────────────────────────────────────────────────
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  )
+
+  function handleDragStart(event: DragStartEvent) {
+    if (sheetOpen) return  // guard: no drag when a sheet is open
+    setDraggingId(event.active.id as string)
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    setDraggingId(null)
+    if (!activeTeam) return
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const playerIds = activeTeam.players.map(p => p.id)
+    const oldIndex = playerIds.indexOf(active.id as string)
+    const newIndex = playerIds.indexOf(over.id as string)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const newOrder = arrayMove(playerIds, oldIndex, newIndex)
+    reorderTeam(activeTeam.weekTeam.id, newOrder)
+  }
+
+  // ── Week label for header ──────────────────────────────────────────────
+  const activeWeek = weeks.find(w => w.id === weekId)
+  const weekLabel = activeWeek?.label ?? null
+
+  // ── Overlay player ─────────────────────────────────────────────────────
+  const overlayPlayer = overlayPlayerId
+    ? allPlayers.find(p => p.id === overlayPlayerId) ?? null
+    : null
+  const overlaySlot = overlayPlayer && activeTeam
+    ? (activeTeam.players.findIndex(p => p.id === overlayPlayerId) + 1) || null
+    : null
+  const overlayAvailResponse = overlayPlayerId ? availabilityMap[overlayPlayerId] ?? null : null
+  const overlayIsCaptain = activeTeam?.captainId === overlayPlayerId
+
+  // ── Dragging player (for ghost overlay) ───────────────────────────────
+  const draggingPlayer = draggingId ? allPlayers.find(p => p.id === draggingId) : null
+  const draggingSlot = draggingId && activeTeam
+    ? activeTeam.players.findIndex(p => p.id === draggingId) + 1
+    : null
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#000', color: '#fff', overflow: 'hidden' }}>
+
+      {/* ── Header ───────────────────────────────────────────────────────── */}
       <div style={{
-        display: 'flex',
-        gap: '6px',
-        overflowX: 'auto',
-        paddingBottom: '2px',
+        flexShrink: 0, background: '#000',
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid #111',
+      }}>
+        {/* Week label */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {weekLabel ? (
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{weekLabel}</span>
+          ) : (
+            <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)' }}>Select a week</span>
+          )}
+          <span style={{ color: '#6B21A8', fontSize: 14 }}>▾</span>
+        </div>
+
+        {/* Right: save badge + gear */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <SaveBadge status={saveStatus} onRetry={() => board.setSaveStatus('idle')} />
+          <button
+            style={{ width: 32, height: 32, background: '#1a1a1a', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 16, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            aria-label="Team management"
+          >⚙</button>
+        </div>
+      </div>
+
+      {/* ── Team tabs ────────────────────────────────────────────────────── */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex', overflowX: 'auto', gap: 0,
+        borderBottom: '1px solid #1a1a1a',
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
-        marginBottom: '14px',
       }}>
-        {teams.map((team, i) => {
-          const isActive = i === activeTeamIndex
+        {teams.map(t => {
+          const isActive = t.weekTeam.id === activeTeamId
           return (
             <button
-              key={team.weekTeamId}
-              onClick={() => setActiveTeamIndex(i)}
+              key={t.weekTeam.id}
+              onClick={() => setActiveTeamId(t.weekTeam.id)}
               style={{
-                flexShrink: 0,
-                padding: '7px 14px',
-                borderRadius: '20px',
-                border: `2px solid ${isActive ? '#6B21A8' : '#E5E7EB'}`,
-                background: isActive ? '#6B21A8' : '#fff',
-                color: isActive ? '#fff' : '#374151',
-                fontSize: '13px',
-                fontWeight: isActive ? '700' : '500',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
+                flexShrink: 0, padding: '10px 16px',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 14, fontWeight: 600,
+                color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
+                borderBottom: isActive ? '2px solid #6B21A8' : '2px solid transparent',
+                whiteSpace: 'nowrap',
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
-              {team.teamName}
-              {team.playerIds.length > 0 && (
-                <span style={{
-                  background: isActive ? 'rgba(255,255,255,0.3)' : '#F3F4F6',
-                  color: isActive ? '#fff' : '#6B7280',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  padding: '0px 5px',
-                  borderRadius: '999px',
-                  minWidth: '18px',
-                  textAlign: 'center',
-                }}>
-                  {team.playerIds.length}
-                </span>
-              )}
+              {t.weekTeam.team_name}
             </button>
           )
         })}
       </div>
 
-      {/* ── Active team sheet ─────────────────────────────────────────────── */}
+      {/* ── Board scroll area ─────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+
+        {loading && (
+          <div style={{ textAlign: 'center', padding: 32, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Loading…</div>
+        )}
+
+        {!loading && error && (
+          <div style={{ textAlign: 'center', padding: 32, color: '#ef4444', fontSize: 14 }}>{error}</div>
+        )}
+
+        {!loading && !error && !activeTeam && weekId && (
+          <div style={{ textAlign: 'center', padding: 32, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>No teams for this week.</div>
+        )}
+
+        {!loading && !error && !weekId && (
+          <div style={{ textAlign: 'center', padding: 32, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Select a week to view the board.</div>
+        )}
+
+        {!loading && !error && activeTeam && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={activeTeam.players.map(p => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <BoardContent
+                team={activeTeam}
+                availabilityMap={availabilityMap}
+                sheetOpen={sheetOpen}
+                onTapPlayer={setOverlayPlayerId}
+                onRemove={(pid) => removePlayer(activeTeam.weekTeam.id, pid)}
+              />
+            </SortableContext>
+
+            {/* DragOverlay — floating ghost, renders at highest z-index */}
+            <DragOverlay>
+              {draggingPlayer && draggingSlot !== null ? (
+                <div style={{
+                  height: 52, display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '0 12px', background: '#1a1a1a', borderRadius: 8,
+                  border: '1px solid rgba(107,33,168,0.4)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
+                  width: '90vw', maxWidth: 400,
+                }}>
+                  <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>{draggingSlot}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', flex: 1 }}>{draggingPlayer.name}</span>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
+      </div>
+
+      {/* ── Add Players pill (fixed above nav) ───────────────────────────── */}
       {activeTeam && (
-        <TeamSheet
-          team={activeTeam}
-          playerMap={playerMap}
-          onRemove={playerId => onRemovePlayer(playerId, activeTeam.weekTeamId)}
-          onReorder={onReorderTeam}
-          onPlayerTap={onPlayerTap}
-          onEmptySlotTap={() => {
-            // Scroll to unassigned pool
-            const el = document.getElementById('arm-unassigned-pool')
-            el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        <div
+          style={{
+            flexShrink: 0,
+            padding: '10px 16px 16px',
+            background: 'linear-gradient(to top, #000 55%, transparent)',
+            position: 'relative', zIndex: 10,
           }}
+        >
+          <button
+            onClick={() => setPoolOpen(true)}
+            style={{
+              width: '100%', height: 50, background: '#6B21A8', border: 'none',
+              borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700,
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+            onPointerDown={e => (e.currentTarget.style.background = '#581c87')}
+            onPointerUp={e => (e.currentTarget.style.background = '#6B21A8')}
+            onPointerLeave={e => (e.currentTarget.style.background = '#6B21A8')}
+          >
+            + Add Players
+          </button>
+        </div>
+      )}
+
+      {/* ── Pool sheet ────────────────────────────────────────────────────── */}
+      {poolOpen && activeTeam && (
+        <PoolSheet
+          teamName={activeTeam.weekTeam.team_name}
+          unassigned={unassignedPlayers}
+          availabilityMap={availabilityMap}
+          onAssign={(pid) => {
+            assignPlayer(activeTeam.weekTeam.id, pid)
+            setPoolOpen(false)
+          }}
+          onClose={() => setPoolOpen(false)}
         />
       )}
 
-      {/* ── Unassigned pool ──────────────────────────────────────────────── */}
-      <div id="arm-unassigned-pool">
-        {activeTeam && (
-          <UnassignedPool
-            players={unassignedPlayers}
-            onAssignToTeam={playerId => onAssignPlayer(playerId, activeTeam.weekTeamId)}
-            activeTeamName={activeTeam.teamName}
-          />
-        )}
-      </div>
+      {/* ── Player overlay ────────────────────────────────────────────────── */}
+      {overlayPlayer && activeTeam && (
+        <PlayerOverlay
+          player={overlayPlayer}
+          slot={overlaySlot}
+          isCaptain={overlayIsCaptain}
+          availabilityResponse={overlayAvailResponse}
+          onSetCaptain={(isCaptain) => {
+            setCaptain(activeTeam.weekTeam.id, isCaptain ? overlayPlayer.id : null)
+          }}
+          onClose={() => setOverlayPlayerId(null)}
+        />
+      )}
+
     </div>
   )
 }

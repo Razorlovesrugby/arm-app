@@ -1,200 +1,85 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Users, Calendar, Archive, LogOut } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
-import InstallPrompt from './InstallPrompt'
+// src/components/Layout.tsx
+// CP7A.1 — Three-tab bottom navigation: Roster · Board · Weeks
+// Replaces previous nav shell (Players · Weeks · Archive)
+// Archive route is preserved in routing but not surfaced in nav until Phase 11
 
-const NAV_ITEMS = [
-  { to: '/players', label: 'Players', icon: Users },
-  { to: '/weeks',   label: 'Weeks',   icon: Calendar },
-  { to: '/archive', label: 'Archive', icon: Archive },
-]
+import { useLocation, useNavigate, Outlet } from 'react-router-dom'
+
+// No children prop — uses React Router Outlet for nested routes
+
+const NAV_TABS = [
+  { path: '/roster',  label: 'Roster', icon: '👥' },
+  { path: '/board',   label: 'Board',  icon: '🏉' },
+  { path: '/weeks',   label: 'Weeks',  icon: '📅' },
+] as const
 
 export default function Layout() {
-  const { signOut } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
 
-  async function handleSignOut() {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
+  const activeTab = NAV_TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/roster'
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#000', color: '#fff' }}>
 
-      {/* ── Sidebar (tablet/desktop ≥ 768px) ── */}
-      <aside
+      {/* ── Main content area ─────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+        <Outlet />
+      </div>
+
+      {/* ── Bottom navigation bar ─────────────────────────────────────── */}
+      {/* Height: 72px (64px bar + 8px safe-area padding). Fixed to bottom. */}
+      <nav
         style={{
-          display: 'none',       // hidden on mobile; shown via media query below
-          width: '220px',
           flexShrink: 0,
-          background: '#FFFFFF',
-          borderRight: '1px solid #E5E7EB',
-          flexDirection: 'column',
-          padding: '24px 0',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          height: '100%',
-          zIndex: 40,
+          height: 72,
+          paddingBottom: 8,
+          background: '#0a0a0a',
+          borderTop: '1px solid #1a1a1a',
+          display: 'flex',
+          alignItems: 'stretch',
         }}
-        className="sidebar"
       >
-        {/* ARM wordmark */}
-        <div style={{ padding: '0 20px 28px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <div
+        {NAV_TABS.map(tab => {
+          const isActive = activeTab === tab.path
+          return (
+            <button
+              key={tab.path}
+              onClick={() => navigate(tab.path)}
               style={{
-                width: '36px',
-                height: '36px',
-                background: '#6B21A8',
-                borderRadius: '8px',
+                flex: 1,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#FFFFFF',
-                fontSize: '12px',
-                fontWeight: '700',
-                letterSpacing: '-0.3px',
+                gap: 2,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px 0 0 0',
+                WebkitTapHighlightColor: 'transparent',
+                // Touch target minimum 44px — flex item fills full 64px bar height
               }}
+              aria-label={tab.label}
+              aria-current={isActive ? 'page' : undefined}
             >
-              ARM
-            </div>
-            <span style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
-              Belsize Park RFC
-            </span>
-          </div>
-        </div>
-
-        {/* Nav items */}
-        <nav style={{ flex: 1, padding: '0 12px' }}>
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: isActive ? '600' : '500',
-                color: isActive ? '#6B21A8' : '#6B7280',
-                background: isActive ? '#F3E8FF' : 'transparent',
-                marginBottom: '2px',
-                minHeight: '44px',
-              })}
-            >
-              <Icon size={20} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Sign out */}
-        <div style={{ padding: '0 12px' }}>
-          <button
-            onClick={handleSignOut}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              width: '100%',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#6B7280',
-              minHeight: '44px',
-            }}
-          >
-            <LogOut size={20} />
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main content area ── */}
-      <main
-        className="main-content"
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100dvh',
-          // Leave room for bottom tab bar on mobile
-          paddingBottom: 'calc(64px + env(safe-area-inset-bottom))',
-          overflow: 'hidden',
-        }}
-      >
-        <InstallPrompt />
-        <Outlet />
-      </main>
-
-      {/* ── Bottom tab bar (mobile < 768px) ── */}
-      <nav
-        className="bottom-tabs"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: '#FFFFFF',
-          borderTop: '1px solid #E5E7EB',
-          display: 'flex',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          zIndex: 40,
-        }}
-        aria-label="Main navigation"
-      >
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            style={({ isActive }) => ({
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              padding: '10px 0',
-              textDecoration: 'none',
-              color: isActive ? '#6B21A8' : '#6B7280',
-              minHeight: '56px',
-              fontSize: '11px',
-              fontWeight: isActive ? '600' : '400',
-              borderTop: isActive ? '2px solid #6B21A8' : '2px solid transparent',
-            })}
-            aria-label={label}
-          >
-            <Icon size={22} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+              <span style={{ fontSize: 20, lineHeight: 1 }}>{tab.icon}</span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  color: isActive ? '#6B21A8' : 'rgba(255,255,255,0.35)',
+                  transition: 'color 0.15s',
+                }}
+              >
+                {tab.label}
+              </span>
+            </button>
+          )
+        })}
       </nav>
 
-      {/* ── Responsive styles ── */}
-      <style>{`
-        @media (min-width: 768px) {
-          .sidebar       { display: flex !important; }
-          .bottom-tabs   { display: none !important; }
-          .main-content  {
-            margin-left: 220px;
-            padding-bottom: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }

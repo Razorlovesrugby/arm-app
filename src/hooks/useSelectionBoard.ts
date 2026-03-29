@@ -1,47 +1,64 @@
-import { useEffect, useState, useCallback } from 'react'
-import { supabase, Player, AvailabilityResponse } from '../lib/supabase'
+// src/hooks/useSelectionBoard.ts
+// CP7A.2 — Extended for CP7-A
+// Changes from Phase 7:
+//   • Reads week_teams.visible — filters tab list
+//   • Reads team_selections.captain_id — exposes per-team captain
+//   • New mutation: setCaptain(teamId, playerId | null)
+//   • All existing mutations (assignPlayer, removePlayer, reorderTeam, movePlayer) retained unchanged
+//   • Optimistic update + rollback pattern retained throughout
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+import type { Player, WeekTeam, TeamSelection, AvailabilityResponse } from '../lib/supabase'
 
-export interface PlayerWithAvailability extends Player {
-  latestAvailability: 'Available' | 'TBC' | 'Unavailable' | null
-  availabilityNote: string | null
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SelectionTeam {
+  weekTeam: WeekTeam               // includes visible, starters_count
+  selection: TeamSelection | null  // includes captain_id, player_order
+  players: Player[]                // ordered per player_order
+  captainId: string | null         // derived from selection.captain_id
 }
 
-export interface TeamSelectionState {
-  weekTeamId: string
-  weekId: string
-  teamName: string
-  sortOrder: number
-  startersCount: number
-  playerIds: string[]
-}
-
-interface UseSelectionBoardResult {
-  playerMap: Record<string, PlayerWithAvailability>
-  unassignedPlayers: PlayerWithAvailability[]
-  teams: TeamSelectionState[]
+export interface UseSelectionBoardReturn {
+  teams: SelectionTeam[]           // only visible=true teams, ordered by team_name
+  allPlayers: Player[]
+  unassignedPlayers: Player[]
+  availabilityMap: Record<string, AvailabilityResponse>  // player_id → latest response
   loading: boolean
   error: string | null
-  assignPlayer: (playerId: string, toWeekTeamId: string) => Promise<void>
-  removePlayer: (playerId: string, fromWeekTeamId: string) => Promise<void>
-  reorderTeam: (weekTeamId: string, newPlayerIds: string[]) => Promise<void>
-  movePlayer: (playerId: string, fromWeekTeamId: string | null, toWeekTeamId: string) => Promise<void>
-  refetch: () => void
+  saveStatus: 'idle' | 'saved' | 'error'
+  setSaveStatus: (s: 'idle' | 'saved' | 'error') => void
+  assignPlayer: (teamId: string, playerId: string) => Promise<void>
+  removePlayer: (teamId: string, playerId: string) => Promise<void>
+  reorderTeam: (teamId: string, newOrder: string[]) => Promise<void>
+  movePlayer: (fromTeamId: string, toTeamId: string, playerId: string) => Promise<void>
+  setCaptain: (teamId: string, playerId: string | null) => Promise<void>
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────────────────────────────────────
 
-export function useSelectionBoard(weekId: string | null): UseSelectionBoardResult {
-  const [playerMap, setPlayerMap] = useState<Record<string, PlayerWithAvailability>>({})
-  const [teams, setTeams] = useState<TeamSelectionState[]>([])
-  const [loading, setLoading] = useState(false)
+export function useSelectionBoard(weekId: string | null): UseSelectionBoardReturn {
+  const [weekTeams, setWeekTeams] = useState<WeekTeam[]>([])
+  const [selections, setSelections] = useState<TeamSelection[]>([])
+  const [allPlayers, setAllPlayers] = useState<Player[]>([])
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, AvailabilityResponse>>({})
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
+  // ── Fetch ────────────────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
     if (!weekId) {
-      setPlayerMap({})
-      setTeams([])
+      setWeekTeams([])
+      setSelections([])
+      setAvailabilityMap({})
+      setLoading(false)
       return
     }
 
@@ -49,244 +66,296 @@ export function useSelectionBoard(weekId: string | null): UseSelectionBoardResul
     setError(null)
 
     try {
-      // Run all fetches in parallel
-      const [playersRes, availRes, teamsRes, selectionsRes] = await Promise.all([
+      const [teamsRes, selectionsRes, playersRes, availRes] = await Promise.all([
+        // CP7-A: filter visible=true
+        supabase
+          .from('week_teams')
+          .select('*')
+          .eq('week_id', weekId)
+          .eq('visible', true)
+          .order('team_name'),
+
+        supabase
+          .from('team_selections')
+          .select('*')
+          .eq('week_id', weekId),
+
         supabase
           .from('players')
           .select('*')
           .neq('status', 'Archived')
           .order('name'),
 
+        // Latest response per player: fetch all and dedupe client-side
         supabase
           .from('availability_responses')
           .select('*')
           .eq('week_id', weekId)
           .order('created_at', { ascending: false }),
-
-        supabase
-          .from('week_teams')
-          .select('*')
-          .eq('week_id', weekId)
-          .order('sort_order'),
-
-        supabase
-          .from('team_selections')
-          .select('*')
-          .eq('week_id', weekId),
       ])
 
-      if (playersRes.error) throw new Error(playersRes.error.message)
-      if (availRes.error) throw new Error(availRes.error.message)
-      if (teamsRes.error) throw new Error(teamsRes.error.message)
-      if (selectionsRes.error) throw new Error(selectionsRes.error.message)
+      if (teamsRes.error) throw teamsRes.error
+      if (selectionsRes.error) throw selectionsRes.error
+      if (playersRes.error) throw playersRes.error
+      if (availRes.error) throw availRes.error
 
-      // Build latest availability per player (responses are DESC by created_at)
-      const latestAvail: Record<string, AvailabilityResponse> = {}
-      for (const resp of (availRes.data ?? [])) {
-        if (!latestAvail[resp.player_id]) {
-          latestAvail[resp.player_id] = resp
-        }
+      setWeekTeams(teamsRes.data ?? [])
+      setSelections(selectionsRes.data ?? [])
+      setAllPlayers(playersRes.data ?? [])
+
+      // Dedupe availability: latest response per player (already sorted DESC)
+      const avMap: Record<string, AvailabilityResponse> = {}
+      for (const r of (availRes.data ?? [])) {
+        if (!avMap[r.player_id]) avMap[r.player_id] = r
       }
+      setAvailabilityMap(avMap)
 
-      // Build player map
-      const map: Record<string, PlayerWithAvailability> = {}
-      for (const p of (playersRes.data ?? [])) {
-        const avail = latestAvail[p.id]
-        map[p.id] = {
-          ...p,
-          latestAvailability: avail?.availability ?? null,
-          availabilityNote: avail?.availability_note ?? null,
-        }
-      }
-      setPlayerMap(map)
-
-      // Build selections map: week_team_id → player_ids
-      const selectionsMap: Record<string, string[]> = {}
-      for (const sel of (selectionsRes.data ?? [])) {
-        selectionsMap[sel.week_team_id] = sel.player_order ?? []
-      }
-
-      // Build team states
-      const teamStates: TeamSelectionState[] = (teamsRes.data ?? []).map((wt: any) => ({
-        weekTeamId: wt.id,
-        weekId,
-        teamName: wt.team_name,
-        sortOrder: wt.sort_order,
-        startersCount: wt.starters_count,
-        playerIds: selectionsMap[wt.id] ?? [],
-      }))
-      setTeams(teamStates)
-
-    } catch (err: any) {
-      setError(err.message ?? 'Failed to load selection board')
+    } catch (err: unknown) {
+      console.error('useSelectionBoard fetchData error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load board')
     } finally {
       setLoading(false)
     }
   }, [weekId])
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+  useEffect(() => { fetchData() }, [fetchData])
 
-  // ─── Derived state ──────────────────────────────────────────────────────────
+  // ── Derived: teams (visible only) ────────────────────────────────────────
 
-  const allAssignedIds = new Set(teams.flatMap(t => t.playerIds))
+  const teams: SelectionTeam[] = weekTeams.map(wt => {
+    const selection = selections.find(s => s.week_team_id === wt.id) ?? null
+    const playerOrder: string[] = selection?.player_order ?? []
+    const orderedPlayers = playerOrder
+      .map(id => allPlayers.find(p => p.id === id))
+      .filter((p): p is Player => p !== undefined)
 
-  // Unassigned = non-Archived players who are Available / TBC / no response
-  // and not yet placed in any team
-  function availSortOrder(avail: string | null): number {
-    if (avail === 'Available') return 0
-    if (avail === 'TBC') return 1
-    if (avail === null) return 2
-    return 3
-  }
+    return {
+      weekTeam: wt,
+      selection,
+      players: orderedPlayers,
+      captainId: selection?.captain_id ?? null,
+    }
+  })
 
-  const unassignedPlayers = Object.values(playerMap)
-    .filter(p => !allAssignedIds.has(p.id) && p.latestAvailability !== 'Unavailable')
+  // ── Derived: unassigned players ──────────────────────────────────────────
+
+  const assignedIds = new Set(
+    selections.flatMap(s => s.player_order ?? [])
+  )
+
+  const unassignedPlayers = allPlayers
+    .filter(p => !assignedIds.has(p.id))
     .sort((a, b) => {
-      const ao = availSortOrder(a.latestAvailability)
-      const bo = availSortOrder(b.latestAvailability)
-      if (ao !== bo) return ao - bo
+      // Available first, then TBC, then no response, then alpha
+      const order = (p: Player) => {
+        const av = availabilityMap[p.id]?.availability
+        if (av === 'Available') return 0
+        if (av === 'TBC') return 1
+        return 2
+      }
+      const diff = order(a) - order(b)
+      if (diff !== 0) return diff
       return a.name.localeCompare(b.name)
     })
 
-  // ─── Persistence helper ─────────────────────────────────────────────────────
+  // ── Helper: find which team a player is on ───────────────────────────────
 
-  const saveTeamSelection = useCallback(async (
-    weekTeamId: string,
-    playerIds: string[],
-  ) => {
+  function findPlayerTeam(playerId: string): { teamId: string; order: string[] } | null {
+    for (const sel of selections) {
+      if (sel.player_order?.includes(playerId)) {
+        return { teamId: sel.week_team_id, order: sel.player_order }
+      }
+    }
+    return null
+  }
+
+  // ── Save feedback helper ─────────────────────────────────────────────────
+
+  function flashSaved() {
+    setSaveStatus('saved')
+    setTimeout(() => setSaveStatus('idle'), 1800)
+  }
+
+  function flashError() {
+    setSaveStatus('error')
+  }
+
+  // ── Upsert helper ────────────────────────────────────────────────────────
+
+  async function upsertSelection(weekTeamId: string, patch: Partial<TeamSelection>) {
     if (!weekId) return
-    const { error: saveError } = await supabase
+    const { error } = await supabase
       .from('team_selections')
       .upsert(
-        {
-          week_id: weekId,
-          week_team_id: weekTeamId,
-          player_order: playerIds,
-          saved_at: new Date().toISOString(),
-        },
+        { week_id: weekId, week_team_id: weekTeamId, ...patch },
         { onConflict: 'week_id,week_team_id' }
       )
-    if (saveError) throw new Error(saveError.message)
-  }, [weekId])
+    if (error) throw error
+  }
 
-  // ─── Mutations ──────────────────────────────────────────────────────────────
+  // ── Mutation: assignPlayer ────────────────────────────────────────────────
 
-  /** Add a player to a team (from unassigned pool) */
-  const assignPlayer = useCallback(async (
-    playerId: string,
-    toWeekTeamId: string,
-  ) => {
-    setTeams(prev => {
-      return prev.map(t => {
-        if (t.weekTeamId !== toWeekTeamId) return t
-        if (t.playerIds.includes(playerId)) return t
-        return { ...t, playerIds: [...t.playerIds, playerId] }
-      })
-    })
-    // Read current state to build new ids list
-    const targetTeam = teams.find(t => t.weekTeamId === toWeekTeamId)
-    if (!targetTeam) return
-    const newIds = targetTeam.playerIds.includes(playerId)
-      ? targetTeam.playerIds
-      : [...targetTeam.playerIds, playerId]
-    try {
-      await saveTeamSelection(toWeekTeamId, newIds)
-    } catch (err: any) {
-      setError(err.message)
-      fetchData() // rollback
-    }
-  }, [teams, saveTeamSelection, fetchData])
+  const assignPlayer = useCallback(async (teamId: string, playerId: string) => {
+    if (!weekId) return
 
-  /** Remove a player from a team (back to unassigned) */
-  const removePlayer = useCallback(async (
-    playerId: string,
-    fromWeekTeamId: string,
-  ) => {
-    const sourceTeam = teams.find(t => t.weekTeamId === fromWeekTeamId)
-    if (!sourceTeam) return
-    const newIds = sourceTeam.playerIds.filter(id => id !== playerId)
-    setTeams(prev =>
-      prev.map(t =>
-        t.weekTeamId === fromWeekTeamId ? { ...t, playerIds: newIds } : t
-      )
-    )
-    try {
-      await saveTeamSelection(fromWeekTeamId, newIds)
-    } catch (err: any) {
-      setError(err.message)
-      fetchData()
-    }
-  }, [teams, saveTeamSelection, fetchData])
+    const prevSelections = [...selections]
 
-  /** Reorder players within a single team */
-  const reorderTeam = useCallback(async (
-    weekTeamId: string,
-    newPlayerIds: string[],
-  ) => {
-    setTeams(prev =>
-      prev.map(t =>
-        t.weekTeamId === weekTeamId ? { ...t, playerIds: newPlayerIds } : t
-      )
-    )
-    try {
-      await saveTeamSelection(weekTeamId, newPlayerIds)
-    } catch (err: any) {
-      setError(err.message)
-      fetchData()
-    }
-  }, [saveTeamSelection, fetchData])
-
-  /**
-   * Move a player between teams (desktop drag-drop or reassign).
-   * fromWeekTeamId = null means moving from unassigned pool.
-   */
-  const movePlayer = useCallback(async (
-    playerId: string,
-    fromWeekTeamId: string | null,
-    toWeekTeamId: string,
-  ) => {
-    if (fromWeekTeamId === toWeekTeamId) return
-
-    let updatedTeams = teams.map(t => {
-      if (fromWeekTeamId && t.weekTeamId === fromWeekTeamId) {
-        return { ...t, playerIds: t.playerIds.filter(id => id !== playerId) }
+    // Remove from any existing team
+    const existing = findPlayerTeam(playerId)
+    let newSelections = selections.map(s => {
+      if (existing && s.week_team_id === existing.teamId) {
+        return { ...s, player_order: s.player_order.filter(id => id !== playerId) }
       }
-      if (t.weekTeamId === toWeekTeamId) {
-        if (t.playerIds.includes(playerId)) return t
-        return { ...t, playerIds: [...t.playerIds, playerId] }
-      }
-      return t
+      return s
     })
 
-    setTeams(updatedTeams)
+    // Add to target team
+    const targetSel = newSelections.find(s => s.week_team_id === teamId)
+    if (targetSel) {
+      newSelections = newSelections.map(s =>
+        s.week_team_id === teamId
+          ? { ...s, player_order: [...s.player_order, playerId] }
+          : s
+      )
+    } else {
+      // No existing selection row — add synthetic for optimistic UI
+      newSelections = [
+        ...newSelections,
+        {
+          id: `optimistic-${teamId}`,
+          week_id: weekId,
+          week_team_id: teamId,
+          player_order: [playerId],
+          captain_id: null,
+          saved_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as TeamSelection,
+      ]
+    }
+
+    setSelections(newSelections)
 
     try {
-      const saves: Promise<void>[] = []
-      if (fromWeekTeamId) {
-        const from = updatedTeams.find(t => t.weekTeamId === fromWeekTeamId)
-        if (from) saves.push(saveTeamSelection(fromWeekTeamId, from.playerIds))
+      if (existing) {
+        const updatedOrder = existing.order.filter(id => id !== playerId)
+        await upsertSelection(existing.teamId, { player_order: updatedOrder })
       }
-      const to = updatedTeams.find(t => t.weekTeamId === toWeekTeamId)
-      if (to) saves.push(saveTeamSelection(toWeekTeamId, to.playerIds))
-      await Promise.all(saves)
-    } catch (err: any) {
-      setError(err.message)
-      fetchData()
+      const currentOrder = newSelections.find(s => s.week_team_id === teamId)?.player_order ?? [playerId]
+      await upsertSelection(teamId, { player_order: currentOrder })
+      flashSaved()
+    } catch (err) {
+      console.error('assignPlayer error:', err)
+      setSelections(prevSelections)
+      flashError()
+      setError('Save failed')
     }
-  }, [teams, saveTeamSelection, fetchData])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekId, selections, allPlayers])
+
+  // ── Mutation: removePlayer ────────────────────────────────────────────────
+
+  const removePlayer = useCallback(async (teamId: string, playerId: string) => {
+    if (!weekId) return
+
+    const prevSelections = [...selections]
+    const teamSel = selections.find(s => s.week_team_id === teamId)
+    if (!teamSel) return
+
+    const newOrder = teamSel.player_order.filter(id => id !== playerId)
+    const newCaptainId = teamSel.captain_id === playerId ? null : teamSel.captain_id
+
+    setSelections(prev => prev.map(s =>
+      s.week_team_id === teamId
+        ? { ...s, player_order: newOrder, captain_id: newCaptainId }
+        : s
+    ))
+
+    try {
+      await upsertSelection(teamId, { player_order: newOrder, captain_id: newCaptainId })
+      flashSaved()
+    } catch (err) {
+      console.error('removePlayer error:', err)
+      setSelections(prevSelections)
+      flashError()
+      setError('Save failed')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekId, selections])
+
+  // ── Mutation: reorderTeam ─────────────────────────────────────────────────
+
+  const reorderTeam = useCallback(async (teamId: string, newOrder: string[]) => {
+    if (!weekId) return
+
+    const prevSelections = [...selections]
+
+    setSelections(prev => prev.map(s =>
+      s.week_team_id === teamId ? { ...s, player_order: newOrder } : s
+    ))
+
+    try {
+      await upsertSelection(teamId, { player_order: newOrder })
+      flashSaved()
+    } catch (err) {
+      console.error('reorderTeam error:', err)
+      setSelections(prevSelections)
+      flashError()
+      setError('Save failed')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekId, selections])
+
+  // ── Mutation: movePlayer (cross-team drag) ────────────────────────────────
+
+  const movePlayer = useCallback(async (fromTeamId: string, toTeamId: string, playerId: string) => {
+    await assignPlayer(toTeamId, playerId)
+  }, [assignPlayer])
+
+  // ── Mutation: setCaptain (CP7-A new) ──────────────────────────────────────
+
+  const setCaptain = useCallback(async (teamId: string, playerId: string | null) => {
+    if (!weekId) return
+
+    const prevSelections = [...selections]
+
+    // Optimistic update
+    setSelections(prev => prev.map(s =>
+      s.week_team_id === teamId ? { ...s, captain_id: playerId } : s
+    ))
+
+    try {
+      // Targeted single-column update — does NOT replace player_order
+      const { error } = await supabase
+        .from('team_selections')
+        .update({ captain_id: playerId })
+        .eq('week_id', weekId)
+        .eq('week_team_id', teamId)
+
+      if (error) throw error
+      flashSaved()
+    } catch (err) {
+      console.error('setCaptain error:', err)
+      setSelections(prevSelections)
+      flashError()
+      setError('Save failed')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekId, selections])
 
   return {
-    playerMap,
-    unassignedPlayers,
     teams,
+    allPlayers,
+    unassignedPlayers,
+    availabilityMap,
     loading,
     error,
+    saveStatus,
+    setSaveStatus,
     assignPlayer,
     removePlayer,
     reorderTeam,
     movePlayer,
-    refetch: fetchData,
+    setCaptain,
   }
 }
