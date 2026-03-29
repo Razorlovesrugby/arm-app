@@ -308,7 +308,7 @@ export function useSelectionBoard(weekId: string | null): UseSelectionBoardRetur
 
   // ── Mutation: movePlayer (cross-team drag) ────────────────────────────────
 
-  const movePlayer = useCallback(async (fromTeamId: string, toTeamId: string, playerId: string) => {
+  const movePlayer = useCallback(async (_fromTeamId: string, toTeamId: string, playerId: string) => {
     await assignPlayer(toTeamId, playerId)
   }, [assignPlayer])
 

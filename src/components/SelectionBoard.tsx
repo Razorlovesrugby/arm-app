@@ -4,7 +4,7 @@
 // Drag: dnd-kit PointerSensor + TouchSensor + DragOverlay ghost
 // Sheets: Pool (unassigned players) rendered inline below board when open
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -408,7 +408,6 @@ function BoardContent({ team, availabilityMap, sheetOpen, onTapPlayer, onRemove 
   const { weekTeam, players, captainId } = team
   const startersCount = weekTeam.starters_count ?? 15
   const benchCount = 8
-  const totalSlots = startersCount + benchCount
 
   // Build slot array: filled players + ghost slots
   const starterPlayers = players.slice(0, startersCount)
