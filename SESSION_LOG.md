@@ -238,4 +238,73 @@
 - Decisions pending: None
 
 ### Paste this at the start of next session
-"Continuing ARM Phase 8 from CP-8.1. Phases 1–7 complete and committed. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), Availability Form (public, full submit logic), and a fully working Selection Board (tabbed team view, numbered rugby position rows, colored avatar circles with initials + availability dot, dnd-kit drag-to-reorder, unassigned pool with "+" assign buttons, PlayerOverlay with editable Coach Notes). Live at https://arm-app-black.vercel.app after manual push. Phase 8: auto-remove player from team_selections when they submit Unavailable."
+"Continuing ARM Phase 8 from CP-8.1. Phases 1–7 complete and committed. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), Availability Form (public, full submit logic), and a fully working Selection Board (tabbed team view, numbered rugby position rows, colored avatar circles with initials + availability dot, dnd-kit drag-to-reorder, unassigned pool with '+' assign buttons, PlayerOverlay with editable Coach Notes). Live at https://arm-app-black.vercel.app after manual push. Phase 8: auto-remove player from team_selections when they submit Unavailable."
+
+---
+
+## Session Summary — CP7-A Selection Board Core Rebuild — 2026-03-29
+
+### Completed checkpoints
+- CP7A.0 — supabase.ts type patch: WeekTeam.visible + TeamSelection.captain_id
+- CP7A.1 — New Layout.tsx (3-tab dark bottom nav: Roster/Board/Weeks), App.tsx (new flat routing), Board.tsx (standalone board page with week auto-select)
+- CP7A.2 — useSelectionBoard.ts rebuilt: reads visible column, captain_id, new setCaptain mutation, saveStatus/setSaveStatus for ✓ Saved feedback, all existing mutations retained with optimistic update + rollback
+- CP7A.3+4 — SelectionBoard.tsx full rebuild per spec: header (week label + gear + save badge), team tabs (scrollable, visible teams only), filled rows (slot#, name, C captain badge, avail dot, ⠿ drag handle, ✕ remove), ghost rows (Unfilled + rugby position hints for slots 1–15), starters/bench divider, Add Players pill, Pool sheet (All/Available/TBC/Forward/Back filter chips), dnd-kit PointerSensor+TouchSensor drag-to-reorder with DragOverlay ghost
+- CP7A.5 — PlayerOverlay.tsx rebuilt: captain toggle (44×26px, purple on), 2×2 info grid (Last Team/Last Played=— placeholders, Availability coloured), positions chips (primary purple, others grey), Coach Notes textarea with 800ms debounce auto-save, Selection Note section (hidden if no note)
+- CP7A.6 — Weeks.tsx stripped of SelectionBoard references. Build clean. Commit: 7fa7426
+
+### Current state
+- Last clean checkpoint: CP7A.6
+- All changes committed: Yes (7fa7426)
+- Pushed to GitHub: **No — requires manual push**
+- Migration 006_cp7a.sql: **Not yet applied to Supabase** — must apply before deploy
+
+### Required actions before next session
+1. Apply `006_cp7a.sql` in Supabase SQL Editor
+2. `git push origin main` from terminal to trigger Vercel deploy
+
+### Next session starts at
+- **CP7-B** — Last Team / Last Played data in PlayerOverlay, Team Management sheet, Week Picker sheet
+  - OR —
+- **CP-8.1** — Auto-remove: Unavailable submission removes player from team_selections
+- Files to touch: `src/pages/AvailabilityForm.tsx` (Phase 8)
+- Decisions pending: None
+
+### Paste this at the start of next session
+"Continuing ARM. CP7-A Selection Board Core Rebuild is complete and committed (7fa7426). The app has a fully rebuilt Selection Board on its own /board route with 3-tab bottom nav (Roster/Board/Weeks). Board features: header with week label, scrollable team tabs (visible teams only), filled/ghost position rows with rugby hints, drag-to-reorder (dnd-kit TouchSensor+PointerSensor), Add Players pill, Pool sheet with filter chips. PlayerOverlay has captain toggle, info grid (Last Team/Last Played=— placeholders for CP7-B), positions chips, debounced coach notes auto-save, and conditional selection note. BEFORE deploying: apply 006_cp7a.sql in Supabase (adds week_teams.visible + team_selections.captain_id), then git push origin main. Next: CP7-B (Last Team/Last Played data, Team Management sheet, Week Picker) or Phase 8 (auto-remove Unavailable)."
+
+---
+
+## Session Summary — CP7-B Selection Board Data Layer + Management — 2026-03-30
+
+### Completed checkpoints
+- CP7B.1 — Migration `007_cp7b.sql`: `get_player_last_selections(p_week_id UUID)` Postgres function using `start_date`/`team_name`/`week_team_id` (actual schema column names, not spec notation). Uses `DISTINCT ON` for clean most-recent-per-player query.
+- CP7B.2 — `useSelectionBoard.ts` rebuilt: `activeWeekId` moves to internal state + `setActiveWeekId` exposed; `playerHistory` fetched via RPC once per week (not per overlay open); `allWeekTeams` fetches all teams including hidden for gear-button fallback; `saveTeamSettings` atomic patch returning `Promise<boolean>`; players fetch is week-agnostic (no re-fetch on week switch); `useMemo` for `teams` + `unassignedPlayers`.
+- CP7B.3 — `PlayerOverlay.tsx`: `lastTeam` + `lastPlayed` props added; info grid cells wired with real data (fallback to "—").
+- CP7B.4 — `SelectionBoard.tsx`: Team Management sheet (team name input, starters stepper 1–22, visibility toggle, Save Changes disabled when name empty, only closes on success, error badge stays on failure); Week Picker sheet (all weeks most-recent-first, formatted "EEE d MMM", purple ✓ on active, "No weeks yet" empty state, same week = close only); gear button and week label button wired; `activeTeamId` auto-resets when teams change (week switch or team hidden); board dims to 0.4 opacity while loading.
+- CP7B.5 — `Board.tsx` prop rename `weekId` → `initialWeekId`. Commit: `bef62b1`.
+
+### Schema deviations from spec (no impact, noted for record)
+- Spec SQL used `match_date` → actual column is `start_date`
+- Spec SQL used `name` → actual column is `team_name`
+- Spec SQL used `team_id` → actual FK is `week_team_id`
+- `weeks.notes` column does not exist → Week Picker sub-label shows `w.label` instead (graceful degradation)
+- `date-fns` not installed → vanilla JS date helpers used (`formatWeekDate`, `formatLastPlayed`)
+
+### Current state
+- Last clean checkpoint: CP7B.5
+- All changes committed: Yes (bef62b1)
+- Pushed to GitHub: **No — requires manual push**
+- Migrations applied to Supabase: **No — 006 and 007 both pending**
+
+### Required actions before deploy
+1. Apply `006_cp7a.sql` in Supabase SQL Editor
+2. Apply `supabase/migrations/007_cp7b.sql` in Supabase SQL Editor
+3. `git push origin main`
+
+### Next session starts at
+- **CP-8.1** — Auto-remove: Unavailable availability submission removes player from `team_selections` for that week
+- Files to touch: `src/pages/AvailabilityForm.tsx`
+- Decisions pending: None
+
+### Paste this at the start of next session
+"Continuing ARM. CP7-A + CP7-B are both complete and committed (bef62b1). The Selection Board now has: Week Picker sheet (tap week label to switch weeks, all weeks listed, purple checkmark on active), Team Management sheet (rename team, adjust starters count, show/hide team), and Player Overlay with real Last Team / Last Played history from the get_player_last_selections RPC. BEFORE deploying: apply 006_cp7a.sql then 007_cp7b.sql in Supabase SQL Editor, then git push origin main. Next: Phase 8 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."
