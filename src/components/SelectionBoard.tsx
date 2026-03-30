@@ -725,8 +725,8 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#000', color: '#fff', overflow: 'hidden' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      {/* paddingTop includes env(safe-area-inset-top) for iOS notch/dynamic island */}
-      <div style={{ flexShrink: 0, background: '#000', paddingTop: 'calc(env(safe-area-inset-top) + 10px)', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111' }}>
+      {/* paddingTop: Layout.tsx now handles env(safe-area-inset-top) globally — no per-component fix needed */}
+      <div style={{ flexShrink: 0, background: '#000', paddingTop: '10px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111' }}>
         {/* Week label — tappable, opens Week Picker */}
         <button
           onClick={() => setWeekPickerOpen(true)}

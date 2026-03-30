@@ -31,17 +31,20 @@ export default function Layout() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#F8F8F8', color: '#111827' }}>
 
       {/* ── Main content area ─────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+      {/* paddingTop: env(safe-area-inset-top) keeps all page content below the iOS */}
+      {/* status bar / dynamic island. Resolves to 0px on Android and desktop.     */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, paddingTop: 'env(safe-area-inset-top)' }}>
         <Outlet />
       </div>
 
       {/* ── Bottom navigation bar ─────────────────────────────────────── */}
-      {/* Height: 72px (64px bar + 8px safe-area padding). Fixed to bottom. */}
+      {/* minHeight: 72px base + env(safe-area-inset-bottom) keeps tab labels      */}
+      {/* above the iOS home indicator swipe zone. Resolves to 0px on Android.     */}
       <nav
         style={{
           flexShrink: 0,
-          height: 72,
-          paddingBottom: 8,
+          minHeight: 72,
+          paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
           background: '#0a0a0a',
           borderTop: '1px solid #1a1a1a',
           display: 'flex',
