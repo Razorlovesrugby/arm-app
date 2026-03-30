@@ -267,10 +267,11 @@ interface PoolSheetProps {
   unassigned: ReturnType<typeof useSelectionBoard>['unassignedPlayers']
   availabilityMap: ReturnType<typeof useSelectionBoard>['availabilityMap']
   onAssign: (playerId: string) => void
+  onOpenOverlay: (playerId: string) => void   // BUG-FIX-C: row tap opens PlayerOverlay
   onClose: () => void
 }
 
-function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onClose }: PoolSheetProps) {
+function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOverlay, onClose }: PoolSheetProps) {
   const [activeFilter, setActiveFilter] = useState<PoolFilter>('All')
   const FILTERS: PoolFilter[] = ['All', 'Available', 'TBC', 'Forward', 'Back']
 
@@ -315,10 +316,11 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onClose }:
               const av       = availabilityMap[p.id]?.availability ?? null
               const dotColor = availDotColor(av)
               return (
+                // BUG-FIX-C: row tap → opens PlayerOverlay; "+" button → assigns (stopPropagation)
                 <div
                   key={p.id}
-                  onClick={() => onAssign(p.id)}
-                  style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', gap: 12 }}
+                  onClick={() => onOpenOverlay(p.id)}
+                  style={{ minHeight: 56, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', gap: 12 }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
@@ -329,7 +331,10 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onClose }:
                   {av && (
                     <span style={{ fontSize: 12, fontWeight: 600, color: dotColor ?? undefined, flexShrink: 0 }}>{av}</span>
                   )}
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: 'rgba(107,33,168,0.2)', border: '1px solid rgba(107,33,168,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7', fontSize: 18, fontWeight: 700 }}>+</div>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); onAssign(p.id) }}
+                    style={{ width: 36, height: 36, borderRadius: '50%', flexShrink: 0, background: 'rgba(107,33,168,0.2)', border: '1px solid rgba(107,33,168,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a855f7', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}
+                  >+</div>
                 </div>
               )
             })
@@ -720,7 +725,8 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#000', color: '#fff', overflow: 'hidden' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, background: '#000', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111' }}>
+      {/* paddingTop includes env(safe-area-inset-top) for iOS notch/dynamic island */}
+      <div style={{ flexShrink: 0, background: '#000', paddingTop: 'calc(env(safe-area-inset-top) + 10px)', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111' }}>
         {/* Week label — tappable, opens Week Picker */}
         <button
           onClick={() => setWeekPickerOpen(true)}
@@ -846,6 +852,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           unassigned={unassignedPlayers}
           availabilityMap={availabilityMap}
           onAssign={(pid) => { assignPlayer(activeTeam.weekTeam.id, pid); setPoolOpen(false) }}
+          onOpenOverlay={(pid) => { setPoolOpen(false); setOverlayPlayerId(pid) }}
           onClose={() => setPoolOpen(false)}
         />
       )}
@@ -871,7 +878,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
       )}
 
       {/* ── Player overlay ─────────────────────────────────────────────────── */}
-      {overlayPlayer && activeTeam && (
+      {overlayPlayer && (
         <PlayerOverlay
           player={overlayPlayer}
           slot={overlaySlot}
@@ -879,8 +886,9 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           availabilityResponse={overlayAvailResponse}
           lastTeam={overlayHistory?.lastTeam ?? null}
           lastPlayed={overlayHistory?.lastPlayed ?? null}
+          weekLabel={activeWeek?.label ?? null}
           onSetCaptain={(isCaptain) => {
-            setCaptain(activeTeam.weekTeam.id, isCaptain ? overlayPlayer.id : null)
+            if (activeTeam) setCaptain(activeTeam.weekTeam.id, isCaptain ? overlayPlayer.id : null)
           }}
           onClose={() => setOverlayPlayerId(null)}
         />

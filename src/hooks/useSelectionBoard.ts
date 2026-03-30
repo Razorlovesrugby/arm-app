@@ -207,11 +207,17 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   // ── Derived: unassigned players — memoised ────────────────────────────────
 
+  // BUG-FIX-C: pool must only show Available or TBC players for the current week.
+  // Players with no response or Unavailable are excluded (PRD §4.5.1).
   const unassignedPlayers = useMemo(() => {
     const assignedIds = new Set(selections.flatMap(s => s.player_order ?? []))
 
     return allPlayers
-      .filter(p => !assignedIds.has(p.id))
+      .filter(p => {
+        if (assignedIds.has(p.id)) return false
+        const av = availabilityMap[p.id]?.availability
+        return av === 'Available' || av === 'TBC'
+      })
       .sort((a, b) => {
         const order = (p: Player) => {
           const av = availabilityMap[p.id]?.availability

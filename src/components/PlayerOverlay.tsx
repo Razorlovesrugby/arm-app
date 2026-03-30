@@ -16,6 +16,7 @@ interface PlayerOverlayProps {
   availabilityResponse: AvailabilityResponse | null
   lastTeam: string | null    // CP7-B: from playerHistory RPC
   lastPlayed: string | null  // CP7-B: formatted "d MMM" or null
+  weekLabel: string | null   // BUG-FIX-B: current week label for Availability Note heading
   onSetCaptain: (isCaptain: boolean) => void
   onClose: () => void
 }
@@ -63,7 +64,7 @@ function CaptainToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PlayerOverlay({
-  player, slot, isCaptain, availabilityResponse, lastTeam, lastPlayed, onSetCaptain, onClose,
+  player, slot, isCaptain, availabilityResponse, lastTeam, lastPlayed, weekLabel, onSetCaptain, onClose,
 }: PlayerOverlayProps) {
   const [captainState, setCaptainState] = useState(isCaptain)
   const [coachNotes, setCoachNotes] = useState(player.notes ?? '')
@@ -234,13 +235,13 @@ export default function PlayerOverlay({
             />
           </div>
 
-          {/* Section 5 — Selection Note (conditional) */}
-          {selectionNote && (
-            <div>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>
-                Selection Note
+          {/* Section 5 — Availability Note (amber callout, conditional, read-only) */}
+          {selectionNote && selectionNote.trim().length > 0 && (
+            <div style={{ background: '#FEF9C3', borderRadius: 10, borderLeft: '3px solid #EAB308', padding: '10px 12px' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#92400E', marginBottom: 4 }}>
+                Availability Note{weekLabel ? ` — Week of ${weekLabel}` : ''}
               </div>
-              <div style={{ background: '#1a1a1a', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.5 }}>
                 {selectionNote}
               </div>
             </div>
