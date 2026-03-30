@@ -308,3 +308,43 @@
 
 ### Paste this at the start of next session
 "Continuing ARM. CP7-A + CP7-B are both complete and committed (bef62b1). The Selection Board now has: Week Picker sheet (tap week label to switch weeks, all weeks listed, purple checkmark on active), Team Management sheet (rename team, adjust starters count, show/hide team), and Player Overlay with real Last Team / Last Played history from the get_player_last_selections RPC. BEFORE deploying: apply 006_cp7a.sql then 007_cp7b.sql in Supabase SQL Editor, then git push origin main. Next: Phase 8 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."
+
+---
+
+## Session Summary — Bug Fix Session (BUG-1 + BUG-2) — 2026-03-30
+
+### Issues fixed
+- **BUG-1** — Navigation restructure (Spec: Navigation Restructure — Roster / Depth Chart / Weeks, Board via Week)
+- **BUG-2** — White background regression (Spec: Restore White Background and System Font Stack Across All Pages)
+
+### Completed checkpoints
+
+**BUG-1: Navigation restructure** — Commit: ea26444
+- `Layout.tsx`: Replaced Roster/Board/Weeks tabs with Roster/Depth Chart/Weeks. `/board` path now activates the Weeks tab (board belongs to a specific week, not its own tab).
+- `App.tsx`: Added `/depth` route for DepthChart.tsx. Kept `/depth-chart` as a legacy redirect.
+- `Board.tsx`: Added `useSearchParams` to read the `?week=` query param on mount. If present, passes it as `initialWeekId`; otherwise falls back to auto-selecting most recent open week. Existing week dropdown switcher inside SelectionBoard unaffected.
+- `Weeks.tsx`: Restructured from dropdown-switcher + single selected week to list of all open weeks as full detail cards, each with an "Open Board →" button (navigates to `/board?week=<id>`). Archive section below shows all closed weeks (read-only, no tap action, "Closed" badge visible). Dropdown and selectedWeekId state removed.
+
+**BUG-2: White background + font fix** — Same commit (ea26444) — Layout.tsx touched once for both
+- `Layout.tsx`: Root div `background: '#000'` → `background: '#F8F8F8'` and `color: '#fff'` → `color: '#111827'`. Page content area now white across all tabs. Nav bar retains dark styling (`#0a0a0a`).
+- `index.css`: Already correct — body had correct font stack and background token. No changes needed.
+- `SelectionBoard.tsx`: Dark backgrounds inside the component are intentional (board design). No changes needed.
+
+### Current state
+- Last clean checkpoint: BUG-1 + BUG-2 (ea26444)
+- All changes committed: Yes (ea26444)
+- Pushed to GitHub: **No — requires manual push**
+- Migrations applied to Supabase: **No — 006 and 007 both still pending**
+
+### Required actions before deploy
+1. Apply `006_cp7a.sql` in Supabase SQL Editor
+2. Apply `supabase/migrations/007_cp7b.sql` in Supabase SQL Editor
+3. `git push origin main`
+
+### Next session starts at
+- **CP-8.1** — Auto-remove: Unavailable availability submission removes player from `team_selections` for that week
+- Files to touch: `src/pages/AvailabilityForm.tsx`
+- Decisions pending: None
+
+### Paste this at the start of next session
+"Continuing ARM. CP7-A + CP7-B + BUG-1 + BUG-2 are all committed (ea26444). Nav is now 3 tabs: Roster / Depth Chart / Weeks. Board tab removed from nav — each week card has an 'Open Board' button that navigates to /board?week=<id>. Board reads the ?week= query param on load. White background regression fixed — all pages now render on white background. Archive section visible in Weeks tab for closed weeks. BEFORE deploying: apply 006_cp7a.sql then 007_cp7b.sql in Supabase SQL Editor, then git push origin main. Next: Phase 8 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."

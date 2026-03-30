@@ -194,7 +194,8 @@
 
 | Ref | Issue | Required Fix | Status |
 |---|---|---|---|
-| — | No open corrections | — | — |
+| BUG-1 | CP7-A nav had Roster/Board/Weeks — Board tab accessible from nav, Depth Chart unreachable | Replace Board tab with Depth Chart; Board accessed via "Open Board" from week card; /board activates Weeks tab | ✅ Done — ea26444 |
+| BUG-2 | CP7-A Layout.tsx set background #000 + color #fff on root div — all pages rendered black | Root div → #F8F8F8 background, #111827 text. Nav bar stays dark. | ✅ Done — ea26444 |
 
 ---
 
