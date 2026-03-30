@@ -38,7 +38,9 @@ export default function App() {
             {/* Tab 1 — Roster (existing screen, untouched) */}
             <Route path="roster" element={<Roster />} />
 
-            {/* Depth Chart — sub-route of roster (accessible via sub-tabs in Roster) */}
+            {/* Depth Chart — bottom nav Tab 2 */}
+            <Route path="depth" element={<DepthChart />} />
+            {/* Legacy depth-chart path — keep for backwards compatibility */}
             <Route path="depth-chart" element={<DepthChart />} />
 
             {/* Tab 2 — Board (new standalone Selection Board) */}

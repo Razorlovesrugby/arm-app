@@ -2,25 +2,33 @@
 // CP7A.1 — Three-tab bottom navigation: Roster · Board · Weeks
 // Replaces previous nav shell (Players · Weeks · Archive)
 // Archive route is preserved in routing but not surfaced in nav until Phase 11
+// BUG-1 — Nav restructure: Roster · Depth Chart · Weeks (Board tab removed)
+// BUG-2 — White background fix: root div no longer forces black background
 
 import { useLocation, useNavigate, Outlet } from 'react-router-dom'
 
 // No children prop — uses React Router Outlet for nested routes
 
 const NAV_TABS = [
-  { path: '/roster',  label: 'Roster', icon: '👥' },
-  { path: '/board',   label: 'Board',  icon: '🏉' },
-  { path: '/weeks',   label: 'Weeks',  icon: '📅' },
+  { path: '/roster', label: 'Roster',      icon: '👥' },
+  { path: '/depth',  label: 'Depth Chart', icon: '📊' },
+  { path: '/weeks',  label: 'Weeks',       icon: '📅' },
 ] as const
 
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const activeTab = NAV_TABS.find(t => location.pathname.startsWith(t.path))?.path ?? '/roster'
+  // /board activates the Weeks tab — Board belongs to a specific week
+  function resolveActiveTab(): string {
+    if (location.pathname.startsWith('/board')) return '/weeks'
+    const match = NAV_TABS.find(t => location.pathname.startsWith(t.path))
+    return match?.path ?? '/roster'
+  }
+  const activeTab = resolveActiveTab()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#000', color: '#fff' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#F8F8F8', color: '#111827' }}>
 
       {/* ── Main content area ─────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>

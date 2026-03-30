@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Copy, Share2, Plus, Check, ChevronDown, Link } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Calendar, Copy, Share2, Plus, Check, Link } from 'lucide-react'
 import { useWeeks, WeekWithTeams } from '../hooks/useWeeks'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -279,9 +280,10 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
 
 interface WeekDetailProps {
   week: WeekWithTeams
+  onOpenBoard?: () => void  // only passed for open weeks
 }
 
-function WeekDetail({ week }: WeekDetailProps) {
+function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
   const [copied, setCopied] = useState(false)
   const url = availabilityUrl(week.availability_link_token)
   const isOpen = week.status === 'Open'
@@ -431,6 +433,7 @@ function WeekDetail({ week }: WeekDetailProps) {
       <div style={{
         padding: '12px 16px',
         display: 'flex', gap: '6px', flexWrap: 'wrap',
+        borderBottom: onOpenBoard ? '1px solid #F3F4F6' : undefined,
       }}>
         {week.week_teams.map(team => (
           <span
@@ -450,53 +453,32 @@ function WeekDetail({ week }: WeekDetailProps) {
           <span style={{ fontSize: '12px', color: '#9CA3AF' }}>No teams</span>
         )}
       </div>
-    </div>
-  )
-}
 
-// ─── Week Dropdown Switcher ──────────────────────────────────────────────────
-
-interface WeekSwitcherProps {
-  weeks: WeekWithTeams[]
-  selected: WeekWithTeams | null
-  onChange: (week: WeekWithTeams) => void
-}
-
-function WeekSwitcher({ weeks, selected, onChange }: WeekSwitcherProps) {
-  return (
-    <div style={{ position: 'relative', flex: 1 }}>
-      <select
-        value={selected?.id ?? ''}
-        onChange={e => {
-          const week = weeks.find(w => w.id === e.target.value)
-          if (week) onChange(week)
-        }}
-        style={{
-          width: '100%',
-          appearance: 'none',
-          padding: '10px 36px 10px 12px',
-          borderRadius: '8px',
-          border: '1px solid #E5E7EB',
-          background: '#FFFFFF',
-          fontSize: '14px', fontWeight: '600', color: '#111827',
-          cursor: 'pointer',
-          outline: 'none',
-        }}
-      >
-        {weeks.map(w => (
-          <option key={w.id} value={w.id}>
-            {w.label} — {w.status}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={16}
-        color="#6B7280"
-        style={{
-          position: 'absolute', right: '10px', top: '50%',
-          transform: 'translateY(-50%)', pointerEvents: 'none',
-        }}
-      />
+      {/* Open Board button — open weeks only */}
+      {onOpenBoard && (
+        <div style={{ padding: '12px 16px' }}>
+          <button
+            onClick={onOpenBoard}
+            style={{
+              width: '100%',
+              height: '48px',
+              background: '#6B21A8',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            Open Board →
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -504,18 +486,9 @@ function WeekSwitcher({ weeks, selected, onChange }: WeekSwitcherProps) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function Weeks() {
-  const { weeks, loading, error, refetch, createWeek } = useWeeks()
-  const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null)
+  const { openWeeks, closedWeeks, loading, error, refetch, createWeek } = useWeeks()
   const [showCreate, setShowCreate] = useState(false)
-  // Auto-select most recent open week on first load
-  useEffect(() => {
-    if (weeks.length > 0 && selectedWeekId === null) {
-      const openWeek = weeks.find(w => w.status === 'Open')
-      setSelectedWeekId(openWeek?.id ?? weeks[0].id)
-    }
-  }, [weeks, selectedWeekId])
-
-  const selectedWeek = weeks.find(w => w.id === selectedWeekId) ?? null
+  const navigate = useNavigate()
 
   if (loading) {
     return (
@@ -563,17 +536,10 @@ export default function Weeks() {
 
   return (
     <>
-      <div style={{ padding: '16px', maxWidth: '680px', margin: '0 auto' }}>
+      <div style={{ padding: '16px', maxWidth: '680px', margin: '0 auto', paddingBottom: '80px' }}>
 
-        {/* Toolbar */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px' }}>
-          {weeks.length > 0 && (
-            <WeekSwitcher
-              weeks={weeks}
-              selected={selectedWeek}
-              onChange={w => setSelectedWeekId(w.id)}
-            />
-          )}
+        {/* Toolbar — New Week button */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
           <button
             onClick={() => setShowCreate(true)}
             style={{
@@ -585,7 +551,6 @@ export default function Weeks() {
               color: '#FFFFFF',
               fontSize: '14px', fontWeight: '600',
               cursor: 'pointer',
-              flexShrink: 0,
               whiteSpace: 'nowrap',
             }}
           >
@@ -594,8 +559,8 @@ export default function Weeks() {
           </button>
         </div>
 
-        {/* Empty state */}
-        {weeks.length === 0 && (
+        {/* Empty state — no weeks at all */}
+        {openWeeks.length === 0 && closedWeeks.length === 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', padding: '60px 24px',
@@ -611,53 +576,32 @@ export default function Weeks() {
           </div>
         )}
 
-        {/* Selected week detail */}
-        {selectedWeek && <WeekDetail week={selectedWeek} />}
+        {/* Open weeks — each shown as a full detail card with "Open Board" button */}
+        {openWeeks.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {openWeeks.map(week => (
+              <WeekDetail
+                key={week.id}
+                week={week}
+                onOpenBoard={() => navigate(`/board?week=${week.id}`)}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* All weeks list — shown when 2+ weeks exist */}
-        {weeks.length > 1 && (
-          <div style={{ marginTop: '24px' }}>
+        {/* Archive section — closed weeks, read-only, no tap action */}
+        {closedWeeks.length > 0 && (
+          <div style={{ marginTop: '32px' }}>
             <p style={{
-              margin: '0 0 10px',
+              margin: '0 0 12px',
               fontSize: '12px', fontWeight: '600', color: '#6B7280',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
-              All weeks
+              Archive
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {weeks.map(week => (
-                <button
-                  key={week.id}
-                  onClick={() => setSelectedWeekId(week.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '11px 14px',
-                    borderRadius: '10px',
-                    border: `1px solid ${selectedWeekId === week.id ? '#6B21A8' : '#E5E7EB'}`,
-                    background: selectedWeekId === week.id ? '#F3E8FF' : '#FFFFFF',
-                    cursor: 'pointer', textAlign: 'left', width: '100%',
-                    gap: '12px',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                      {week.label}
-                    </p>
-                    <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6B7280' }}>
-                      {formatDate(week.start_date)} – {formatDate(week.end_date)}
-                    </p>
-                  </div>
-                  <span style={{
-                    padding: '3px 10px',
-                    borderRadius: '999px',
-                    fontSize: '12px', fontWeight: '600',
-                    background: week.status === 'Open' ? '#DCFCE7' : '#F3F4F6',
-                    color: week.status === 'Open' ? '#15803D' : '#4B5563',
-                    flexShrink: 0,
-                  }}>
-                    {week.status}
-                  </span>
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {closedWeeks.map(week => (
+                <WeekDetail key={week.id} week={week} />
               ))}
             </div>
           </div>
@@ -668,10 +612,7 @@ export default function Weeks() {
       {showCreate && (
         <CreateWeekForm
           onClose={() => setShowCreate(false)}
-          onCreated={() => {
-            // After creating, auto-select the new week (most recent)
-            setSelectedWeekId(null)
-          }}
+          onCreated={() => {}}
           createWeek={createWeek}
         />
       )}
