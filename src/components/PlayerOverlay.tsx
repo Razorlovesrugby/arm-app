@@ -1,6 +1,7 @@
 // src/components/PlayerOverlay.tsx
 // CP7-A Rebuild — full dark theme, captain toggle, positions chips,
 // info grid, auto-save coach notes, conditional selection note
+// CP7-B — lastTeam / lastPlayed wired from playerHistory (replaces "—" placeholders)
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
@@ -13,6 +14,8 @@ interface PlayerOverlayProps {
   slot: number | null
   isCaptain: boolean
   availabilityResponse: AvailabilityResponse | null
+  lastTeam: string | null    // CP7-B: from playerHistory RPC
+  lastPlayed: string | null  // CP7-B: formatted "d MMM" or null
   onSetCaptain: (isCaptain: boolean) => void
   onClose: () => void
 }
@@ -60,7 +63,7 @@ function CaptainToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PlayerOverlay({
-  player, slot, isCaptain, availabilityResponse, onSetCaptain, onClose,
+  player, slot, isCaptain, availabilityResponse, lastTeam, lastPlayed, onSetCaptain, onClose,
 }: PlayerOverlayProps) {
   const [captainState, setCaptainState] = useState(isCaptain)
   const [coachNotes, setCoachNotes] = useState(player.notes ?? '')
@@ -169,8 +172,8 @@ export default function PlayerOverlay({
 
           {/* Section 2 — Info grid (2x2) */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <InfoCell label="Last Team" value="—" />
-            <InfoCell label="Last Played" value="—" />
+            <InfoCell label="Last Team"   value={lastTeam   ?? '—'} />
+            <InfoCell label="Last Played" value={lastPlayed ?? '—'} />
             <InfoCell label="Availability" value={avLabel} valueColor={avColor} />
             <div /> {/* reserved cell */}
           </div>

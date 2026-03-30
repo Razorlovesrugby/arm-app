@@ -1,8 +1,7 @@
 // src/pages/Board.tsx
 // CP7A.1 — Board screen: hosts the Selection Board
-// Fetches weeks list; passes activeWeekId to SelectionBoard
-// Week Picker sheet (tap header to change week) is CP7-B — for now, auto-selects
-// the most recent open week on mount.
+// Fetches weeks list; passes initialWeekId + weeks to SelectionBoard
+// CP7-B: week switching is now managed inside SelectionBoard / useSelectionBoard
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
@@ -42,9 +41,8 @@ export default function Board() {
 
   return (
     <SelectionBoard
-      weekId={activeWeekId}
+      initialWeekId={activeWeekId}
       weeks={weeks}
-      // onWeekChange will be wired up in CP7-B (Week Picker sheet)
     />
   )
 }
