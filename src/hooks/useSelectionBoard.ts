@@ -246,7 +246,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   // ── Helper: find which team a player is on ────────────────────────────────
 
-  function findPlayerTeam(playerId: string): { teamId: string; order: string[] } | null {
+  function findPlayerTeam(playerId: string): { teamId: string; order: (string | null)[] } | null {
     for (const sel of selections) {
       if (sel.player_order?.includes(playerId)) {
         return { teamId: sel.week_team_id, order: sel.player_order }
