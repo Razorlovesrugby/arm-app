@@ -1,5 +1,4 @@
 -- CP8: Add is_active column to week_teams and create close_week function
--- The archive_game_notes table already exists from migration 005_phase6.sql
 
 -- 1. Add is_active column to week_teams if not exists (for "bye" toggle)
 ALTER TABLE week_teams ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
