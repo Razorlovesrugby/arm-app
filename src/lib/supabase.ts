@@ -65,6 +65,7 @@ export interface WeekTeam {
   sort_order: number
   starters_count: number
   visible: boolean          // CP7-A: controls tab visibility
+  is_active: boolean        // CP8: controls if team is active (false after week closed)
 }
 
 export interface AvailabilityResponse {

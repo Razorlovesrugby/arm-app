@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, Copy, Share2, Plus, Check, Link } from 'lucide-react'
+import { Calendar, Copy, Share2, Plus, Check, Link, Lock, AlertTriangle } from 'lucide-react'
 import { useWeeks, WeekWithTeams } from '../hooks/useWeeks'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -281,9 +281,10 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
 interface WeekDetailProps {
   week: WeekWithTeams
   onOpenBoard?: () => void  // only passed for open weeks
+  onCloseWeek?: () => void  // only passed for open weeks
 }
 
-function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
+function WeekDetail({ week, onOpenBoard, onCloseWeek }: WeekDetailProps) {
   const [copied, setCopied] = useState(false)
   const url = availabilityUrl(week.availability_link_token)
   const isOpen = week.status === 'Open'
@@ -454,40 +455,256 @@ function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
         )}
       </div>
 
-      {/* Open Board button — open weeks only */}
-      {onOpenBoard && (
-        <div style={{ padding: '12px 16px' }}>
-          <button
-            onClick={onOpenBoard}
-            style={{
-              width: '100%',
-              height: '48px',
-              background: '#6B21A8',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            Open Board →
-          </button>
+      {/* Action buttons — open weeks only */}
+      {(onOpenBoard || onCloseWeek) && (
+        <div style={{ padding: '12px 16px', display: 'flex', gap: '10px' }}>
+          {onOpenBoard && (
+            <button
+              onClick={onOpenBoard}
+              style={{
+                flex: 2,
+                height: '48px',
+                background: '#6B21A8',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '15px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              Open Board →
+            </button>
+          )}
+          {onCloseWeek && (
+            <button
+              onClick={onCloseWeek}
+              style={{
+                flex: 1,
+                height: '48px',
+                background: '#FFFFFF',
+                color: '#DC2626',
+                border: '1px solid #FCA5A5',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
+              <Lock size={16} />
+              Close
+            </button>
+          )}
         </div>
       )}
     </div>
   )
 }
 
+// ─── Close Week Confirmation Modal ───────────────────────────────────────────
+
+interface CloseWeekConfirmProps {
+  week: WeekWithTeams
+  onClose: () => void
+  onConfirm: () => Promise<void>
+}
+
+function CloseWeekConfirmModal({ week, onClose, onConfirm }: CloseWeekConfirmProps) {
+  const [closing, setClosing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleConfirm() {
+    setClosing(true)
+    setError(null)
+    try {
+      await onConfirm()
+      onClose()
+    } catch (e: any) {
+      setError(e?.message || 'Failed to close week')
+      setClosing(false)
+    }
+  }
+
+  const isMobile = window.innerWidth < 768
+
+  const sheetStyle: React.CSSProperties = isMobile
+    ? {
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        zIndex: 51,
+        background: '#FFFFFF',
+        borderTopLeftRadius: '20px',
+        borderTopRightRadius: '20px',
+        maxHeight: '85vh',
+        overflowY: 'auto',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }
+    : {
+        position: 'fixed',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 51,
+        background: '#FFFFFF',
+        borderRadius: '16px',
+        width: '100%',
+        maxWidth: '440px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+      }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 50,
+        }}
+      />
+
+      <div style={sheetStyle}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '20px 20px 16px',
+          position: 'sticky', top: 0,
+          background: '#FFFFFF',
+          borderBottom: '1px solid #E5E7EB',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px',
+              borderRadius: '10px',
+              background: '#FEE2E2',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <AlertTriangle size={20} color="#DC2626" />
+            </div>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#111827' }}>
+              Close Week
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '6px', borderRadius: '8px', color: '#6B7280',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '18px', lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '20px' }}>
+          <p style={{ margin: '0 0 16px', fontSize: '15px', color: '#374151', lineHeight: '1.5' }}>
+            Are you sure you want to close <strong>{week.label}</strong>?
+          </p>
+          <div style={{
+            background: '#FEF3C7',
+            border: '1px solid #FCD34D',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            marginBottom: '20px',
+          }}>
+            <p style={{ margin: 0, fontSize: '13px', color: '#92400E', lineHeight: '1.5' }}>
+              <strong>This action cannot be undone.</strong> Closing a week will:
+            </p>
+            <ul style={{ margin: '8px 0 0', paddingLeft: '18px', fontSize: '13px', color: '#92400E', lineHeight: '1.6' }}>
+              <li>Archive all team selections to the Archive tab</li>
+              <li>Deactivate all teams for this week</li>
+              <li>Prevent further changes to selections</li>
+            </ul>
+          </div>
+
+          {error && (
+            <div style={{
+              background: '#FEE2E2',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              fontSize: '13px',
+              color: '#B91C1C',
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* Footer buttons */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={closing}
+              style={{
+                flex: 1, padding: '12px',
+                borderRadius: '10px',
+                border: '1px solid #E5E7EB',
+                background: '#FFFFFF',
+                fontSize: '15px', fontWeight: '600', color: '#374151',
+                cursor: closing ? 'not-allowed' : 'pointer',
+                opacity: closing ? 0.6 : 1,
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={closing}
+              style={{
+                flex: 1, padding: '12px',
+                borderRadius: '10px',
+                border: 'none',
+                background: closing ? '#F87171' : '#DC2626',
+                fontSize: '15px', fontWeight: '600', color: '#FFFFFF',
+                cursor: closing ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}
+            >
+              {closing ? (
+                <>
+                  <div style={{
+                    width: '16px', height: '16px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#FFFFFF',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  Closing…
+                </>
+              ) : (
+                <>
+                  <Lock size={16} />
+                  Close Week
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function Weeks() {
-  const { openWeeks, closedWeeks, loading, error, refetch, createWeek } = useWeeks()
+  const { openWeeks, closedWeeks, loading, error, refetch, createWeek, closeWeek } = useWeeks()
   const [showCreate, setShowCreate] = useState(false)
+  const [weekToClose, setWeekToClose] = useState<WeekWithTeams | null>(null)
   const navigate = useNavigate()
 
   if (loading) {
@@ -584,6 +801,7 @@ export default function Weeks() {
                 key={week.id}
                 week={week}
                 onOpenBoard={() => navigate(`/board?week=${week.id}`)}
+                onCloseWeek={() => setWeekToClose(week)}
               />
             ))}
           </div>
@@ -614,6 +832,18 @@ export default function Weeks() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {}}
           createWeek={createWeek}
+        />
+      )}
+
+      {/* Close Week confirmation modal */}
+      {weekToClose && (
+        <CloseWeekConfirmModal
+          week={weekToClose}
+          onClose={() => setWeekToClose(null)}
+          onConfirm={async () => {
+            const { error } = await closeWeek(weekToClose.id)
+            if (error) throw new Error(error)
+          }}
         />
       )}
 

@@ -13,6 +13,7 @@ interface UseWeeksResult {
   error: string | null
   refetch: () => void
   createWeek: (params: CreateWeekParams) => Promise<{ data: Week | null; error: string | null }>
+  closeWeek: (weekId: string) => Promise<{ error: string | null }>
 }
 
 export interface CreateWeekParams {
@@ -103,8 +104,20 @@ export function useWeeks(): UseWeeksResult {
     [fetchWeeks]
   )
 
+  const closeWeek = useCallback(
+    async (weekId: string) => {
+      const { error: rpcError } = await supabase.rpc('close_week', { p_week_id: weekId })
+      if (rpcError) {
+        return { error: rpcError.message }
+      }
+      await fetchWeeks()
+      return { error: null }
+    },
+    [fetchWeeks]
+  )
+
   const openWeeks = weeks.filter(w => w.status === 'Open')
   const closedWeeks = weeks.filter(w => w.status === 'Closed')
 
-  return { weeks, openWeeks, closedWeeks, loading, error, refetch: fetchWeeks, createWeek }
+  return { weeks, openWeeks, closedWeeks, loading, error, refetch: fetchWeeks, createWeek, closeWeek }
 }
