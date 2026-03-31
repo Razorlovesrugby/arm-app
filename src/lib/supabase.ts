@@ -91,7 +91,7 @@ export interface TeamSelection {
   id: string
   week_id: string
   week_team_id: string
-  player_order: string[]
+  player_order: (string | null)[]
   captain_id: string | null  // CP7-A: nullable, one per row
   saved_at: string
   created_at: string

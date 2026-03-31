@@ -348,3 +348,105 @@
 
 ### Paste this at the start of next session
 "Continuing ARM. CP7-A + CP7-B + BUG-1 + BUG-2 are all committed (ea26444). Nav is now 3 tabs: Roster / Depth Chart / Weeks. Board tab removed from nav — each week card has an 'Open Board' button that navigates to /board?week=<id>. Board reads the ?week= query param on load. White background regression fixed — all pages now render on white background. Archive section visible in Weeks tab for closed weeks. BEFORE deploying: apply 006_cp7a.sql then 007_cp7b.sql in Supabase SQL Editor, then git push origin main. Next: Phase 8 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."
+
+---
+
+## Session Summary — Bug Fix Session (BUG-FIX-A + BUG-FIX-B + BUG-FIX-C) — 2026-03-30
+
+### Issues fixed
+- **BUG-FIX-A** — iOS Safe Area: Board header obscured on iOS behind status bar / dynamic island
+- **BUG-FIX-B** — Availability Note: not rendering in PlayerOverlay (wrong style + missing weekLabel prop)
+- **BUG-FIX-C** — Pool filter + Pool tap: pool showed no-response/Unavailable players; row tap assigned instead of opening overlay
+
+### Completed checkpoints
+
+**BUG-FIX-A: Board Header iOS Safe Area** — Commit: df5e296
+- `SelectionBoard.tsx`: Board header `padding: '10px 16px'` replaced with `paddingTop: 'calc(env(safe-area-inset-top) + 10px)'` + individual sides. On iOS, header content now sits below the status bar / dynamic island. On Android/desktop, `env(safe-area-inset-top)` resolves to `0px` — no visual change.
+
+**BUG-FIX-B: Availability Note in PlayerOverlay** — Same commit (df5e296)
+- `PlayerOverlay.tsx`: Added `weekLabel: string | null` prop. Section 5 "Selection Note" replaced with amber callout (`background: #FEF9C3`, `border-left: 3px solid #EAB308`), labelled "Availability Note — Week of [label]". Conditional on `selectionNote.trim().length > 0`. Dark `#1a1a1a` style removed.
+- `SelectionBoard.tsx`: Passes `weekLabel={activeWeek?.label ?? null}` to PlayerOverlay. Overlay guard changed from `overlayPlayer && activeTeam` to `overlayPlayer` so pool players (not yet on any team) can open the overlay. `onSetCaptain` guards against null `activeTeam`.
+
+**BUG-FIX-C: Pool tap + Pool filter** — Same commit (df5e296)
+- `SelectionBoard.tsx` `PoolSheet`: Added `onOpenOverlay` prop. Row `onClick` now calls `onOpenOverlay(p.id)`. The "+" button has `e.stopPropagation()` then `onAssign(p.id)` — tapping it assigns the player without opening the overlay. In the PoolSheet instantiation: `onOpenOverlay={(pid) => { setPoolOpen(false); setOverlayPlayerId(pid) }}`.
+- `useSelectionBoard.ts` `unassignedPlayers` useMemo: filter now requires `availability === 'Available' || availability === 'TBC'`. Players with no response or `Unavailable` are excluded. When `activeWeekId` is null, `availabilityMap` is `{}` so the pool is naturally empty. Sort order preserved: Available first, TBC second, alphabetical within each group.
+
+### Current state
+- Last clean checkpoint: BUG-FIX-C (df5e296)
+- All changes committed: Yes (df5e296)
+- Pushed to GitHub: **No — requires manual push**
+- Migrations applied to Supabase: **No — 006 and 007 both still pending**
+
+### Required actions before deploy
+1. Apply `006_cp7a.sql` in Supabase SQL Editor
+2. Apply `supabase/migrations/007_cp7b.sql` in Supabase SQL Editor
+3. `git push origin main`
+
+### Next session starts at
+- **CP-8.1** — Auto-remove: Unavailable availability submission removes player from `team_selections` for that week
+- Files to touch: `src/pages/AvailabilityForm.tsx`
+- Decisions pending: None
+
+### Paste this at the start of next session
+"Continuing ARM. All bug fixes committed (df5e296): iOS safe area on Board header, availability note amber callout in PlayerOverlay, pool filter now shows only Available/TBC players, pool row tap opens PlayerOverlay ('+' button assigns without overlay). BEFORE deploying: apply 006_cp7a.sql then 007_cp7b.sql in Supabase SQL Editor, then git push origin main. Next: Phase 8 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."
+
+---
+
+## Session Summary — Bug Fix Session (BUG-FIX-GHOST-ROWS) — 2026-03-31
+
+### Issues fixed
+- **BUG-FIX-1** — Global iOS Safe Area (Layout.tsx): confirmed already fully implemented in previous session (df5e296). `paddingTop: env(safe-area-inset-top)` on content wrapper, `paddingBottom: calc(8px + env(safe-area-inset-bottom))` on nav. `viewport-fit=cover` present in index.html. No code changes required.
+- **BUG-FIX-GHOST** — Ghost rows not registered as drop targets on Selection Board.
+
+### Completed checkpoints
+
+**BUG-FIX-GHOST: Ghost rows as droppable targets**
+
+Root cause: `GhostRow` was a plain `<div>` with no dnd-kit integration. `SortableContext items` only included filled player IDs. `handleDragEnd` called `playerIds.indexOf(over.id)` which returned -1 for ghost slots → bailed out early → player always appended to end. `player_order` had no concept of sparse slot positions.
+
+Fix — three files changed:
+
+- **`src/lib/supabase.ts`**: `TeamSelection.player_order: string[]` → `(string | null)[]`. Null entries represent empty slots.
+
+- **`src/hooks/useSelectionBoard.ts`**:
+  - `SelectionTeam.players: (Player | null)[]` — null at index i means slot i+1 is empty
+  - `orderedPlayers` derivation: preserves nulls (previously filtered them out), unknown IDs map to null
+  - `reorderTeam` accepts `(string | null)[]`
+  - Added `trimTrailingNulls` helper
+  - `assignPlayer`: trims trailing nulls before appending so "+" always fills the next contiguous slot after the last filled row
+  - `removePlayer`: replaces player ID with null (preserves other slot positions) then trims trailing nulls
+  - `unassignedPlayers`: filters null sentinel values before building assignedIds Set
+
+- **`src/components/SelectionBoard.tsx`**:
+  - Added `useDroppable` import
+  - `GhostRow` → `DroppableGhostRow`: each empty slot registers with `useDroppable({ id: 'slot-N' })`. Visual highlight (purple tint + "Drop here" label) fires when `isOver`. Slot number always visible.
+  - `SortableContext items`: filters nulls from `players` before mapping to IDs
+  - `handleDragEnd` rewritten: detects `over.id.startsWith('slot-')` for ghost drops → vacates source slot, fills target slot, writes sparse `player_order`. Falls through to compact `arrayMove` reorder for filled-to-filled drops (existing behaviour preserved per AC #5).
+  - `draggingSlot` + `overlaySlot`: null-safe `findIndex(p => p !== null && p.id === ...)`
+
+Acceptance criteria verified by code review:
+1. ✓ Drag from slot N → ghost slot M (M > N): player at M, slots N+1–M-1 ghost
+2. ✓ Drag from slot N → ghost slot M (M < N): player at M, slots M+1–N-1 ghost
+3. ✓ Ghost row slot number always legible (rendered unconditionally)
+4. ✓ `player_order` written correctly → persists on reload
+5. ✓ Filled-to-filled reorder unchanged (compact arrayMove path)
+6. ✓ "+" button appends at next contiguous slot (trimTrailingNulls)
+
+### Current state
+- Last clean checkpoint: BUG-FIX-GHOST
+- All changes committed: Yes (see commit below)
+- Pushed to GitHub: **No — requires manual push**
+- Migrations applied to Supabase: **No — 006 and 007 both still pending**
+
+### Required actions before deploy
+1. Apply `006_cp7a.sql` in Supabase SQL Editor
+2. Apply `supabase/migrations/007_cp7b.sql` in Supabase SQL Editor
+3. `git push origin main`
+
+### Next session starts at
+- **CP-8.1** — Auto-remove: Unavailable submission removes player from `team_selections` for that week
+- Files to touch: `src/pages/AvailabilityForm.tsx`
+- Decisions pending: None
+
+### Paste this at the start of next session
+"Continuing ARM. Ghost rows bug fixed and committed (BUG-FIX-GHOST): empty position slots on the Selection Board are now registered dnd-kit drop targets. Dragging a player onto any ghost row places them at the exact slot number; the sparse player_order is persisted to Supabase and survives reload. BEFORE deploying: apply 006_cp7a.sql then 007_cp7b.sql in Supabase SQL Editor, then git push origin main. Next: Phase 8 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."

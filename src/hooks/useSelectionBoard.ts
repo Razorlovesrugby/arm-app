@@ -21,7 +21,7 @@ export interface PlayerHistoryEntry {
 export interface SelectionTeam {
   weekTeam: WeekTeam
   selection: TeamSelection | null
-  players: Player[]
+  players: (Player | null)[]   // sparse: index = slot-1, null = empty slot
   captainId: string | null
 }
 
@@ -40,7 +40,7 @@ export interface UseSelectionBoardReturn {
   setSaveStatus: (s: 'idle' | 'saved' | 'error') => void
   assignPlayer: (teamId: string, playerId: string) => Promise<void>
   removePlayer: (teamId: string, playerId: string) => Promise<void>
-  reorderTeam: (teamId: string, newOrder: string[]) => Promise<void>
+  reorderTeam: (teamId: string, newOrder: (string | null)[]) => Promise<void>
   movePlayer: (fromTeamId: string, toTeamId: string, playerId: string) => Promise<void>
   setCaptain: (teamId: string, playerId: string | null) => Promise<void>
   saveTeamSettings: (
@@ -189,11 +189,13 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   const teams = useMemo<SelectionTeam[]>(() =>
     weekTeams.map(wt => {
-      const selection    = selections.find(s => s.week_team_id === wt.id) ?? null
-      const playerOrder  = selection?.player_order ?? []
-      const orderedPlayers = playerOrder
-        .map(id => allPlayers.find(p => p.id === id))
-        .filter((p): p is Player => p !== undefined)
+      const selection   = selections.find(s => s.week_team_id === wt.id) ?? null
+      const playerOrder = selection?.player_order ?? []
+      // Sparse array: null entries represent empty slots, preserving exact slot positions.
+      // Unknown IDs (deleted players) map to null — safe fallback.
+      const orderedPlayers: (Player | null)[] = playerOrder.map(
+        id => (id ? (allPlayers.find(p => p.id === id) ?? null) : null)
+      )
 
       return {
         weekTeam:  wt,
@@ -210,7 +212,10 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
   // BUG-FIX-C: pool must only show Available or TBC players for the current week.
   // Players with no response or Unavailable are excluded (PRD §4.5.1).
   const unassignedPlayers = useMemo(() => {
-    const assignedIds = new Set(selections.flatMap(s => s.player_order ?? []))
+    // Filter out null sentinels — they represent empty slots, not assigned players
+    const assignedIds = new Set(
+      selections.flatMap(s => (s.player_order ?? []).filter((id): id is string => id !== null))
+    )
 
     return allPlayers
       .filter(p => {
@@ -230,6 +235,14 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
         return a.name.localeCompare(b.name)
       })
   }, [allPlayers, selections, availabilityMap])
+
+  // ── Helper: trim trailing nulls (keeps array compact in storage) ─────────
+
+  function trimTrailingNulls(arr: (string | null)[]): (string | null)[] {
+    let len = arr.length
+    while (len > 0 && arr[len - 1] === null) len--
+    return arr.slice(0, len)
+  }
 
   // ── Helper: find which team a player is on ────────────────────────────────
 
@@ -285,7 +298,8 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     if (targetSel) {
       newSelections = newSelections.map(s =>
         s.week_team_id === teamId
-          ? { ...s, player_order: [...s.player_order, playerId] }
+          // Trim trailing nulls so "+" always appends at the next contiguous slot
+          ? { ...s, player_order: [...trimTrailingNulls(s.player_order ?? []), playerId] }
           : s
       )
     } else {
@@ -332,7 +346,11 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     const teamSel = selections.find(s => s.week_team_id === teamId)
     if (!teamSel) return
 
-    const newOrder      = teamSel.player_order.filter(id => id !== playerId)
+    // Replace the player's slot with null (preserves other players' slot positions),
+    // then trim trailing nulls so storage stays compact.
+    const newOrder      = trimTrailingNulls(
+      teamSel.player_order.map((id): string | null => id === playerId ? null : id)
+    )
     const newCaptainId  = teamSel.captain_id === playerId ? null : teamSel.captain_id
 
     setSelections(prev => prev.map(s =>
@@ -355,7 +373,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   // ── Mutation: reorderTeam ─────────────────────────────────────────────────
 
-  const reorderTeam = useCallback(async (teamId: string, newOrder: string[]) => {
+  const reorderTeam = useCallback(async (teamId: string, newOrder: (string | null)[]) => {
     if (!activeWeekId) return
 
     const prevSelections = [...selections]

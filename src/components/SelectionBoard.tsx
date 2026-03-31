@@ -17,6 +17,7 @@ import {
   closestCenter,
   useSensor,
   useSensors,
+  useDroppable,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -27,7 +28,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { Week, WeekTeam } from '../lib/supabase'
+import type { Week, WeekTeam, Player } from '../lib/supabase'
 import { useSelectionBoard, type SelectionTeam } from '../hooks/useSelectionBoard'
 import PlayerOverlay from './PlayerOverlay'
 
@@ -95,22 +96,35 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   )
 }
 
-// ─── Ghost Row ────────────────────────────────────────────────────────────────
+// ─── Droppable Ghost Row ──────────────────────────────────────────────────────
+// Each empty slot is registered as a dnd-kit droppable so it is a valid drop
+// target. Slot number is always visible. Visual highlight fires when the user
+// drags a filled row over this slot.
 
-function GhostRow({ slot, startersCount }: { slot: number; startersCount: number }) {
+function DroppableGhostRow({ slot, startersCount }: { slot: number; startersCount: number }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `slot-${slot}` })
   const hint = slot <= startersCount ? RUGBY_POSITIONS[slot] : null
   return (
-    <div style={{
-      height: 52, display: 'flex', alignItems: 'center', gap: 8,
-      padding: '0 12px', borderBottom: '1px solid #0f0f0f',
-      opacity: 0.3, background: '#000',
-    }}>
-      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
+    <div
+      ref={setNodeRef}
+      style={{
+        height: 52, display: 'flex', alignItems: 'center', gap: 8,
+        padding: '0 12px', borderBottom: '1px solid #0f0f0f',
+        background: isOver ? 'rgba(107,33,168,0.18)' : '#000',
+        outline: isOver ? '1px dashed rgba(107,33,168,0.55)' : 'none',
+        outlineOffset: '-1px',
+        transition: 'background 0.1s',
+        opacity: isOver ? 0.9 : 0.35,
+      }}
+    >
+      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: isOver ? 'rgba(167,139,250,0.9)' : 'rgba(255,255,255,0.35)', flexShrink: 0, transition: 'color 0.1s' }}>
         {slot}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 13, fontStyle: 'italic', color: 'rgba(255,255,255,0.2)' }}>Unfilled</span>
-        {hint && (
+        <span style={{ fontSize: 13, fontStyle: 'italic', color: isOver ? 'rgba(167,139,250,0.7)' : 'rgba(255,255,255,0.2)', transition: 'color 0.1s' }}>
+          {isOver ? 'Drop here' : 'Unfilled'}
+        </span>
+        {hint && !isOver && (
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 8 }}>{hint}</span>
         )}
       </div>
@@ -565,7 +579,7 @@ function BoardContent({ team, availabilityMap, sheetOpen, onTapPlayer, onRemove 
       {Array.from({ length: startersCount }, (_, i) => {
         const slot = i + 1
         const p    = players[i]
-        if (!p) return <GhostRow key={`ghost-starter-${slot}`} slot={slot} startersCount={startersCount} />
+        if (!p) return <DroppableGhostRow key={`ghost-starter-${slot}`} slot={slot} startersCount={startersCount} />
         const av = availabilityMap[p.id]?.availability ?? null
         return (
           <FilledRow
@@ -589,7 +603,7 @@ function BoardContent({ team, availabilityMap, sheetOpen, onTapPlayer, onRemove 
       {Array.from({ length: benchCount }, (_, i) => {
         const slot = startersCount + i + 1
         const p    = players[startersCount + i]
-        if (!p) return <GhostRow key={`ghost-bench-${slot}`} slot={slot} startersCount={startersCount} />
+        if (!p) return <DroppableGhostRow key={`ghost-bench-${slot}`} slot={slot} startersCount={startersCount} />
         const av = availabilityMap[p.id]?.availability ?? null
         return (
           <FilledRow
@@ -692,13 +706,45 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const playerIds = activeTeam.players.map(p => p.id)
-    const oldIndex  = playerIds.indexOf(active.id as string)
-    const newIndex  = playerIds.indexOf(over.id as string)
-    if (oldIndex === -1 || newIndex === -1) return
+    const { weekTeam, players } = activeTeam
+    const startersCount = weekTeam.starters_count ?? 15
+    const BENCH_COUNT   = 8
+    const totalSlots    = startersCount + BENCH_COUNT
+    const activeId = active.id as string
+    const overId   = over.id   as string
 
-    const newOrder = arrayMove(playerIds, oldIndex, newIndex)
-    reorderTeam(activeTeam.weekTeam.id, newOrder)
+    if (overId.startsWith('slot-')) {
+      // ── Drop onto a ghost (empty) slot ──────────────────────────────────
+      // Place the dragged player at the exact target slot; vacate source slot.
+      const targetIndex = parseInt(overId.replace('slot-', ''), 10) - 1  // 0-based
+      if (targetIndex < 0 || targetIndex >= totalSlots) return
+
+      // Build a sparse array covering at least totalSlots entries
+      const currentOrder: (string | null)[] = Array.from(
+        { length: Math.max(totalSlots, players.length) },
+        (_, i) => { const p = players[i]; return p ? p.id : null }
+      )
+
+      const sourceIndex = currentOrder.indexOf(activeId)
+      if (sourceIndex === -1) return
+
+      const newOrder = [...currentOrder]
+      newOrder[sourceIndex] = null     // vacate source slot
+      newOrder[targetIndex] = activeId // fill target slot
+      reorderTeam(weekTeam.id, newOrder)
+
+    } else {
+      // ── Drop onto another filled player row (normal reorder) ─────────────
+      // Compact reorder among filled slots — slot numbers shift accordingly.
+      const filledIds = players
+        .filter((p): p is Player => p !== null)
+        .map(p => p.id)
+      const oldIndex = filledIds.indexOf(activeId)
+      const newIndex = filledIds.indexOf(overId)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      reorderTeam(weekTeam.id, arrayMove(filledIds, oldIndex, newIndex))
+    }
   }
 
   // ── Week label for header ──────────────────────────────────────────────────
@@ -709,7 +755,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
   // ── Overlay player ─────────────────────────────────────────────────────────
 
   const overlayPlayer       = overlayPlayerId ? allPlayers.find(p => p.id === overlayPlayerId) ?? null : null
-  const overlaySlot         = overlayPlayer && activeTeam ? (activeTeam.players.findIndex(p => p.id === overlayPlayerId) + 1) || null : null
+  const overlaySlot         = overlayPlayer && activeTeam ? (activeTeam.players.findIndex(p => p !== null && p.id === overlayPlayerId) + 1) || null : null
   const overlayAvailResponse = overlayPlayerId ? availabilityMap[overlayPlayerId] ?? null : null
   const overlayIsCaptain    = activeTeam?.captainId === overlayPlayerId
   const overlayHistory      = overlayPlayerId ? playerHistory[overlayPlayerId] ?? null : null
@@ -717,7 +763,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
   // ── Dragging player ────────────────────────────────────────────────────────
 
   const draggingPlayer = draggingId ? allPlayers.find(p => p.id === draggingId) : null
-  const draggingSlot   = draggingId && activeTeam ? activeTeam.players.findIndex(p => p.id === draggingId) + 1 : null
+  const draggingSlot   = draggingId && activeTeam ? (activeTeam.players.findIndex(p => p !== null && p.id === draggingId) + 1) || null : null
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -806,7 +852,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={activeTeam.players.map(p => p.id)}
+              items={activeTeam.players.filter((p): p is Player => p !== null).map(p => p.id)}
               strategy={verticalListSortingStrategy}
             >
               <BoardContent
