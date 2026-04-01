@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ARM — Belsize Park RFC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  :root {
+    --primary: #6B21A8;
+    --primary-dark: #581C87;
+    --primary-light: #F3E8FF;
+    --accent: #000000;
+    --surface: #FFFFFF;
+    --background: #F4F4F5;
+    --border: #E4E4E7;
+    --text-primary: #18181B;
+    --text-secondary: #71717A;
+    --success: #16A34A;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --tab-bar-height: 64px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: var(--text-primary); min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .phone-frame { width: 393px; height: 852px; background: var(--background); border-radius: 50px; box-shadow: 0 0 0 10px #2a2a2a, 0 0 0 12px #3a3a3a, 0 30px 80px rgba(0,0,0,0.8); overflow: hidden; position: relative; display: flex; flex-direction: column; flex-shrink: 0; }
+  .phone-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 34px; background: #2a2a2a; border-radius: 0 0 20px 20px; z-index: 999; }
+  .phone-notch-pill { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 80px; height: 18px; background: #111; border-radius: 10px; }
+  #root { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 0; }
+  .screen { flex: 1; overflow-y: auto; padding-bottom: calc(var(--tab-bar-height) + 8px); }
+  .tab-bar { position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: var(--tab-bar-height); background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: 8px; }
+  .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; padding: 8px 4px; transition: all 0.15s; }
+  .tab-item.active .tab-icon { color: var(--primary); }
+  .tab-item.active .tab-label { color: var(--primary); font-weight: 600; }
+  .tab-icon { font-size: 22px; color: var(--text-secondary); line-height: 1; }
+  .tab-label { font-size: 10px; color: var(--text-secondary); letter-spacing: 0.3px; }
+  .top-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 16px 10px; position: sticky; top: 0; z-index: 50; }
+  .top-bar h1 { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
+  .top-bar .subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+  .pill-switcher { display: flex; background: var(--background); border-radius: 10px; padding: 3px; gap: 2px; margin-top: 10px; }
+  .pill-tab { flex: 1; padding: 7px; border-radius: 8px; font-size: 13px; font-weight: 500; text-align: center; cursor: pointer; transition: all 0.15s; color: var(--text-secondary); border: none; background: transparent; }
+  .pill-tab.active { background: var(--surface); color: var(--primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .search-bar { background: var(--background); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 14px; width: 100%; outline: none; color: var(--text-primary); margin-top: 10px; }
+  .search-bar:focus { border-color: var(--primary); }
+  .player-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin: 8px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.15s; }
+  .player-card:active { transform: scale(0.98); background: var(--primary-light); }
+  .player-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: var(--primary); flex-shrink: 0; }
+  .player-info { flex: 1; min-width: 0; }
+  .player-name { font-size: 15px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-meta { font-size: 12px; color: var(--text-secondary); margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-active { background: #DCFCE7; color: #15803D; }
+  .badge-injured { background: #FEF3C7; color: #B45309; }
+  .badge-unavailable { background: #FEE2E2; color: #B91C1C; }
+  .badge-retired { background: #F3F4F6; color: #4B5563; }
+  .badge-available { background: #DCFCE7; color: #15803D; }
+  .badge-tbc { background: #FEF3C7; color: #B45309; }
+  .badge-performance { background: #F3E8FF; color: #6B21A8; }
+  .badge-open { background: #DBEAFE; color: #1D4ED8; }
+  .badge-womens { background: #FCE7F3; color: #BE185D; }
+  .note-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+  .chevron { color: var(--text-secondary); font-size: 16px; }
+  .fab { position: fixed; bottom: calc(var(--tab-bar-height) + 16px); right: 16px; width: 54px; height: 54px; border-radius: 50%; background: var(--primary); color: white; font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 16px rgba(107,33,168,0.4); z-index: 90; border: none; transition: transform 0.15s; }
+  .fab:active { transform: scale(0.93); }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
+  .modal-sheet { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; width: 100%; max-height: 90vh; overflow-y: auto; padding: 0 0 32px; animation: slideUp 0.25s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 0; }
+  .modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 17px; font-weight: 700; }
+  .modal-close { width: 30px; height: 30px; border-radius: 50%; background: var(--background); border: none; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+  .modal-body { padding: 16px 20px; }
+  .detail-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .detail-label { font-size: 13px; color: var(--text-secondary); }
+  .detail-value { font-size: 13px; font-weight: 500; text-align: right; }
+  .detail-notes { background: var(--background); border-radius: 10px; padding: 12px; font-size: 13px; color: var(--text-primary); line-height: 1.5; margin-top: 10px; }
+  .form-field { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; outline: none; color: var(--text-primary); background: var(--surface); transition: border-color 0.15s; }
+  .form-input:focus { border-color: var(--primary); }
+  .form-select { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; outline: none; color: var(--text-primary); background: var(--surface); appearance: none; }
+  .btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.15s; margin-top: 8px; }
+  .btn-primary:active { background: var(--primary-dark); }
+  .btn-danger { width: 100%; padding: 14px; background: #FEE2E2; color: var(--danger); border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  .section-header { padding: 16px 16px 6px; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; }
+
+  /* DEPTH CHART */
+  .depth-scroll { display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; padding-bottom: 80px; }
+  .depth-scroll::-webkit-scrollbar { display: none; }
+  .position-column { min-width: 155px; }
+  .position-header { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.8px; padding: 0 0 8px; border-bottom: 2px solid var(--primary-light); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .position-count { background: var(--primary-light); color: var(--primary); border-radius: 10px; padding: 1px 7px; font-size: 10px; }
+  .depth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; }
+  .depth-card:active { background: var(--primary-light); border-color: var(--primary); }
+  .depth-rank { font-size: 10px; color: var(--text-secondary); margin-bottom: 2px; }
+  .depth-name { font-size: 14px; font-weight: 600; }
+  .depth-badges { display: flex; gap: 3px; margin-top: 4px; flex-wrap: wrap; }
+
+  /* SELECTION BOARD */
+  .week-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+  .week-select { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 500; background: var(--background); color: var(--text-primary); outline: none; }
+  .team-tabs { display: flex; gap: 0; overflow-x: auto; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; }
+  .team-tabs::-webkit-scrollbar { display: none; }
+  .team-tab { padding: 10px 14px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .team-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+  .selection-layout { display: flex; gap: 0; height: calc(100vh - 220px); overflow: hidden; }
+  .unassigned-panel { width: 48%; border-right: 1px solid var(--border); overflow-y: auto; }
+  .team-panel { width: 52%; overflow-y: auto; }
+  .panel-header { padding: 10px 12px; font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.7px; background: var(--background); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+  .sel-player { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.12s; }
+  .sel-player:active { background: var(--primary-light); }
+  .sel-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; color: var(--primary); flex-shrink: 0; }
+  .sel-info { flex: 1; min-width: 0; }
+  .sel-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sel-pos { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .sel-badge { font-size: 10px; }
+  .assign-btn { font-size: 18px; color: var(--primary); padding: 4px; }
+  .team-player { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 12px; display: flex; align-items: center; gap: 8px; }
+  .shirt-number { width: 24px; height: 24px; border-radius: 6px; background: var(--primary); color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .shirt-bench { background: var(--background); color: var(--text-secondary); border: 1px solid var(--border); }
+  .starter-divider { background: var(--primary-light); padding: 5px 12px; font-size: 10px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.7px; }
+  .remove-btn { font-size: 16px; color: var(--text-secondary); padding: 4px; cursor: pointer; }
+  .assign-modal .modal-sheet { border-radius: 20px 20px 0 0; }
+  .assign-option { padding: 14px 20px; font-size: 15px; font-weight: 500; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; transition: background 0.12s; }
+  .assign-option:active { background: var(--primary-light); }
+  .assign-option-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+  .empty-state { padding: 40px 20px; text-align: center; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .confirm-modal .modal-sheet { border-radius: 20px 20px 0 0; }
+  .stats-row { display: flex; gap: 8px; padding: 12px 16px 0; }
+  .stat-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 700; color: var(--primary); }
+  .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .filter-row { display: flex; gap: 6px; padding: 8px 16px; overflow-x: auto; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-secondary); transition: all 0.15s; }
+  .filter-chip.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="phone-frame"><div class="phone-notch"><div class="phone-notch-pill"></div></div><div id="root"></div></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+const POSITIONS = ['Prop','Hooker','Lock','Flanker','Number 8','Scrum-half','Fly-half','Centre','Wing','Fullback','Unspecified'];
+const POS_SHORT = {'Prop':'PR','Hooker':'HK','Lock':'LK','Flanker':'FL','Number 8':'N8','Scrum-half':'SH','Fly-half':'FH','Centre':'CE','Wing':'WG','Fullback':'FB','Unspecified':'?'};
+
+const PLAYERS = [
+  {id:1,name:'Marcus Webb',phone:'07911 111001',primary:'Prop',secondary:['Hooker'],type:'Performance',status:'Active',paid:true,notes:'Strong scrummager. First choice loosehead.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:2,name:'Danny Osei',phone:'07911 111002',primary:'Prop',secondary:[],type:'Performance',status:'Active',paid:true,notes:'Tighthead specialist.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:3,name:'Tom Fletcher',phone:'07911 111003',primary:'Prop',secondary:[],type:'Open',status:'Active',paid:false,notes:'',lastDate:'2 Mar 2026',lastTeam:'Second XV'},
+  {id:4,name:'Jamie Okafor',phone:'07911 111004',primary:'Prop',secondary:[],type:'Open',status:'Injured',paid:true,notes:'Hamstring. Out 3 weeks.',lastDate:'23 Feb 2026',lastTeam:'First XV'},
+  {id:5,name:'Ben Carter',phone:'07911 111005',primary:'Hooker',secondary:['Prop'],type:'Performance',status:'Active',paid:true,notes:'Captain. Excellent lineout caller.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:6,name:'Remi Adeyemi',phone:'07911 111006',primary:'Hooker',secondary:[],type:'Open',status:'Active',paid:true,notes:'',lastDate:'9 Mar 2026',lastTeam:'Second XV'},
+  {id:7,name:'Sam Hutchings',phone:'07911 111007',primary:'Lock',secondary:[],type:'Performance',status:'Active',paid:true,notes:'Best lineout jumper. Very reliable.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:8,name:'Alex Nwosu',phone:'07911 111008',primary:'Lock',secondary:[],type:'Performance',status:'Active',paid:true,notes:'Powerful ball carrier.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:9,name:'Chris Devlin',phone:'07911 111009',primary:'Lock',secondary:['Flanker'],type:'Open',status:'Active',paid:false,notes:'',lastDate:'2 Mar 2026',lastTeam:'Second XV'},
+  {id:10,name:'Joe Murphy',phone:'07911 111010',primary:'Flanker',secondary:['Number 8'],type:'Performance',status:'Active',paid:true,notes:'Openside. Incredible work rate.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:11,name:'Will Baxter',phone:'07911 111011',primary:'Flanker',secondary:[],type:'Performance',status:'Active',paid:true,notes:'Blindside. Good lineout support.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:12,name:'Dayo Folarin',phone:'07911 111012',primary:'Flanker',secondary:['Number 8'],type:'Open',status:'Active',paid:true,notes:'',lastDate:'9 Mar 2026',lastTeam:'Second XV'},
+  {id:13,name:'Pete Ashford',phone:'07911 111013',primary:'Number 8',secondary:['Flanker'],type:'Performance',status:'Active',paid:true,notes:'Club vice-captain. Leads drives well.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:14,name:'Kofi Mensah',phone:'07911 111014',primary:'Number 8',secondary:[],type:'Open',status:'Unavailable',paid:false,notes:'Travelling. Back in April.',lastDate:'16 Feb 2026',lastTeam:'Second XV'},
+  {id:15,name:'Luke Pearce',phone:'07911 111015',primary:'Scrum-half',secondary:[],type:'Performance',status:'Active',paid:true,notes:'Quick service. Great under pressure.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:16,name:'Finn Gallagher',phone:'07911 111016',primary:'Scrum-half',secondary:['Fly-half'],type:'Open',status:'Active',paid:true,notes:'',lastDate:'9 Mar 2026',lastTeam:'Second XV'},
+  {id:17,name:'Harry Cole',phone:'07911 111017',primary:'Fly-half',secondary:['Centre'],type:'Performance',status:'Active',paid:true,notes:'Goal kicker. First choice 10.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:18,name:'Ollie Byrne',phone:'07911 111018',primary:'Fly-half',secondary:[],type:'Open',status:'Active',paid:true,notes:'Developing well. Good vision.',lastDate:'2 Mar 2026',lastTeam:'Second XV'},
+  {id:19,name:'Marcus Singh',phone:'07911 111019',primary:'Centre',secondary:['Wing'],type:'Performance',status:'Active',paid:true,notes:'Outside centre. Great defence.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:20,name:'Tyler Brooks',phone:'07911 111020',primary:'Centre',secondary:[],type:'Performance',status:'Active',paid:true,notes:'Inside centre. Ball distributor.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:21,name:'Ade Williams',phone:'07911 111021',primary:'Centre',secondary:['Wing'],type:'Open',status:'Active',paid:false,notes:'',lastDate:'9 Mar 2026',lastTeam:'Second XV'},
+  {id:22,name:'Ryan Tate',phone:'07911 111022',primary:'Wing',secondary:[],type:'Performance',status:'Active',paid:true,notes:'Right wing. Fastest in the squad.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:23,name:'Josh Palmer',phone:'07911 111023',primary:'Wing',secondary:['Fullback'],type:'Performance',status:'Active',paid:true,notes:'Left wing. Strong finisher.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:24,name:'Connor Reid',phone:'07911 111024',primary:'Wing',secondary:[],type:'Open',status:'Active',paid:false,notes:'',lastDate:'2 Mar 2026',lastTeam:'Second XV'},
+  {id:25,name:'Dan Morley',phone:'07911 111025',primary:'Fullback',secondary:['Wing'],type:'Performance',status:'Active',paid:true,notes:'Strong under the high ball. Club top scorer.',lastDate:'9 Mar 2026',lastTeam:'First XV'},
+  {id:26,name:'Ethan Fox',phone:'07911 111026',primary:'Fullback',secondary:[],type:'Open',status:'Active',paid:true,notes:'',lastDate:'9 Mar 2026',lastTeam:'Second XV'},
+  {id:27,name:'Player 27',phone:'07911 111027',primary:'Unspecified',secondary:[],type:'Open',status:'Active',paid:false,notes:'New player from availability form.',lastDate:null,lastTeam:null},
+];
+
+const AVAIL = {1:'Available',2:'Available',3:'Available',5:'Available',6:'TBC',7:'Available',8:'Available',9:'TBC',10:'Available',11:'Available',12:'Available',13:'Available',15:'Available',16:'Available',17:'Available',18:'TBC',19:'Available',20:'Available',21:'Available',22:'Available',23:'Available',24:'TBC',25:'Available',26:'Available',27:'TBC'};
+
+const TEAMS = ['First XV','Second XV','Third XV'];
+const INITIAL_SELECTIONS = {
+  'First XV': [1,5,7,8,10,11,13,15,17,19,20,22,23,25,2,6],
+  'Second XV': [3,9,12,16,18,21,24,26],
+  'Third XV': [],
+};
+
+function initials(name) { return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function StatusBadge({status}) {
+  const cls = {Active:'badge-active',Injured:'badge-injured',Unavailable:'badge-unavailable',Retired:'badge-retired'}[status]||'badge-active';
+  return <span className={`badge ${cls}`}>{status}</span>;
+}
+function TypeBadge({type}) {
+  const cls = {Performance:'badge-performance',Open:'badge-open',"Women's":'badge-womens'}[type]||'badge-open';
+  const label = type === "Women's" ? "Women's" : type;
+  return <span className={`badge ${cls}`}>{label}</span>;
+}
+function AvailBadge({avail}) {
+  if(!avail) return null;
+  const cls = avail==='Available'?'badge-available':'badge-tbc';
+  return <span className={`badge ${cls}`}>{avail}</span>;
+}
+
+function PlayerDetailModal({player, onClose, onEdit}) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"/>
+        <div className="modal-header">
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <div className="player-avatar" style={{width:48,height:48,fontSize:16}}>{initials(player.name)}</div>
+            <div>
+              <div className="modal-title">{player.name}</div>
+              <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:2}}>{player.primary} · {player.type}</div>
+            </div>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div className="detail-row"><span className="detail-label">Status</span><StatusBadge status={player.status}/></div>
+          <div className="detail-row"><span className="detail-label">Player Type</span><TypeBadge type={player.type}/></div>
+          <div className="detail-row"><span className="detail-label">Primary Position</span><span className="detail-value">{player.primary}</span></div>
+          {player.secondary&&player.secondary.length>0 && <div className="detail-row"><span className="detail-label">Secondary Positions</span><span className="detail-value">{player.secondary.join(', ')}</span></div>}
+          <div className="detail-row"><span className="detail-label">Phone</span><span className="detail-value">{player.phone}</span></div>
+          <div className="detail-row"><span className="detail-label">Subscription</span><span className="detail-value">{player.paid?'✓ Paid':'✗ Unpaid'}</span></div>
+          {player.lastTeam && <div className="detail-row"><span className="detail-label">Last Played</span><span className="detail-value">{player.lastDate} · {player.lastTeam}</span></div>}
+          {player.notes && <>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'0.5px',marginTop:14,marginBottom:6}}>Notes</div>
+            <div className="detail-notes">{player.notes}</div>
+          </>}
+          <button className="btn-primary" style={{marginTop:20}} onClick={onEdit}>Edit Player</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditPlayerModal({player, onClose, onSave}) {
+  const [form, setForm] = useState(player ? {...player} : {name:'',phone:'',primary:'Prop',secondary:[],type:'Open',status:'Active',paid:false,notes:''});
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-sheet" style={{maxHeight:'95vh'}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"/>
+        <div className="modal-header">
+          <span className="modal-title">{player?'Edit Player':'Add Player'}</span>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div className="form-field"><label className="form-label">Full Name</label><input className="form-input" value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. John Smith"/></div>
+          <div className="form-field"><label className="form-label">Phone</label><input className="form-input" value={form.phone} onChange={e=>set('phone',e.target.value)} placeholder="07700 000000"/></div>
+          <div className="form-field"><label className="form-label">Primary Position</label>
+            <select className="form-select" value={form.primary} onChange={e=>set('primary',e.target.value)}>
+              {POSITIONS.map(p=><option key={p}>{p}</option>)}
+            </select>
+          </div>
+          <div className="form-field"><label className="form-label">Player Type</label>
+            <select className="form-select" value={form.type} onChange={e=>set('type',e.target.value)}>
+              {['Performance','Open',"Women's"].map(t=><option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="form-field"><label className="form-label">Status</label>
+            <select className="form-select" value={form.status} onChange={e=>set('status',e.target.value)}>
+              {['Active','Injured','Unavailable','Retired'].map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="form-field" style={{display:'flex',alignItems:'center',gap:10}}>
+            <input type="checkbox" id="paid" checked={form.paid} onChange={e=>set('paid',e.target.checked)} style={{width:18,height:18,accentColor:'var(--primary)'}}/>
+            <label htmlFor="paid" style={{fontSize:15,fontWeight:500}}>Subscription Paid</label>
+          </div>
+          <div className="form-field"><label className="form-label">Notes</label><textarea className="form-input" rows={3} value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="e.g. Trained well this week" style={{resize:'none'}}/></div>
+          <button className="btn-primary" onClick={()=>onSave(form)}>Save Player</button>
+          {player && <button className="btn-danger" onClick={onClose}>Cancel</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RosterContent({players, setPlayers, search, filter}) {
+  const [detail, setDetail] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const filtered = useMemo(()=>players.filter(p=>{
+    const nameMatch = p.name.toLowerCase().includes(search.toLowerCase());
+    if(filter==='All') return nameMatch;
+    if(['Active','Injured','Unavailable'].includes(filter)) return nameMatch && p.status===filter;
+    if(['Performance','Open'].includes(filter)) return nameMatch && p.type===filter;
+    return nameMatch;
+  }),[players,search,filter]);
+
+  const handleSave = (form) => {
+    if(editing) setPlayers(ps=>ps.map(p=>p.id===editing.id?{...p,...form}:p));
+    else setPlayers(ps=>[...ps,{...form,id:Date.now(),lastDate:null,lastTeam:null}]);
+    setEditing(null); setAdding(false);
+  };
+
+  return (
+    <>
+      <div className="section-header">{filtered.length} Player{filtered.length!==1?'s':''}</div>
+      {filtered.map(p=>(
+        <div key={p.id} className="player-card" onClick={()=>setDetail(p)}>
+          <div className="player-avatar">{initials(p.name)}</div>
+          <div className="player-info">
+            <div className="player-name">{p.name}</div>
+            <div className="player-meta">
+              <span style={{fontWeight:500}}>{p.primary}</span>
+              <StatusBadge status={p.status}/>
+              <TypeBadge type={p.type}/>
+              {p.notes && <span className="note-dot"/>}
+            </div>
+            {p.secondary && p.secondary.length>0 && <div style={{fontSize:11,color:'var(--text-secondary)',marginTop:3}}>Also: {p.secondary.join(', ')}</div>}
+            {p.lastTeam && <div style={{fontSize:11,color:'var(--text-secondary)',marginTop:2}}>Last: {p.lastTeam} · {p.lastDate}</div>}
+          </div>
+          <span className="chevron">›</span>
+        </div>
+      ))}
+      {filtered.length===0 && <div className="empty-state"><div className="empty-icon">👤</div><div className="empty-title">No players found</div><div className="empty-sub">Try a different search or filter.</div></div>}
+      <button className="fab" onClick={()=>setAdding(true)}>+</button>
+      {detail && <PlayerDetailModal player={detail} onClose={()=>setDetail(null)} onEdit={()=>{setEditing(detail);setDetail(null);}}/>}
+      {editing && <EditPlayerModal player={editing} onClose={()=>setEditing(null)} onSave={handleSave}/>}
+      {adding && <EditPlayerModal player={null} onClose={()=>setAdding(false)} onSave={handleSave}/>}
+    </>
+  );
+}
+
+function DepthChartContent({players}) {
+  const [detail, setDetail] = useState(null);
+  const positions = POSITIONS.filter(p=>p!=='Unspecified');
+  const grouped = positions.reduce((acc,pos)=>{
+    acc[pos]=players.filter(p=>p.primary===pos);
+    return acc;
+  },{});
+  const unspecified = players.filter(p=>p.primary==='Unspecified');
+  return (
+    <>
+      <div className="depth-scroll">
+        {[...positions, 'Unspecified'].map(pos=>{
+          const group = pos==='Unspecified'?unspecified:grouped[pos];
+          if(group.length===0) return null;
+          return (
+            <div key={pos} className="position-column">
+              <div className="position-header">
+                <span>{pos}</span>
+                <span className="position-count">{group.length}</span>
+              </div>
+              {group.map((p,i)=>(
+                <div key={p.id} className="depth-card" onClick={()=>setDetail(p)}>
+                  <div className="depth-rank">#{i+1}</div>
+                  <div className="depth-name">{p.name}</div>
+                  <div className="depth-badges">
+                    <TypeBadge type={p.type}/>
+                    {p.status!=='Active'&&<StatusBadge status={p.status}/>}
+                    {p.notes&&<span style={{width:6,height:6,borderRadius:'50%',background:'var(--primary)',display:'inline-block',marginTop:3}}/>}
+                  </div>
+                  {p.secondary && p.secondary.length>0 && <div style={{fontSize:10,color:'var(--text-secondary)',marginTop:4}}>Also: {p.secondary.join(', ')}</div>}
+                  {p.lastTeam && <div style={{fontSize:10,color:'var(--text-secondary)',marginTop:2}}>{p.lastTeam}</div>}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+      {detail && <PlayerDetailModal player={detail} onClose={()=>setDetail(null)} onEdit={()=>setDetail(null)}/>}
+    </>
+  );
+}
+
+function PlayersSection({players, setPlayers}) {
+  const [sub, setSub] = useState('Roster');
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('All');
+  const filters = ['All','Active','Injured','Unavailable','Performance','Open'];
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100%'}}>
+      <div className="top-bar" style={{position:'sticky',top:0,zIndex:50}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+          <div>
+            <h1>ARM</h1>
+            <div className="subtitle">Belsize Park RFC · {players.length} Players</div>
+          </div>
+          <div style={{display:'flex',gap:6,marginTop:2}}>
+            <div className="stat-card" style={{padding:'6px 10px',minWidth:48}}><div className="stat-val" style={{fontSize:16}}>{players.filter(p=>p.status==='Active').length}</div><div className="stat-label">Active</div></div>
+            <div className="stat-card" style={{padding:'6px 10px',minWidth:48}}><div className="stat-val" style={{fontSize:16}}>{players.filter(p=>p.status==='Injured').length}</div><div className="stat-label">Injured</div></div>
+          </div>
+        </div>
+        <div className="pill-switcher" style={{marginTop:10}}>
+          <button className={`pill-tab ${sub==='Roster'?'active':''}`} onClick={()=>setSub('Roster')}>Roster</button>
+          <button className={`pill-tab ${sub==='Depth Chart'?'active':''}`} onClick={()=>setSub('Depth Chart')}>Depth Chart</button>
+        </div>
+        {sub==='Roster' && <>
+          <input className="search-bar" placeholder="🔍  Search players..." value={search} onChange={e=>setSearch(e.target.value)} style={{marginTop:8}}/>
+          <div className="filter-row" style={{padding:'8px 0 0',overflowX:'auto'}}>
+            {filters.map(f=><button key={f} className={`filter-chip ${filter===f?'active':''}`} onClick={()=>setFilter(f)}>{f}</button>)}
+          </div>
+        </>}
+      </div>
+      <div style={{flex:1,overflowY:'auto',paddingBottom:80}}>
+        {sub==='Roster'
+          ? <RosterContent players={players} setPlayers={setPlayers} search={search} filter={filter}/>
+          : <DepthChartContent players={players}/>}
+      </div>
+    </div>
+  );
+}
+
+function SelectionScreen({players}) {
+  const [activeTeam, setActiveTeam] = useState('First XV');
+  const [selections, setSelections] = useState(INITIAL_SELECTIONS);
+  const [assigning, setAssigning] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const availPlayers = players.filter(p=>AVAIL[p.id]);
+  const allAssigned = Object.values(selections).flat();
+  const unassigned = availPlayers.filter(p=>!allAssigned.includes(p.id));
+  const teamPlayerIds = selections[activeTeam]||[];
+  const teamPlayers = teamPlayerIds.map(id=>players.find(p=>p.id===id)).filter(Boolean);
+  const STARTERS = 15;
+
+  const assignToTeam = (playerId, teamName) => {
+    setSelections(prev=>{
+      const next = {};
+      TEAMS.forEach(t=>{ next[t]=(prev[t]||[]).filter(id=>id!==playerId); });
+      next[teamName]=[...(next[teamName]||[]),playerId];
+      return next;
+    });
+    setAssigning(null);
+  };
+  const removeFromTeam = (playerId) => {
+    setSelections(prev=>({...prev,[activeTeam]:(prev[activeTeam]||[]).filter(id=>id!==playerId)}));
+  };
+
+  const starters = teamPlayers.slice(0,STARTERS);
+  const bench = teamPlayers.slice(STARTERS);
+
+  return (
+    <>
+      <div className="top-bar" style={{paddingBottom:0}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div><h1>Selection Board</h1><div className="subtitle">Week of 16 Mar 2026</div></div>
+          <div style={{background:'var(--primary-light)',borderRadius:8,padding:'4px 10px',fontSize:12,fontWeight:600,color:'var(--primary)'}}>Open</div>
+        </div>
+      </div>
+      <div className="team-tabs">
+        {TEAMS.map(t=>(
+          <div key={t} className={`team-tab ${activeTeam===t?'active':''}`} onClick={()=>setActiveTeam(t)}>
+            {t} <span style={{fontSize:11,marginLeft:4,opacity:0.7}}>({(selections[t]||[]).length})</span>
+          </div>
+        ))}
+      </div>
+      <div className="selection-layout">
+        <div className="unassigned-panel">
+          <div className="panel-header"><span>Unassigned</span><span>{unassigned.length}</span></div>
+          {unassigned.length===0 && <div className="empty-state"><div className="empty-icon">✓</div><div className="empty-title">All assigned</div><div className="empty-sub">All available players have been placed.</div></div>}
+          {unassigned.map(p=>(
+            <div key={p.id} className="sel-player">
+              <div className="sel-avatar" onClick={()=>setDetail(p)}>{initials(p.name)}</div>
+              <div className="sel-info" onClick={()=>setDetail(p)}>
+                <div className="sel-name">{p.name}</div>
+                <div className="sel-pos">{p.primary}{p.secondary&&p.secondary.length>0?' / '+p.secondary.join(', '):''}</div>
+                <div style={{marginTop:3}}><AvailBadge avail={AVAIL[p.id]}/></div>
+              </div>
+              <button className="assign-btn" onClick={()=>setAssigning(p)}>＋</button>
+            </div>
+          ))}
+        </div>
+        <div className="team-panel">
+          <div className="panel-header"><span>{activeTeam}</span><span>{teamPlayers.length} players</span></div>
+          {teamPlayers.length===0 && <div className="empty-state"><div className="empty-icon">👕</div><div className="empty-title">No players yet</div><div className="empty-sub">Tap + on a player to assign them here.</div></div>}
+          {starters.length>0 && <div className="starter-divider">Starters (1–{Math.min(starters.length,STARTERS)})</div>}
+          {starters.map((p,i)=>(
+            <div key={p.id} className="team-player">
+              <div className="shirt-number">{i+1}</div>
+              <div className="sel-avatar" style={{width:28,height:28,fontSize:10}} onClick={()=>setDetail(p)}>{initials(p.name)}</div>
+              <div className="sel-info" onClick={()=>setDetail(p)}>
+                <div className="sel-name" style={{fontSize:13}}>{p.name}</div>
+                <div className="sel-pos">{p.primary}{p.secondary&&p.secondary.length>0?' / '+p.secondary[0]:''}</div>
+              </div>
+              <button className="remove-btn" onClick={()=>removeFromTeam(p.id)}>✕</button>
+            </div>
+          ))}
+          {bench.length>0 && <div className="starter-divider" style={{background:'var(--background)',color:'var(--text-secondary)'}}>Bench ({bench.length})</div>}
+          {bench.map((p,i)=>(
+            <div key={p.id} className="team-player">
+              <div className="shirt-number shirt-bench">{STARTERS+i+1}</div>
+              <div className="sel-avatar" style={{width:28,height:28,fontSize:10}} onClick={()=>setDetail(p)}>{initials(p.name)}</div>
+              <div className="sel-info" onClick={()=>setDetail(p)}>
+                <div className="sel-name" style={{fontSize:13}}>{p.name}</div>
+                <div className="sel-pos">{p.primary}{p.secondary&&p.secondary.length>0?' / '+p.secondary[0]:''}</div>
+              </div>
+              <button className="remove-btn" onClick={()=>removeFromTeam(p.id)}>✕</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {assigning && (
+        <div className="modal-backdrop" onClick={()=>setAssigning(null)}>
+          <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+            <div className="modal-handle"/>
+            <div className="modal-header">
+              <div>
+                <div className="modal-title">Assign {assigning.name}</div>
+                <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:2}}>{assigning.primary} · <AvailBadge avail={AVAIL[assigning.id]}/></div>
+              </div>
+              <button className="modal-close" onClick={()=>setAssigning(null)}>✕</button>
+            </div>
+            {TEAMS.map(t=>(
+              <div key={t} className="assign-option" onClick={()=>assignToTeam(assigning.id,t)}>
+                <div className="assign-option-dot"/>
+                <span>{t}</span>
+                <span style={{marginLeft:'auto',fontSize:12,color:'var(--text-secondary)'}}>{(selections[t]||[]).length} players</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {detail && <PlayerDetailModal player={detail} onClose={()=>setDetail(null)} onEdit={()=>setDetail(null)}/>}
+    </>
+  );
+}
+
+
+
+function App() {
+  const [tab, setTab] = useState('Players');
+  const [players, setPlayers] = useState(PLAYERS);
+  const tabs = [
+    {id:'Players', icon:'👤', label:'Players'},
+    {id:'Selection', icon:'📋', label:'Weeks'},
+  ];
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'852px',overflow:'hidden'}}>
+      <div className="screen">
+        {tab==='Players' && <PlayersSection players={players} setPlayers={setPlayers}/>}
+        {tab==='Selection' && <SelectionScreen players={players}/>}
+      </div>
+      <div className="tab-bar">
+        {tabs.map(t=>(
+          <div key={t.id} className={`tab-item ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
+            <span className="tab-icon">{t.icon}</span>
+            <span className="tab-label">{t.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>

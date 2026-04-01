@@ -433,15 +433,11 @@ Acceptance criteria verified by code review:
 6. ✓ "+" button appends at next contiguous slot (trimTrailingNulls)
 
 ### Current state
-- Last clean checkpoint: BUG-FIX-GHOST
-- All changes committed: Yes (see commit below)
-- Pushed to GitHub: **No — requires manual push**
-- Migrations applied to Supabase: **No — 006 and 007 both still pending**
-
-### Required actions before deploy
-1. Apply `006_cp7a.sql` in Supabase SQL Editor
-2. Apply `supabase/migrations/007_cp7b.sql` in Supabase SQL Editor
-3. `git push origin main`
+- Last clean checkpoint: BUG-FIX-GHOST + TS type fix
+- All changes committed: Yes — 55686d4 (ghost rows) + 0ec8bad (type fix)
+- Pushed to GitHub: ✅ Yes
+- Migrations applied to Supabase: ✅ 001–007 all applied
+- Vercel build: ✅ Clean — app live at https://arm-app-black.vercel.app
 
 ### Next session starts at
 - **CP-8.1** — Auto-remove: Unavailable submission removes player from `team_selections` for that week
@@ -449,4 +445,4 @@ Acceptance criteria verified by code review:
 - Decisions pending: None
 
 ### Paste this at the start of next session
-"Continuing ARM. Ghost rows bug fixed and committed (BUG-FIX-GHOST): empty position slots on the Selection Board are now registered dnd-kit drop targets. Dragging a player onto any ghost row places them at the exact slot number; the sparse player_order is persisted to Supabase and survives reload. BEFORE deploying: apply 006_cp7a.sql then 007_cp7b.sql in Supabase SQL Editor, then git push origin main. Next: Phase 8 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."
+"Continuing ARM. Ghost rows bug fixed and deployed (0ec8bad): empty position slots on the Selection Board are now registered dnd-kit drop targets. Dragging a player onto any ghost row places them at the exact slot number; sparse player_order persisted to Supabase and survives reload. Migrations 001–007 all applied. App live at https://arm-app-black.vercel.app. Next: Phase 8 CP-8.1 — auto-remove player from team_selections when they submit Unavailable (logic in AvailabilityForm.tsx)."
