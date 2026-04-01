@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-03-30**
-**Current position: CP7-B complete. Apply migrations 006 + 007 in Supabase, then push to deploy. Next: Phase 8 (auto-remove Unavailable).**
+**Last updated: 2026-04-01**
+**Current position: CP8 complete (503c301). Migrations 008–010 written — apply before push. Next: git push origin main from terminal.**
 
 ---
 
@@ -24,10 +24,10 @@
 | 5 | Weeks — create week, auto-insert week_teams, UUID token, share link, week dropdown | ✅ Done |
 | 6 | v1.8 schema migration + Availability Form (public page, match/auto-create, availability_note) | ✅ Done |
 | 7 | Selection Board — tabbed UI, team sheet, unassigned pool, PlayerOverlay | ✅ Done |
-| 8 | Auto-remove — Unavailable submission removes player from team_selections | ▶ Next |
-| 9 | Close Week — confirmation dialog, set Closed, last_played fields, archive_game_notes insert | ⏳ Pending |
+| 8 | Auto-remove — Unavailable submission removes player from team_selections | ✅ Done |
+| 9 | Close Week — confirmation dialog, set Closed, last_played fields, archive_game_notes insert | ✅ Done |
 | 10 | Exports — jsPDF PDF + plain text, native OS share sheet | ⏳ Pending |
-| 11 | Archive — Closed Weeks sub-tab, inline Game Notes, Player History Search sub-tab | ⏳ Pending |
+| 11 | Archive — Closed Weeks sub-tab, inline Game Notes, Player History Search sub-tab | ✅ Done |
 | 12 | Polish — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
 
 ---
@@ -133,30 +133,32 @@
 | 7B.4 | SelectionBoard: Team Management sheet (rename/starters/visibility), Week Picker sheet (all weeks, checkmark, empty state) | ✅ Done |
 | 7B.5 | Board.tsx prop rename + commit bef62b1 | ✅ Done |
 
-**⚠️ Required before deploy:**
-1. Apply `006_cp7a.sql` in Supabase SQL Editor (adds week_teams.visible + team_selections.captain_id)
-2. Apply `supabase/migrations/007_cp7b.sql` in Supabase SQL Editor (adds get_player_last_selections RPC)
-3. `git push origin main`
+**✅ All deploy prerequisites complete:**
+- Migration 006 applied (week_teams.visible + team_selections.captain_id)
+- Migration 007 applied (get_player_last_selections RPC)
+- Commits 55686d4 + 0ec8bad pushed, Vercel build clean
 
 ---
 
-### Phase 8 ▶ NEXT
+### Phase 8 ✅
 | CP | Description | Status |
 |---|---|---|
-| 8.1 | Auto-remove: Unavailable submission removes player from team_selections for that week (app-level in AvailabilityForm.tsx) | ▶ Next |
+| 8.1 | DB trigger (009_cp8_trigger.sql): AFTER INSERT on availability_responses, availability=Unavailable → replace player UUID with null in player_order for all team_selections for that week. Preserves sparse array structure. | ✅ Done |
 
-**Files to touch:** `src/pages/AvailabilityForm.tsx`
-
----
-
-### Phase 9 ⏳
+### Phase 9 ✅
 | CP | Description | Status |
 |---|---|---|
-| 9.1 | Close Week: confirmation dialog (with empty-team warning variant) | ⏳ Pending |
-| 9.2 | On confirm: set week status → Closed, update last_played_date + last_played_team | ⏳ Pending |
-| 9.3 | Auto-insert archive_game_notes rows (one per player per team, game_notes = null) | ⏳ Pending |
+| 9.1 | Close Week dialog: danger modal, empty-active-team warning variant. CloseWeekDialog component in Weeks.tsx. | ✅ Done |
+| 9.2 | close_week RPC (010_cp8_close_week_rpc.sql): atomic — sets Closed, updates last_played_date + last_played_team. | ✅ Done |
+| 9.3 | RPC upserts archive_game_notes with player_name_snapshot, player_type_snapshot, position_snapshot. | ✅ Done |
 
-**Files to touch:** `src/pages/Weeks.tsx`, new close-week logic
+### Phase 11 ✅
+| CP | Description | Status |
+|---|---|---|
+| 11.1 | Archive tab: reverse-chrono closed weeks, pill team tabs (hides is_active=false Bye teams), click-to-expand game notes. | ✅ Done |
+| 11.2 | Game notes: debounced auto-save on textarea change. | ✅ Done |
+| 11.3 | Player History Search: ilike query, sorted by most recent week, search cards with badges + notes preview. | ✅ Done |
+| 11.4 | Deep-link: tap search result → /archive?tab=archive&week=X&team=Y&player=Z. Auto-expands week, selects team tab, scrollIntoView(center). Back button preserves q param. | ✅ Done |
 
 ---
 
@@ -196,6 +198,10 @@
 |---|---|---|---|
 | BUG-1 | CP7-A nav had Roster/Board/Weeks — Board tab accessible from nav, Depth Chart unreachable | Replace Board tab with Depth Chart; Board accessed via "Open Board" from week card; /board activates Weeks tab | ✅ Done — ea26444 |
 | BUG-2 | CP7-A Layout.tsx set background #000 + color #fff on root div — all pages rendered black | Root div → #F8F8F8 background, #111827 text. Nav bar stays dark. | ✅ Done — ea26444 |
+| BUG-FIX-A | Board header obscured by iOS status bar / dynamic island | paddingTop: env(safe-area-inset-top) applied globally via Layout.tsx | ✅ Done — df5e296 |
+| BUG-FIX-B | Availability Note not rendering in PlayerOverlay | Amber callout + weekLabel prop wired | ✅ Done — df5e296 |
+| BUG-FIX-C | Pool showed no-response/Unavailable players; row tap assigned instead of opening overlay | Filter to Available/TBC only; tap → overlay, "+" → assign | ✅ Done — df5e296 |
+| BUG-FIX-GHOST | Ghost rows not registered as dnd-kit drop targets — players appended to end instead of exact slot | DroppableGhostRow (useDroppable per slot), sparse player_order (string\|null)[], handleDragEnd handles slot-N targets | ✅ Done — 0ec8bad |
 
 ---
 
@@ -204,5 +210,5 @@
 - GitHub: https://github.com/Razorlovesrugby/arm-app.git
 - Vercel: https://arm-app-black.vercel.app
 - Git identity: raysairaijimckenzie@gmail.com / Razorlovesrugby
-- Supabase migrations applied: 001–005
+- Supabase migrations applied: 001–007
 - **Recurring note:** GitHub push blocked by VM network proxy. Run `git push origin main` from terminal or Codespaces after each session.
