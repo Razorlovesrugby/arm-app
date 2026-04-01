@@ -65,6 +65,7 @@ export interface WeekTeam {
   sort_order: number
   starters_count: number
   visible: boolean          // CP7-A: controls tab visibility
+  is_active: boolean        // CP8: false = Bye week (skip in Close Week validation + Archive)
 }
 
 export interface AvailabilityResponse {
@@ -83,6 +84,8 @@ export interface ArchiveGameNote {
   week_team_id: string
   player_id: string | null           // nullable — supports deleted players
   player_name_snapshot: string
+  player_type_snapshot: string | null  // CP8: badge snapshot
+  position_snapshot: string | null     // CP8: position badge snapshot
   game_notes: string | null
   updated_at: string
 }

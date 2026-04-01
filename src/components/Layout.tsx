@@ -1,7 +1,6 @@
 // src/components/Layout.tsx
 // CP7A.1 — Three-tab bottom navigation: Roster · Board · Weeks
-// Replaces previous nav shell (Players · Weeks · Archive)
-// Archive route is preserved in routing but not surfaced in nav until Phase 11
+// CP8 — Four-tab nav: Roster · Depth Chart · Weeks · Archive
 // BUG-1 — Nav restructure: Roster · Depth Chart · Weeks (Board tab removed)
 // BUG-2 — White background fix: root div no longer forces black background
 
@@ -10,9 +9,10 @@ import { useLocation, useNavigate, Outlet } from 'react-router-dom'
 // No children prop — uses React Router Outlet for nested routes
 
 const NAV_TABS = [
-  { path: '/roster', label: 'Roster',      icon: '👥' },
-  { path: '/depth',  label: 'Depth Chart', icon: '📊' },
-  { path: '/weeks',  label: 'Weeks',       icon: '📅' },
+  { path: '/roster',  label: 'Roster',  icon: '👥' },
+  { path: '/depth',   label: 'Chart',   icon: '📊' },
+  { path: '/weeks',   label: 'Weeks',   icon: '📅' },
+  { path: '/archive', label: 'Archive', icon: '🗄️' },
 ] as const
 
 export default function Layout() {
@@ -22,7 +22,9 @@ export default function Layout() {
   // /board activates the Weeks tab — Board belongs to a specific week
   function resolveActiveTab(): string {
     if (location.pathname.startsWith('/board')) return '/weeks'
-    const match = NAV_TABS.find(t => location.pathname.startsWith(t.path))
+    // Sort by path length desc so /archive doesn't match /a (hypothetical)
+    const sorted = [...NAV_TABS].sort((a, b) => b.path.length - a.path.length)
+    const match  = sorted.find(t => location.pathname.startsWith(t.path))
     return match?.path ?? '/roster'
   }
   const activeTab = resolveActiveTab()

@@ -364,7 +364,7 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
 interface TeamManagementSheetProps {
   team: WeekTeam
   saveStatus: 'idle' | 'saved' | 'error'
-  onSave: (patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible'>>) => Promise<boolean>
+  onSave: (patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible' | 'is_active'>>) => Promise<boolean>
   onClose: () => void
 }
 
@@ -372,6 +372,7 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
   const [name,     setName]     = useState(team.team_name)
   const [starters, setStarters] = useState(team.starters_count ?? 15)
   const [visible,  setVisible]  = useState(team.visible)
+  const [isActive, setIsActive] = useState(team.is_active ?? true)
   const [saving,   setSaving]   = useState(false)
 
   // Re-sync if team prop changes (e.g. switched active team while sheet open — shouldn't happen but safe)
@@ -379,6 +380,7 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
     setName(team.team_name)
     setStarters(team.starters_count ?? 15)
     setVisible(team.visible)
+    setIsActive(team.is_active ?? true)
   }, [team.id])
 
   const canSave = name.trim().length > 0
@@ -386,7 +388,7 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
   async function handleSave() {
     if (!canSave || saving) return
     setSaving(true)
-    const success = await onSave({ team_name: name.trim(), starters_count: starters, visible })
+    const success = await onSave({ team_name: name.trim(), starters_count: starters, visible, is_active: isActive })
     setSaving(false)
     if (success) onClose()   // only close on success; error badge stays visible on failure
   }
@@ -455,9 +457,20 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Show this team</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Hide if team has a bye this week</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Hide tab on the board this week</div>
             </div>
             <Toggle on={visible} onToggle={() => setVisible(v => !v)} />
+          </div>
+
+          {/* Field 4 — Team Active (Bye toggle) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Team playing</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                Off = Bye. Skips empty-player warning on Close Week.
+              </div>
+            </div>
+            <Toggle on={isActive} onToggle={() => setIsActive(v => !v)} />
           </div>
 
           {/* Save Changes */}

@@ -45,7 +45,7 @@ export interface UseSelectionBoardReturn {
   setCaptain: (teamId: string, playerId: string | null) => Promise<void>
   saveTeamSettings: (
     teamId: string,
-    patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible'>>
+    patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible' | 'is_active'>>
   ) => Promise<boolean>  // true = success, false = failure (stays open, error badge shown)
 }
 
@@ -432,7 +432,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   const saveTeamSettings = useCallback(async (
     teamId: string,
-    patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible'>>
+    patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible' | 'is_active'>>
   ): Promise<boolean> => {
     const prevWeekTeams    = [...weekTeams]
     const prevAllWeekTeams = [...allWeekTeams]
