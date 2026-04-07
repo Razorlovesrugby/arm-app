@@ -7,7 +7,7 @@ function formatDate(iso: string): string {
 }
 
 export default function Results() {
-  const { pastWeeks, loading } = useWeeks()
+  const { weeks, loading } = useWeeks()
   const navigate = useNavigate()
 
   if (loading) {
@@ -20,31 +20,39 @@ export default function Results() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-4 pb-20">
-      <h1 className="text-xl font-bold text-gray-900 mb-4">Results</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-4">Fixtures &amp; Results</h1>
 
-      {pastWeeks.length === 0 && (
+      {weeks.length === 0 && (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">🏉</p>
-          <p className="font-medium text-gray-600">No past weeks</p>
-          <p className="text-sm mt-1">Results will appear here once a week has ended.</p>
+          <p className="font-medium text-gray-600">No weeks yet</p>
+          <p className="text-sm mt-1">Weeks will appear here as soon as they are created.</p>
         </div>
       )}
 
       <div className="space-y-3">
-        {pastWeeks.map(week => {
+        {weeks.map(week => {
           const activeTeams = week.week_teams.filter(t => t.is_active !== false)
+          const isUpcoming = activeTeams.every(t => t.score_for === null)
           return (
             <div
               key={week.id}
               onClick={() => navigate(`/results/${week.id}`)}
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
             >
-              {/* Week label + date */}
-              <div className="mb-3">
-                <span className="font-semibold text-gray-900">{week.label}</span>
-                <span className="text-sm text-gray-400 ml-2">
-                  {formatDate(week.start_date)}
-                </span>
+              {/* Week label + date + upcoming badge */}
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <span className="font-semibold text-gray-900">{week.label}</span>
+                  <span className="text-sm text-gray-400 ml-2">
+                    {formatDate(week.start_date)}
+                  </span>
+                </div>
+                {isUpcoming && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                    Upcoming
+                  </span>
+                )}
               </div>
 
               {/* Teams */}
@@ -53,12 +61,12 @@ export default function Results() {
               ) : (
                 activeTeams.map(team => (
                   <div key={team.id} className="flex justify-between items-center py-2 border-t border-gray-100 first:border-0">
-                    <span className="text-sm font-medium text-gray-700">{team.team_name} vs OPPOSITION</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-bold text-gray-900">
-                        {team.score_for ?? 0} – {team.score_against ?? 0}
-                      </span>
-                    </div>
+                    <span className="text-sm font-medium text-gray-700">{team.team_name}</span>
+                    <span className="text-xl font-bold text-gray-900">
+                      {team.score_for !== null
+                        ? `${team.score_for} – ${team.score_against ?? 0}`
+                        : '– : –'}
+                    </span>
                   </div>
                 ))
               )}
