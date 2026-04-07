@@ -1,7 +1,7 @@
 {
   "name": "ARM — Availability & Roster Management",
   "short_name": "ARM",
-  "description": "Team selection and player management for Belsize Park RFC",
+  "description": "Team selection and player management",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",

@@ -23,6 +23,9 @@ interface UseWeeksResult {
     warnings: CloseWeekWarning[]
     error: string | null
   }>
+  // v2.0: Update match scoring and reports
+  updateMatchScore: (weekTeamId: string, scoreFor: number | null, scoreAgainst: number | null) => Promise<{ error: string | null }>
+  updateMatchReport: (weekTeamId: string, matchReport: string | null) => Promise<{ error: string | null }>
 }
 
 export interface CreateWeekParams {
@@ -160,8 +163,61 @@ export function useWeeks(): UseWeeksResult {
     [weeks, fetchWeeks]
   )
 
+  // v2.0: Update match score for a week team
+  const updateMatchScore = useCallback(async (
+    weekTeamId: string, 
+    scoreFor: number | null, 
+    scoreAgainst: number | null
+  ): Promise<{ error: string | null }> => {
+    const { error } = await supabase
+      .from('week_teams')
+      .update({ 
+        score_for: scoreFor,
+        score_against: scoreAgainst 
+      })
+      .eq('id', weekTeamId)
+    
+    if (error) {
+      return { error: error.message }
+    }
+    
+    // Refetch weeks to update local state
+    await fetchWeeks()
+    return { error: null }
+  }, [fetchWeeks])
+
+  // v2.0: Update match report for a week team
+  const updateMatchReport = useCallback(async (
+    weekTeamId: string, 
+    matchReport: string | null
+  ): Promise<{ error: string | null }> => {
+    const { error } = await supabase
+      .from('week_teams')
+      .update({ match_report: matchReport })
+      .eq('id', weekTeamId)
+    
+    if (error) {
+      return { error: error.message }
+    }
+    
+    // Refetch weeks to update local state
+    await fetchWeeks()
+    return { error: null }
+  }, [fetchWeeks])
+
   const openWeeks   = weeks.filter(w => w.status === 'Open')
   const closedWeeks = weeks.filter(w => w.status === 'Closed')
 
-  return { weeks, openWeeks, closedWeeks, loading, error, refetch: fetchWeeks, createWeek, closeWeek }
+  return { 
+    weeks, 
+    openWeeks, 
+    closedWeeks, 
+    loading, 
+    error, 
+    refetch: fetchWeeks, 
+    createWeek, 
+    closeWeek,
+    updateMatchScore,
+    updateMatchReport
+  }
 }

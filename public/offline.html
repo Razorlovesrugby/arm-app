@@ -24,16 +24,15 @@
       .icon {
         width: 72px;
         height: 72px;
-        background: #6B21A8;
-        border-radius: 16px;
+        margin: 0 auto 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 24px;
-        color: white;
-        font-size: 28px;
-        font-weight: 700;
-        letter-spacing: -1px;
+      }
+      .icon img {
+        max-height: 100%;
+        width: auto;
+        object-fit: contain;
       }
       h1 {
         font-size: 20px;
@@ -66,7 +65,7 @@
   </head>
   <body>
     <div class="container">
-      <div class="icon">ARM</div>
+      <div class="icon"><img src="/icons/Logo.png" alt="ARM Logo" /></div>
       <h1>You're offline</h1>
       <p>Reconnect to use ARM. Your data is safe and will sync when you're back online.</p>
       <button onclick="window.location.reload()">Try again</button>

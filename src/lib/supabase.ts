@@ -37,6 +37,9 @@ export interface Player {
   notes: string | null
   last_played_date: string | null
   last_played_team: string | null
+  historical_caps: number  // v2.0: Pre-v2 caps count
+  court_fines: string | null  // v2.0: Free-form notes field for disciplinary fines
+  is_retired: boolean  // v2.0: Flag to filter players from active lists
   created_at: string
   updated_at: string
 }
@@ -66,6 +69,9 @@ export interface WeekTeam {
   starters_count: number
   visible: boolean          // CP7-A: controls tab visibility
   is_active: boolean        // CP8: false = Bye week (skip in Close Week validation + Archive)
+  score_for: number | null  // v2.0: Points scored by this team
+  score_against: number | null  // v2.0: Points conceded by this team
+  match_report: string | null  // v2.0: Markdown-compatible match report
 }
 
 export interface AvailabilityResponse {
@@ -113,3 +119,37 @@ export const PLAYER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailabl
 export function normalisePhone(phone: string): string {
   return phone.replace(/[\s\-()]/g, '')
 }
+
+// ============================================================
+// v2.0 New Types
+// ============================================================
+
+export type MatchEventType = 
+  | 'try' | 'conversion' | 'penalty' | 'drop_goal'
+  | 'mvp_3' | 'mvp_2' | 'mvp_1' | 'dotd'
+
+export interface ClubSettings {
+  id: string
+  club_name: string
+  primary_color: string
+  secondary_color: string
+  logo_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MatchEvent {
+  id: string
+  week_id: string
+  player_id: string
+  week_team_id: string
+  event_type: MatchEventType
+  points: number
+  created_at: string
+  created_by: string | null
+}
+
+export const MATCH_EVENT_TYPES: MatchEventType[] = [
+  'try', 'conversion', 'penalty', 'drop_goal',
+  'mvp_3', 'mvp_2', 'mvp_1', 'dotd'
+]

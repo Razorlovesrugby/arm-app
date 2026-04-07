@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, Copy, Share2, Plus, Check, Link } from 'lucide-react'
 import { useWeeks, WeekWithTeams, CloseWeekWarning } from '../hooks/useWeeks'
+import { useClubSettings } from '../hooks/useClubSettings'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -42,9 +43,10 @@ function availabilityUrl(token: string): string {
 }
 
 /** Build the pre-formatted share message */
-function shareMessage(week: WeekWithTeams): string {
+function shareMessage(week: WeekWithTeams, clubName?: string): string {
   const url = availabilityUrl(week.availability_link_token)
-  return `Belsize Park RFC — ${week.label}. Please submit your availability for this week: ${url}. Takes 30 seconds, no login needed.`
+  const club = clubName || 'ARM' // Fallback to default
+  return `${club} — ${week.label}. Please submit your availability for this week: ${url}. Takes 30 seconds, no login needed.`
 }
 
 // ─── Create Week Form ────────────────────────────────────────────────────────
@@ -395,6 +397,7 @@ interface WeekDetailProps {
 
 function WeekDetail({ week, onOpenBoard, onCloseWeek }: WeekDetailProps) {
   const [copied, setCopied] = useState(false)
+  const { clubSettings } = useClubSettings()
   const url = availabilityUrl(week.availability_link_token)
   const isOpen = week.status === 'Open'
 
@@ -414,7 +417,7 @@ function WeekDetail({ week, onOpenBoard, onCloseWeek }: WeekDetailProps) {
   }
 
   async function handleShare() {
-    const message = shareMessage(week)
+    const message = shareMessage(week, clubSettings?.club_name)
     if (navigator.share) {
       try {
         await navigator.share({ title: week.label, text: message })

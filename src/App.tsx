@@ -1,6 +1,6 @@
 // src/App.tsx
-// CP7A.1 — Updated routing: /roster, /board, /weeks + legacy routes preserved
-// Board is now a standalone route hosting SelectionBoard
+// Phase 12.1 — Updated routing with sidebar navigation
+// Archive route removed (deprecated in v2.0, replaced by Results Mode in Board)
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
@@ -11,7 +11,6 @@ import Roster from './pages/Roster'
 import DepthChart from './pages/DepthChart'
 import Board from './pages/Board'
 import Weeks from './pages/Weeks'
-import Archive from './pages/Archive'
 import AvailabilityForm from './pages/AvailabilityForm'
 
 export default function App() {
@@ -48,9 +47,6 @@ export default function App() {
 
             {/* Tab 3 — Weeks (existing screen, Selection Board stripped out) */}
             <Route path="weeks" element={<Weeks />} />
-
-            {/* Archive — preserved route, not in bottom nav until Phase 11 */}
-            <Route path="archive" element={<Archive />} />
 
             {/* Legacy redirects — in case any internal links use old paths */}
             <Route path="players" element={<Navigate to="/roster" replace />} />

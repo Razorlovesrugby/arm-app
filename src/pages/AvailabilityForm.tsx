@@ -4,6 +4,7 @@ import {
   supabase, Week, Position, Availability,
   POSITIONS, normalisePhone,
 } from '../lib/supabase'
+import { useClubSettings } from '../hooks/useClubSettings'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -502,18 +503,25 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function Logo() {
+  const { clubSettings, loading: clubLoading } = useClubSettings()
+  
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-      <div style={{
-        width: '52px', height: '52px',
-        background: '#6B21A8',
-        borderRadius: '14px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#FFFFFF', fontWeight: '800', fontSize: '16px',
-        letterSpacing: '0.5px',
-      }}>
-        ARM
-      </div>
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', flexDirection: 'column', alignItems: 'center' }}>
+      <img 
+        src="/icons/Logo.png" 
+        alt="ARM Logo" 
+        style={{ 
+          maxHeight: '52px', 
+          width: 'auto', 
+          objectFit: 'contain',
+          marginBottom: '8px',
+        }} 
+      />
+      {!clubLoading && clubSettings?.club_name && (
+        <div style={{ fontSize: '14px', color: '#6B7280', fontWeight: '500' }}>
+          {clubSettings.club_name}
+        </div>
+      )}
     </div>
   )
 }

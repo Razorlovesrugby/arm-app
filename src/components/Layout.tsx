@@ -1,98 +1,47 @@
 // src/components/Layout.tsx
-// CP7A.1 — Three-tab bottom navigation: Roster · Board · Weeks
-// CP8 — Four-tab nav: Roster · Depth Chart · Weeks · Archive
-// BUG-1 — Nav restructure: Roster · Depth Chart · Weeks (Board tab removed)
-// BUG-2 — White background fix: root div no longer forces black background
+// Phase 12.1 — Sidebar Navigation Refactor
+// Replaces bottom-tab navigation with responsive sidebar
 
-import { useLocation, useNavigate, Outlet } from 'react-router-dom'
-
-// No children prop — uses React Router Outlet for nested routes
-
-const NAV_TABS = [
-  { path: '/roster',  label: 'Roster',  icon: '👥' },
-  { path: '/depth',   label: 'Chart',   icon: '📊' },
-  { path: '/weeks',   label: 'Weeks',   icon: '📅' },
-  { path: '/archive', label: 'Archive', icon: '🗄️' },
-] as const
+import { useState } from 'react'
+import { Outlet } from 'react-router-dom'
+import { useClubSettings } from '../hooks/useClubSettings'
+import Sidebar from './Sidebar'
+import { Menu } from 'lucide-react'
 
 export default function Layout() {
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  // /board activates the Weeks tab — Board belongs to a specific week
-  function resolveActiveTab(): string {
-    if (location.pathname.startsWith('/board')) return '/weeks'
-    // Sort by path length desc so /archive doesn't match /a (hypothetical)
-    const sorted = [...NAV_TABS].sort((a, b) => b.path.length - a.path.length)
-    const match  = sorted.find(t => location.pathname.startsWith(t.path))
-    return match?.path ?? '/roster'
-  }
-  const activeTab = resolveActiveTab()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { clubSettings } = useClubSettings()
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: '#F8F8F8', color: '#111827' }}>
-
-      {/* ── Main content area ─────────────────────────────────────────── */}
-      {/* paddingTop: env(safe-area-inset-top) keeps all page content below the iOS */}
-      {/* status bar / dynamic island. Resolves to 0px on Android and desktop.     */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0, paddingTop: 'env(safe-area-inset-top)' }}>
-        <Outlet />
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile header */}
+        <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu size={24} className="text-gray-700" />
+          </button>
+          <div className="text-lg font-semibold text-gray-900">
+            {clubSettings?.club_name || 'ARM'}
+          </div>
+          <div className="w-10" /> {/* Spacer for balance */}
+        </header>
+        
+        {/* Page content */}
+        <main 
+          className="flex-1 overflow-auto p-4 md:p-6" 
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+          <Outlet />
+        </main>
       </div>
-
-      {/* ── Bottom navigation bar ─────────────────────────────────────── */}
-      {/* minHeight: 72px base + env(safe-area-inset-bottom) keeps tab labels      */}
-      {/* above the iOS home indicator swipe zone. Resolves to 0px on Android.     */}
-      <nav
-        style={{
-          flexShrink: 0,
-          minHeight: 72,
-          paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
-          background: '#0a0a0a',
-          borderTop: '1px solid #1a1a1a',
-          display: 'flex',
-          alignItems: 'stretch',
-        }}
-      >
-        {NAV_TABS.map(tab => {
-          const isActive = activeTab === tab.path
-          return (
-            <button
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 2,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '6px 0 0 0',
-                WebkitTapHighlightColor: 'transparent',
-                // Touch target minimum 44px — flex item fills full 64px bar height
-              }}
-              aria-label={tab.label}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              <span style={{ fontSize: 20, lineHeight: 1 }}>{tab.icon}</span>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  lineHeight: 1,
-                  color: isActive ? '#6B21A8' : 'rgba(255,255,255,0.35)',
-                  transition: 'color 0.15s',
-                }}
-              >
-                {tab.label}
-              </span>
-            </button>
-          )
-        })}
-      </nav>
-
     </div>
   )
 }

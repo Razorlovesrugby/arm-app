@@ -1,9 +1,11 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useClubSettings } from '../hooks/useClubSettings'
 
 export default function Login() {
   const { signIn, session } = useAuth()
+  const { clubSettings, loading: clubLoading } = useClubSettings()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -53,26 +55,18 @@ export default function Login() {
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              background: '#6B21A8',
-              borderRadius: '12px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              fontWeight: '700',
-              fontSize: '18px',
-              letterSpacing: '-0.5px',
+          <img 
+            src="/icons/Logo.png" 
+            alt="ARM Logo" 
+            style={{ 
+              maxHeight: '56px', 
+              width: 'auto', 
+              objectFit: 'contain',
               marginBottom: '16px',
-            }}
-          >
-            ARM
-          </div>
+            }} 
+          />
           <h1 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: '0 0 4px' }}>
-            Belsize Park RFC
+            {clubLoading ? 'Loading...' : (clubSettings?.club_name || 'ARM')}
           </h1>
           <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
             Coach login
