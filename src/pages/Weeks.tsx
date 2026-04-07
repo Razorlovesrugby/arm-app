@@ -1,22 +1,20 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Calendar, Copy, Share2, Plus, Check, Link } from 'lucide-react'
-import { useWeeks, WeekWithTeams } from '../hooks/useWeeks'
+import { Calendar, Copy, Share2, Plus, Check, Link, Pencil, X } from 'lucide-react'
+import { useWeeks, WeekWithTeams, AvailabilityCounts } from '../hooks/useWeeks'
 import { useClubSettings } from '../hooks/useClubSettings'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Returns the Monday of the current week as YYYY-MM-DD */
 function getCurrentMonday(): string {
   const now = new Date()
-  const day = now.getDay() // 0 = Sun
+  const day = now.getDay()
   const diff = day === 0 ? -6 : 1 - day
   const monday = new Date(now)
   monday.setDate(now.getDate() + diff)
   return monday.toISOString().split('T')[0]
 }
 
-/** Returns the Sunday of the current week as YYYY-MM-DD */
 function getCurrentSunday(): string {
   const monday = new Date(getCurrentMonday())
   const sunday = new Date(monday)
@@ -24,29 +22,37 @@ function getCurrentSunday(): string {
   return sunday.toISOString().split('T')[0]
 }
 
-/** Format ISO date string to "17 Mar 2026" */
 function formatDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00')
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-/** Auto-generate week label from start date: "Week of 17 Mar" */
 function autoLabel(startDate: string): string {
   if (!startDate) return ''
   const d = new Date(startDate + 'T00:00:00')
   return `Week of ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
 }
 
-/** Build the public availability URL from token */
 function availabilityUrl(token: string): string {
   return `${window.location.origin}/availability/${token}`
 }
 
-/** Build the pre-formatted share message */
 function shareMessage(week: WeekWithTeams, clubName?: string): string {
   const url = availabilityUrl(week.availability_link_token)
-  const club = clubName || 'ARM' // Fallback to default
+  const club = clubName || 'ARM'
   return `${club} — ${week.label}. Please submit your availability for this week: ${url}. Takes 30 seconds, no login needed.`
+}
+
+/** "2026-03" → "Mar 2026" */
+function formatMonthPill(ym: string): string {
+  const [year, month] = ym.split('-')
+  const d = new Date(parseInt(year), parseInt(month) - 1, 1)
+  return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+}
+
+/** "2026-03-17" → "2026-03" */
+function weekToYearMonth(startDate: string): string {
+  return startDate.slice(0, 7)
 }
 
 // ─── Create Week Form ────────────────────────────────────────────────────────
@@ -65,24 +71,44 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
   const [endDate, setEndDate] = useState(defaultEnd)
   const [label, setLabel] = useState(autoLabel(defaultStart))
   const [labelTouched, setLabelTouched] = useState(false)
+  const [teamNames, setTeamNames] = useState<string[]>(['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5'])
   const [saving, setSaving] = useState(false)
-  const [errors, setErrors] = useState<{ start?: string; end?: string; label?: string }>({})
+  const [errors, setErrors] = useState<{ start?: string; end?: string; label?: string; teams?: string }>({})
 
   // Auto-update label when start date changes (unless user manually edited it)
-  useEffect(() => {
-    if (!labelTouched && startDate) {
-      setLabel(autoLabel(startDate))
-    }
-  }, [startDate, labelTouched])
+  const handleStartChange = useCallback((val: string) => {
+    setStartDate(val)
+    if (!labelTouched && val) setLabel(autoLabel(val))
+  }, [labelTouched])
+
+  function addTeam() {
+    setTeamNames(prev => [...prev, ''])
+  }
+
+  function removeTeam(idx: number) {
+    setTeamNames(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function updateTeamName(idx: number, value: string) {
+    setTeamNames(prev => prev.map((n, i) => i === idx ? value : n))
+  }
 
   function validate(): boolean {
     const e: typeof errors = {}
     if (!startDate) e.start = 'Start date is required'
     if (!endDate) e.end = 'End date is required'
-    if (startDate && endDate && endDate < startDate) {
-      e.end = 'End date must be after start date'
-    }
+    if (startDate && endDate && endDate < startDate) e.end = 'End date must be after start date'
     if (!label.trim()) e.label = 'Label is required'
+
+    const trimmed = teamNames.map(n => n.trim()).filter(Boolean)
+    if (trimmed.length === 0) {
+      e.teams = 'At least one team is required'
+    } else {
+      const lower = trimmed.map(n => n.toLowerCase())
+      const hasDupe = lower.some((n, i) => lower.indexOf(n) !== i)
+      if (hasDupe) e.teams = 'Team names must be unique'
+    }
+
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -90,7 +116,13 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
   async function handleSave() {
     if (!validate()) return
     setSaving(true)
-    const { error } = await createWeek({ start_date: startDate, end_date: endDate, label: label.trim() })
+    const trimmedTeams = teamNames.map(n => n.trim()).filter(Boolean)
+    const { error } = await createWeek({
+      start_date: startDate,
+      end_date: endDate,
+      label: label.trim(),
+      teamNames: trimmedTeams,
+    })
     setSaving(false)
     if (error) {
       setErrors({ label: error })
@@ -110,7 +142,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
         background: '#FFFFFF',
         borderTopLeftRadius: '20px',
         borderTopRightRadius: '20px',
-        maxHeight: '85vh',
+        maxHeight: '90vh',
         overflowY: 'auto',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }
@@ -129,14 +161,9 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
 
   return (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.4)',
-          zIndex: 50,
-        }}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50 }}
       />
 
       <div style={sheetStyle}>
@@ -157,7 +184,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '6px', borderRadius: '8px', color: '#6B7280',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '18px', lineHeight: 1,
+              minWidth: '44px', minHeight: '44px',
             }}
           >
             ✕
@@ -175,18 +202,16 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
             <input
               type="date"
               value={startDate}
-              onChange={e => setStartDate(e.target.value)}
+              onChange={e => handleStartChange(e.target.value)}
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: '10px 12px', borderRadius: '8px',
                 border: `1px solid ${errors.start ? '#DC2626' : '#E5E7EB'}`,
                 fontSize: '15px', color: '#111827', background: '#FFFFFF',
-                outline: 'none',
+                outline: 'none', minHeight: '44px',
               }}
             />
-            {errors.start && (
-              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.start}</p>
-            )}
+            {errors.start && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.start}</p>}
           </div>
 
           {/* End date */}
@@ -203,12 +228,10 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
                 padding: '10px 12px', borderRadius: '8px',
                 border: `1px solid ${errors.end ? '#DC2626' : '#E5E7EB'}`,
                 fontSize: '15px', color: '#111827', background: '#FFFFFF',
-                outline: 'none',
+                outline: 'none', minHeight: '44px',
               }}
             />
-            {errors.end && (
-              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.end}</p>
-            )}
+            {errors.end && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.end}</p>}
           </div>
 
           {/* Label */}
@@ -219,25 +242,78 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
             <input
               type="text"
               value={label}
-              onChange={e => {
-                setLabel(e.target.value)
-                setLabelTouched(true)
-              }}
+              onChange={e => { setLabel(e.target.value); setLabelTouched(true) }}
               placeholder="e.g. Week of 17 Mar"
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: '10px 12px', borderRadius: '8px',
                 border: `1px solid ${errors.label ? '#DC2626' : '#E5E7EB'}`,
                 fontSize: '15px', color: '#111827', background: '#FFFFFF',
-                outline: 'none',
+                outline: 'none', minHeight: '44px',
               }}
             />
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6B7280' }}>
               Auto-generated from start date — edit if needed
             </p>
-            {errors.label && (
-              <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.label}</p>
-            )}
+            {errors.label && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.label}</p>}
+          </div>
+
+          {/* Teams */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                Teams <span style={{ color: '#DC2626' }}>*</span>
+              </label>
+              <button
+                type="button"
+                onClick={addTeam}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  padding: '4px 10px', borderRadius: '6px',
+                  border: '1px solid #6B21A8', background: 'transparent',
+                  color: '#6B21A8', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer', minHeight: '32px',
+                }}
+              >
+                <Plus size={13} />
+                Add team
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {teamNames.map((name, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => updateTeamName(idx, e.target.value)}
+                    placeholder={`Team ${idx + 1}`}
+                    style={{
+                      flex: 1, padding: '10px 12px', borderRadius: '8px',
+                      border: '1px solid #E5E7EB',
+                      fontSize: '15px', color: '#111827', background: '#FFFFFF',
+                      outline: 'none', minHeight: '44px', boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeTeam(idx)}
+                    disabled={teamNames.length === 1}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      minWidth: '44px', minHeight: '44px',
+                      border: '1px solid #E5E7EB', borderRadius: '8px',
+                      background: '#FFFFFF', color: teamNames.length === 1 ? '#D1D5DB' : '#6B7280',
+                      cursor: teamNames.length === 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {errors.teams && <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.teams}</p>}
           </div>
 
           {/* Footer buttons */}
@@ -251,7 +327,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
                 border: '1px solid #E5E7EB',
                 background: '#FFFFFF',
                 fontSize: '15px', fontWeight: '600', color: '#374151',
-                cursor: 'pointer',
+                cursor: 'pointer', minHeight: '44px',
               }}
             >
               Cancel
@@ -266,7 +342,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
                 border: 'none',
                 background: saving ? '#9CA3AF' : '#6B21A8',
                 fontSize: '15px', fontWeight: '600', color: '#FFFFFF',
-                cursor: saving ? 'not-allowed' : 'pointer',
+                cursor: saving ? 'not-allowed' : 'pointer', minHeight: '44px',
               }}
             >
               {saving ? 'Creating…' : 'Create Week'}
@@ -278,18 +354,55 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
   )
 }
 
-// ─── Week Detail Card ────────────────────────────────────────────────────────
+// ─── Week Card ───────────────────────────────────────────────────────────────
 
-interface WeekDetailProps {
+interface WeekCardProps {
   week: WeekWithTeams
-  onOpenBoard?: () => void    // only passed for open weeks
+  counts: AvailabilityCounts
+  updateWeek: (weekId: string, label: string) => Promise<{ error: string | null }>
+  onOpenBoard: () => void
+  clubName?: string
 }
 
-function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
+function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardProps) {
+  const [editing, setEditing] = useState(false)
+  const [editLabel, setEditLabel] = useState(week.label)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const { clubSettings } = useClubSettings()
+
   const url = availabilityUrl(week.availability_link_token)
-  const isOpen = week.status === 'Open'
+  const total = counts.available + counts.tbc + counts.unavailable
+
+  async function saveLabel() {
+    const trimmed = editLabel.trim()
+    if (trimmed === week.label) { setEditing(false); return }
+    if (!trimmed) { setSaveError('Label cannot be empty'); return }
+    setSaving(true)
+    const { error } = await updateWeek(week.id, trimmed)
+    setSaving(false)
+    if (error) {
+      setSaveError(error)
+    } else {
+      setEditing(false)
+      setSaveError(null)
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') saveLabel()
+    if (e.key === 'Escape') {
+      setEditLabel(week.label)
+      setEditing(false)
+      setSaveError(null)
+    }
+  }
+
+  function startEdit() {
+    setEditLabel(week.label)
+    setSaveError(null)
+    setEditing(true)
+  }
 
   async function handleCopy() {
     try {
@@ -307,7 +420,7 @@ function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
   }
 
   async function handleShare() {
-    const message = shareMessage(week, clubSettings?.club_name)
+    const message = shareMessage(week, clubName)
     if (navigator.share) {
       try {
         await navigator.share({ title: week.label, text: message })
@@ -331,112 +444,174 @@ function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
       border: '1px solid #E5E7EB',
       overflow: 'hidden',
     }}>
-      {/* Week header */}
+      {/* Header — label + date */}
       <div style={{
         padding: '16px',
         borderBottom: '1px solid #F3F4F6',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px',
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <Calendar size={16} color="#6B21A8" />
-            <span style={{ fontSize: '17px', fontWeight: '700', color: '#111827' }}>
-              {week.label}
-            </span>
-          </div>
-          <p style={{ margin: 0, fontSize: '13px', color: '#6B7280' }}>
-            {formatDate(week.start_date)} – {formatDate(week.end_date)}
-          </p>
+        {/* Editable label row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <Calendar size={16} color="#6B21A8" style={{ flexShrink: 0 }} />
+
+          {editing ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <input
+                  autoFocus
+                  value={editLabel}
+                  onChange={e => setEditLabel(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={saveLabel}
+                  style={{
+                    flex: 1,
+                    fontSize: '17px', fontWeight: '700', color: '#111827',
+                    border: `1px solid ${saveError ? '#DC2626' : '#6B21A8'}`,
+                    borderRadius: '6px', padding: '4px 8px',
+                    outline: 'none', background: '#FFFFFF',
+                    minHeight: '36px',
+                  }}
+                />
+                {saving && (
+                  <span style={{ fontSize: '12px', color: '#6B7280' }}>Saving…</span>
+                )}
+              </div>
+              {saveError && (
+                <p style={{ margin: 0, fontSize: '12px', color: '#DC2626' }}>{saveError}</p>
+              )}
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '17px', fontWeight: '700', color: '#111827' }}>
+                {week.label}
+              </span>
+              <button
+                onClick={startEdit}
+                title="Edit label"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#9CA3AF', padding: '4px', borderRadius: '6px',
+                  minWidth: '44px', minHeight: '44px',
+                }}
+              >
+                <Pencil size={14} />
+              </button>
+            </div>
+          )}
         </div>
-        <span style={{
-          display: 'inline-block',
-          padding: '3px 10px',
-          borderRadius: '999px',
-          fontSize: '12px', fontWeight: '600',
-          background: isOpen ? '#DCFCE7' : '#F3F4F6',
-          color: isOpen ? '#15803D' : '#4B5563',
-          flexShrink: 0,
-        }}>
-          {week.status}
-        </span>
+
+        <p style={{ margin: 0, fontSize: '13px', color: '#6B7280', paddingLeft: '24px' }}>
+          {formatDate(week.start_date)} – {formatDate(week.end_date)}
+        </p>
       </div>
 
-      {/* Availability link section — open weeks only */}
-      {isOpen && (
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid #F3F4F6' }}>
-          <p style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-            Availability link
-          </p>
+      {/* Availability dashboard */}
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: '1px solid #F3F4F6',
+        display: 'flex', alignItems: 'center', gap: '8px',
+      }}>
+        <span style={{ fontSize: '12px', fontWeight: '600', color: '#6B7280', marginRight: '4px' }}>
+          {total > 0 ? `${total} responses` : 'No responses yet'}
+        </span>
 
-          {/* URL pill */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            background: '#F8F8F8',
-            border: '1px solid #E5E7EB',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            marginBottom: '10px',
-          }}>
-            <Link size={14} color="#6B7280" style={{ flexShrink: 0 }} />
+        {total > 0 && (
+          <div style={{ display: 'flex', gap: '6px' }}>
             <span style={{
-              fontSize: '12px', color: '#6B7280',
-              flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              padding: '2px 8px', borderRadius: '999px',
+              background: '#DCFCE7', color: '#15803D',
+              fontSize: '12px', fontWeight: '600',
             }}>
-              {url}
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#16A34A', display: 'inline-block' }} />
+              {counts.available}
+            </span>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              padding: '2px 8px', borderRadius: '999px',
+              background: '#FEF3C7', color: '#B45309',
+              fontSize: '12px', fontWeight: '600',
+            }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#D97706', display: 'inline-block' }} />
+              {counts.tbc}
+            </span>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              padding: '2px 8px', borderRadius: '999px',
+              background: '#FEE2E2', color: '#B91C1C',
+              fontSize: '12px', fontWeight: '600',
+            }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#DC2626', display: 'inline-block' }} />
+              {counts.unavailable}
             </span>
           </div>
+        )}
+      </div>
 
-          {/* Copy + Share */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleCopy}
-              style={{
-                flex: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #E5E7EB',
-                background: copied ? '#DCFCE7' : '#FFFFFF',
-                color: copied ? '#15803D' : '#374151',
-                fontSize: '14px', fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'background 0.15s, color 0.15s',
-              }}
-            >
-              {copied ? <Check size={15} /> : <Copy size={15} />}
-              {copied ? 'Copied!' : 'Copy Link'}
-            </button>
-
-            <button
-              onClick={handleShare}
-              style={{
-                flex: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: '#6B21A8',
-                color: '#FFFFFF',
-                fontSize: '14px', fontWeight: '600',
-                cursor: 'pointer',
-              }}
-            >
-              <Share2 size={15} />
-              Share
-            </button>
-          </div>
-
-          <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#9CA3AF', lineHeight: '1.4' }}>
-            Share sends a pre-filled message with the link and week label.
-          </p>
+      {/* Availability link */}
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid #F3F4F6' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          background: '#F8F8F8',
+          border: '1px solid #E5E7EB',
+          borderRadius: '8px',
+          padding: '8px 12px',
+          marginBottom: '10px',
+        }}>
+          <Link size={14} color="#6B7280" style={{ flexShrink: 0 }} />
+          <span style={{
+            fontSize: '12px', color: '#6B7280',
+            flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {url}
+          </span>
         </div>
-      )}
 
-      {/* Teams pill row */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={handleCopy}
+            style={{
+              flex: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '10px 12px', minHeight: '44px',
+              borderRadius: '8px',
+              border: '1px solid #E5E7EB',
+              background: copied ? '#DCFCE7' : '#FFFFFF',
+              color: copied ? '#15803D' : '#374151',
+              fontSize: '14px', fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            {copied ? <Check size={15} /> : <Copy size={15} />}
+            {copied ? 'Copied!' : 'Copy Link'}
+          </button>
+
+          <button
+            onClick={handleShare}
+            style={{
+              flex: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              padding: '10px 12px', minHeight: '44px',
+              borderRadius: '8px',
+              border: 'none',
+              background: '#6B21A8',
+              color: '#FFFFFF',
+              fontSize: '14px', fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            <Share2 size={15} />
+            Share
+          </button>
+        </div>
+      </div>
+
+      {/* Teams */}
       <div style={{
         padding: '12px 16px',
         display: 'flex', gap: '6px', flexWrap: 'wrap',
-        borderBottom: onOpenBoard ? '1px solid #F3F4F6' : undefined,
+        borderBottom: '1px solid #F3F4F6',
       }}>
         {week.week_teams.map(team => (
           <span
@@ -457,31 +632,29 @@ function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
         )}
       </div>
 
-      {/* Open Board button — open weeks only */}
-      {onOpenBoard && (
-        <div style={{ padding: '12px 16px' }}>
-          <button
-            onClick={onOpenBoard}
-            style={{
-              width: '100%',
-              height: '48px',
-              background: '#6B21A8',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            Open Board →
-          </button>
-        </div>
-      )}
+      {/* Open Board */}
+      <div style={{ padding: '12px 16px' }}>
+        <button
+          onClick={onOpenBoard}
+          style={{
+            width: '100%',
+            height: '48px',
+            background: '#6B21A8',
+            color: '#FFFFFF',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: '15px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+          }}
+        >
+          Open Board →
+        </button>
+      </div>
     </div>
   )
 }
@@ -489,9 +662,24 @@ function WeekDetail({ week, onOpenBoard }: WeekDetailProps) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function Weeks() {
-  const { openWeeks, closedWeeks, loading, error, refetch, createWeek } = useWeeks()
+  const { openWeeks, loading, error, refetch, createWeek, updateWeek, availabilityCounts } = useWeeks()
+  const { clubSettings } = useClubSettings()
   const [showCreate, setShowCreate] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const navigate = useNavigate()
+
+  // Derive sorted unique months from open weeks
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>()
+    openWeeks.forEach(w => months.add(weekToYearMonth(w.start_date)))
+    return Array.from(months).sort()
+  }, [openWeeks])
+
+  // Filter weeks by selected month
+  const filteredWeeks = useMemo(() => {
+    if (!selectedMonth) return openWeeks
+    return openWeeks.filter(w => weekToYearMonth(w.start_date) === selectedMonth)
+  }, [openWeeks, selectedMonth])
 
   if (loading) {
     return (
@@ -525,7 +713,7 @@ export default function Weeks() {
           <button
             onClick={refetch}
             style={{
-              padding: '4px 10px', borderRadius: '6px',
+              padding: '4px 10px', borderRadius: '6px', minHeight: '44px',
               border: '1px solid #B91C1C', background: 'transparent',
               color: '#B91C1C', cursor: 'pointer', fontSize: '13px', flexShrink: 0,
             }}
@@ -541,13 +729,13 @@ export default function Weeks() {
     <>
       <div style={{ padding: '16px', maxWidth: '680px', margin: '0 auto', paddingBottom: '80px' }}>
 
-        {/* Toolbar — New Week button */}
+        {/* Toolbar */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
           <button
             onClick={() => setShowCreate(true)}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '10px 14px',
+              padding: '10px 14px', minHeight: '44px',
               borderRadius: '8px',
               border: 'none',
               background: '#6B21A8',
@@ -562,8 +750,58 @@ export default function Weeks() {
           </button>
         </div>
 
-        {/* Empty state — no weeks at all */}
-        {openWeeks.length === 0 && closedWeeks.length === 0 && (
+        {/* Month filter — only shown when 2+ months exist */}
+        {availableMonths.length > 1 && (
+          <div style={{
+            display: 'flex', gap: '8px',
+            overflowX: 'auto',
+            paddingBottom: '4px',
+            marginBottom: '16px',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
+          } as React.CSSProperties}>
+            {/* ALL pill */}
+            <button
+              onClick={() => setSelectedMonth(null)}
+              style={{
+                flexShrink: 0,
+                padding: '6px 14px', minHeight: '44px',
+                borderRadius: '999px',
+                border: selectedMonth === null ? 'none' : '1px solid #E5E7EB',
+                background: selectedMonth === null ? '#6B21A8' : '#FFFFFF',
+                color: selectedMonth === null ? '#FFFFFF' : '#374151',
+                fontSize: '13px', fontWeight: '600',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              ALL
+            </button>
+
+            {availableMonths.map(ym => (
+              <button
+                key={ym}
+                onClick={() => setSelectedMonth(ym)}
+                style={{
+                  flexShrink: 0,
+                  padding: '6px 14px', minHeight: '44px',
+                  borderRadius: '999px',
+                  border: selectedMonth === ym ? 'none' : '1px solid #E5E7EB',
+                  background: selectedMonth === ym ? '#6B21A8' : '#FFFFFF',
+                  color: selectedMonth === ym ? '#FFFFFF' : '#374151',
+                  fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {formatMonthPill(ym)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {openWeeks.length === 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', padding: '60px 24px',
@@ -579,34 +817,30 @@ export default function Weeks() {
           </div>
         )}
 
-        {/* Open weeks — each shown as a full detail card with "Open Board" button */}
-        {openWeeks.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {openWeeks.map(week => (
-              <WeekDetail
-                key={week.id}
-                week={week}
-                onOpenBoard={() => navigate(`/board?week=${week.id}`)}
-              />
-            ))}
+        {/* Filtered empty state */}
+        {openWeeks.length > 0 && filteredWeeks.length === 0 && (
+          <div style={{
+            padding: '40px 24px', textAlign: 'center',
+          }}>
+            <p style={{ margin: 0, fontSize: '14px', color: '#6B7280' }}>
+              No weeks in {selectedMonth ? formatMonthPill(selectedMonth) : 'this period'}.
+            </p>
           </div>
         )}
 
-        {/* Archive section — closed weeks, read-only, no tap action */}
-        {closedWeeks.length > 0 && (
-          <div style={{ marginTop: '32px' }}>
-            <p style={{
-              margin: '0 0 12px',
-              fontSize: '12px', fontWeight: '600', color: '#6B7280',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}>
-              Archive
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {closedWeeks.map(week => (
-                <WeekDetail key={week.id} week={week} />
-              ))}
-            </div>
+        {/* Week cards */}
+        {filteredWeeks.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {filteredWeeks.map(week => (
+              <WeekCard
+                key={week.id}
+                week={week}
+                counts={availabilityCounts[week.id] ?? { available: 0, tbc: 0, unavailable: 0 }}
+                updateWeek={updateWeek}
+                onOpenBoard={() => navigate(`/board?week=${week.id}`)}
+                clubName={clubSettings?.club_name}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -619,7 +853,6 @@ export default function Weeks() {
           createWeek={createWeek}
         />
       )}
-
     </>
   )
 }

@@ -9,6 +9,12 @@ export interface CloseWeekWarning {
   teamName: string
 }
 
+export interface AvailabilityCounts {
+  available: number
+  tbc: number
+  unavailable: number
+}
+
 interface UseWeeksResult {
   weeks: WeekWithTeams[]
   openWeeks: WeekWithTeams[]
@@ -17,7 +23,9 @@ interface UseWeeksResult {
   loading: boolean
   error: string | null
   refetch: () => void
+  availabilityCounts: Record<string, AvailabilityCounts>
   createWeek: (params: CreateWeekParams) => Promise<{ data: Week | null; error: string | null }>
+  updateWeek: (weekId: string, label: string) => Promise<{ error: string | null }>
   closeWeek: (weekId: string, force?: boolean) => Promise<{
     warnings: CloseWeekWarning[]
     error: string | null
@@ -30,12 +38,12 @@ export interface CreateWeekParams {
   start_date: string
   end_date: string
   label: string
+  teamNames: string[]
 }
-
-const DEFAULT_TEAM_NAMES = ['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5']
 
 export function useWeeks(): UseWeeksResult {
   const [weeks, setWeeks] = useState<WeekWithTeams[]>([])
+  const [availabilityCounts, setAvailabilityCounts] = useState<Record<string, AvailabilityCounts>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,16 +51,21 @@ export function useWeeks(): UseWeeksResult {
     setLoading(true)
     setError(null)
 
-    const { data, error: fetchError } = await supabase
-      .from('weeks')
-      .select('*, week_teams(*)')
-      .order('start_date', { ascending: false })
+    const [weeksResult, avResult] = await Promise.all([
+      supabase
+        .from('weeks')
+        .select('*, week_teams(*)')
+        .order('start_date', { ascending: false }),
+      supabase
+        .from('availability_responses')
+        .select('week_id, availability'),
+    ])
 
-    if (fetchError) {
-      setError(fetchError.message)
+    if (weeksResult.error) {
+      setError(weeksResult.error.message)
       setWeeks([])
     } else {
-      const mapped = (data ?? []).map((w: any) => ({
+      const mapped = (weeksResult.data ?? []).map((w: any) => ({
         ...w,
         week_teams: (w.week_teams ?? []).sort(
           (a: WeekTeam, b: WeekTeam) => a.sort_order - b.sort_order
@@ -60,6 +73,16 @@ export function useWeeks(): UseWeeksResult {
       }))
       setWeeks(mapped)
     }
+
+    // Aggregate availability counts per week
+    const counts: Record<string, AvailabilityCounts> = {}
+    for (const row of avResult.data ?? []) {
+      if (!counts[row.week_id]) counts[row.week_id] = { available: 0, tbc: 0, unavailable: 0 }
+      if (row.availability === 'Available') counts[row.week_id].available++
+      else if (row.availability === 'TBC') counts[row.week_id].tbc++
+      else if (row.availability === 'Unavailable') counts[row.week_id].unavailable++
+    }
+    setAvailabilityCounts(counts)
 
     setLoading(false)
   }, [])
@@ -69,7 +92,7 @@ export function useWeeks(): UseWeeksResult {
   }, [fetchWeeks])
 
   const createWeek = useCallback(
-    async ({ start_date, end_date, label }: CreateWeekParams) => {
+    async ({ start_date, end_date, label, teamNames }: CreateWeekParams) => {
       const token = crypto.randomUUID()
 
       const { data: weekData, error: weekError } = await supabase
@@ -88,7 +111,7 @@ export function useWeeks(): UseWeeksResult {
         return { data: null, error: weekError?.message ?? 'Failed to create week' }
       }
 
-      const teamRows = DEFAULT_TEAM_NAMES.map((name, i) => ({
+      const teamRows = teamNames.map((name, i) => ({
         week_id: weekData.id,
         team_name: name,
         sort_order: i + 1,
@@ -106,6 +129,18 @@ export function useWeeks(): UseWeeksResult {
 
       await fetchWeeks()
       return { data: weekData, error: null }
+    },
+    [fetchWeeks]
+  )
+
+  const updateWeek = useCallback(
+    async (weekId: string, label: string): Promise<{ error: string | null }> => {
+      const { error } = await supabase
+        .from('weeks')
+        .update({ label })
+        .eq('id', weekId)
+      if (!error) await fetchWeeks()
+      return { error: error?.message ?? null }
     },
     [fetchWeeks]
   )
@@ -173,7 +208,8 @@ export function useWeeks(): UseWeeksResult {
   return {
     weeks, openWeeks, closedWeeks, pastWeeks,
     loading, error, refetch: fetchWeeks,
-    createWeek, closeWeek,
+    availabilityCounts,
+    createWeek, updateWeek, closeWeek,
     updateMatchScore, updateMatchReport,
   }
 }
