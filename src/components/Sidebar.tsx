@@ -1,3 +1,6 @@
+// src/components/Sidebar.tsx
+// Phase 12.1/12.2 — Branded sidebar with /results and /club-settings nav items
+
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useClubSettings } from '../hooks/useClubSettings'
@@ -8,49 +11,55 @@ interface SidebarProps {
   onClose: () => void
 }
 
+const navigation = [
+  { path: '/roster',        label: 'Roster' },
+  { path: '/depth',         label: 'Depth Chart' },
+  { path: '/weeks',         label: 'Weeks' },
+  { path: '/results',       label: 'Results' },
+  { path: '/club-settings', label: 'Club Settings' },
+]
+
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { clubSettings } = useClubSettings()
   const location = useLocation()
   const { user, signOut } = useAuth()
 
-  const navigation = [
-    { path: '/roster', label: 'Roster' },
-    { path: '/depth', label: 'Depth Chart' },
-    { path: '/weeks', label: 'Weeks' },
-    { path: '/board', label: 'Results' },
-  ]
+  function isActive(path: string): boolean {
+    // /board is accessed from Weeks, so highlight Weeks when on board
+    if (path === '/weeks' && location.pathname.startsWith('/board')) return true
+    return location.pathname.startsWith(path)
+  }
 
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar panel */}
       <aside className={`
         fixed top-0 left-0 h-full z-50
         bg-purple-900 text-white
-        ${isOpen ? 'w-4/5' : 'w-64'}
+        w-4/5 max-w-xs
         transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 md:w-64 md:flex-shrink-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         flex flex-col
       `}>
         {/* Header */}
-        <div className="p-6 border-b border-purple-800">
+        <div className="p-6 border-b border-purple-800" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
           <div className="flex items-center justify-between">
-            <img 
-              src="/icons/Logo.png" 
-              alt="ARM Logo" 
+            <img
+              src="/icons/Logo.png"
+              alt="ARM Logo"
               className="h-10 w-auto object-contain"
             />
-            {/* Mobile close button */}
-            <button 
+            <button
               onClick={onClose}
               className="md:hidden text-white p-1 rounded hover:bg-purple-800 transition-colors"
               aria-label="Close menu"
@@ -67,32 +76,29 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           </div>
         </div>
-        
+
         {/* Navigation */}
-        <nav className="p-4 flex flex-col gap-2 mt-4 flex-1">
-          {navigation.map((item) => {
-            const isActive = location.pathname.startsWith(item.path)
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => {
-                  if (window.innerWidth < 768) onClose()
-                }}
-                className={`
-                  px-4 py-3 rounded-lg transition-colors
-                  ${isActive
-                    ? 'bg-purple-800 border-l-4 border-white font-bold'
-                    : 'text-purple-200 hover:bg-purple-800'
-                  }
-                `}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
+        <nav className="p-4 flex flex-col gap-1 mt-2 flex-1">
+          {navigation.map(item => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => {
+                if (window.innerWidth < 768) onClose()
+              }}
+              className={`
+                px-4 py-3 rounded-lg transition-colors text-sm font-medium
+                ${isActive(item.path)
+                  ? 'bg-purple-800 border-l-4 border-white font-bold'
+                  : 'text-purple-200 hover:bg-purple-800'
+                }
+              `}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
-        
+
         {/* Footer */}
         <div className="p-4 border-t border-purple-800/50">
           <div className="text-sm text-purple-300 mb-2 truncate">

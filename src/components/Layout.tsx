@@ -1,6 +1,5 @@
 // src/components/Layout.tsx
-// Phase 12.1 — Sidebar Navigation Refactor
-// Replaces bottom-tab navigation with responsive sidebar
+// Phase 12.1/12.2 — Sidebar navigation with dynamic club branding + safe-area fixes
 
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
@@ -14,16 +13,19 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+      {/* Sidebar (handles its own overlay on mobile) */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
+
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
-        <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
-          <button 
+        <header
+          className="md:hidden flex items-center justify-between px-4 bg-white border-b border-gray-200 flex-shrink-0"
+          style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(env(safe-area-inset-top) + 56px)' }}
+        >
+          <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="relative z-40 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Open menu"
           >
             <Menu size={24} className="text-gray-700" />
@@ -31,14 +33,11 @@ export default function Layout() {
           <div className="text-lg font-semibold text-gray-900">
             {clubSettings?.club_name || 'ARM'}
           </div>
-          <div className="w-10" /> {/* Spacer for balance */}
+          <div className="w-10" />
         </header>
-        
+
         {/* Page content */}
-        <main 
-          className="flex-1 overflow-auto p-4 md:p-6" 
-          style={{ paddingTop: 'env(safe-area-inset-top)' }}
-        >
+        <main className="flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>

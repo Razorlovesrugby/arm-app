@@ -37,9 +37,9 @@ export interface Player {
   notes: string | null
   last_played_date: string | null
   last_played_team: string | null
-  historical_caps: number  // v2.0: Pre-v2 caps count
-  court_fines: string | null  // v2.0: Free-form notes field for disciplinary fines
-  is_retired: boolean  // v2.0: Flag to filter players from active lists
+  historical_caps: number
+  court_fines: string | null
+  is_retired: boolean
   created_at: string
   updated_at: string
 }
@@ -67,11 +67,11 @@ export interface WeekTeam {
   team_name: string
   sort_order: number
   starters_count: number
-  visible: boolean          // CP7-A: controls tab visibility
-  is_active: boolean        // CP8: false = Bye week (skip in Close Week validation + Archive)
-  score_for: number | null  // v2.0: Points scored by this team
-  score_against: number | null  // v2.0: Points conceded by this team
-  match_report: string | null  // v2.0: Markdown-compatible match report
+  visible: boolean
+  is_active: boolean
+  score_for: number | null
+  score_against: number | null
+  match_report: string | null
 }
 
 export interface AvailabilityResponse {
@@ -81,17 +81,17 @@ export interface AvailabilityResponse {
   availability: Availability
   submitted_primary_position: Position | null
   submitted_secondary_positions: Position[]
-  availability_note: string | null   // player-submitted week-specific note (v1.8 rename)
+  availability_note: string | null
   created_at: string
 }
 
 export interface ArchiveGameNote {
   id: string
   week_team_id: string
-  player_id: string | null           // nullable — supports deleted players
+  player_id: string | null
   player_name_snapshot: string
-  player_type_snapshot: string | null  // CP8: badge snapshot
-  position_snapshot: string | null     // CP8: position badge snapshot
+  player_type_snapshot: string | null
+  position_snapshot: string | null
   game_notes: string | null
   updated_at: string
 }
@@ -101,7 +101,7 @@ export interface TeamSelection {
   week_id: string
   week_team_id: string
   player_order: (string | null)[]
-  captain_id: string | null  // CP7-A: nullable, one per row
+  captain_id: string | null
   saved_at: string
   created_at: string
   updated_at: string
@@ -115,7 +115,6 @@ export const POSITIONS: Position[] = [
 export const PLAYER_TYPES: PlayerType[] = ['Performance', 'Open', "Women's"]
 export const PLAYER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired', 'Archived']
 
-/** Normalise a phone number: strip spaces, dashes, parentheses */
 export function normalisePhone(phone: string): string {
   return phone.replace(/[\s\-()]/g, '')
 }
@@ -124,9 +123,10 @@ export function normalisePhone(phone: string): string {
 // v2.0 New Types
 // ============================================================
 
-export type MatchEventType = 
+export type MatchEventType =
   | 'try' | 'conversion' | 'penalty' | 'drop_goal'
   | 'mvp_3' | 'mvp_2' | 'mvp_1' | 'dotd'
+  | 'yellow_card' | 'red_card'
 
 export interface ClubSettings {
   id: string
@@ -141,15 +141,15 @@ export interface ClubSettings {
 export interface MatchEvent {
   id: string
   week_id: string
-  player_id: string
   week_team_id: string
+  player_id: string | null
   event_type: MatchEventType
   points: number
   created_at: string
-  created_by: string | null
 }
 
 export const MATCH_EVENT_TYPES: MatchEventType[] = [
   'try', 'conversion', 'penalty', 'drop_goal',
-  'mvp_3', 'mvp_2', 'mvp_1', 'dotd'
+  'mvp_3', 'mvp_2', 'mvp_1', 'dotd',
+  'yellow_card', 'red_card',
 ]
