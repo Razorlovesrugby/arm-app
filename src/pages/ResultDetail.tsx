@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useWeeks } from '../hooks/useWeeks'
 import { useMatchEvents, type PlayerEventCounts } from '../hooks/useMatchEvents'
-import type { WeekTeam, Player, TeamSelection } from '../lib/supabase'
+import type { WeekTeam, Player } from '../lib/supabase'
 
 // ─── Stepper ─────────────────────────────────────────────────────────────────
 
@@ -134,7 +134,7 @@ interface TeamResultCardProps {
 }
 
 function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: TeamResultCardProps) {
-  const { events, loading: eventsLoading, saving, fetchMatchEvents, saveMatchEvents, saveAward, getTeamStats, getPlayerCounts, getAwardWinner } = useMatchEvents()
+  const { loading: eventsLoading, saving, fetchMatchEvents, saveMatchEvents, saveAward, getTeamStats, getPlayerCounts, getAwardWinner } = useMatchEvents()
 
   const [scoreFor,     setScoreFor]     = useState<string>(team.score_for?.toString() ?? '')
   const [scoreAgainst, setScoreAgainst] = useState<string>(team.score_against?.toString() ?? '')
