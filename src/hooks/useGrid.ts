@@ -10,6 +10,7 @@ export interface GridWeek {
   id: string
   label: string
   start_date: string
+  end_date: string
 }
 
 // 2D lookup: availabilityMatrix[playerId][weekId] = Availability | null
@@ -45,8 +46,8 @@ export function useGrid(): UseGridResult {
         .order('name', { ascending: true }),
       supabase
         .from('weeks')
-        .select('id, label, start_date')
-        .gte('start_date', today)
+        .select('id, label, start_date, end_date')
+        .gte('end_date', today)
         .eq('status', 'Open')
         .order('start_date', { ascending: true }),
     ])
