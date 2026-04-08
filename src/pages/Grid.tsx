@@ -1,7 +1,7 @@
 // src/pages/Grid.tsx
 // Master Availability Grid — Phase 12.6
 
-import React, { memo } from 'react'
+import { memo } from 'react'
 import { useGrid, GridPlayer, GridWeek, AvailabilityMatrix } from '../hooks/useGrid'
 import type { Availability } from '../lib/supabase'
 
