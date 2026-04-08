@@ -5,6 +5,7 @@ import { Player, PlayerStatus, PlayerType, Position, POSITIONS, PLAYER_TYPES } f
 import PlayerCard from '../components/PlayerCard'
 import PlayerFormSheet from '../components/PlayerFormSheet'
 import DeletePlayerDialog from '../components/DeletePlayerDialog'
+import PlayerDetailOverlay from '../components/PlayerDetailOverlay'
 
 // Statuses shown in the Roster filter dropdown — Archived is handled by its own toggle
 const ROSTER_FILTER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired']
@@ -12,7 +13,8 @@ const ROSTER_FILTER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailabl
 type SortKey = 'name' | 'position' | 'status'
 
 export default function Roster() {
-  const { players, loading, error, refetch } = usePlayers()
+  const [showRetired, setShowRetired] = useState(false)
+  const { players, loading, error, refetch } = usePlayers({ excludeRetired: !showRetired })
 
   // Search + filter state
   const [search, setSearch] = useState('')
@@ -27,6 +29,7 @@ export default function Roster() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [deletingPlayer, setDeletingPlayer] = useState<Player | null>(null)
+  const [overlayPlayer, setOverlayPlayer] = useState<Player | null>(null)
 
   // Derived: filtered + sorted list
   const filtered = useMemo(() => {
@@ -280,6 +283,49 @@ export default function Roster() {
         </div>
       )}
 
+      {/* ── Show Retired toggle ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '10px 16px',
+        borderBottom: '1px solid #E5E7EB',
+        background: '#FFFFFF',
+      }}>
+        <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+          Show Retired Players
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowRetired(v => !v)}
+          role="switch"
+          aria-checked={showRetired}
+          style={{
+            width: '44px',
+            height: '24px',
+            borderRadius: '999px',
+            border: 'none',
+            background: showRetired ? '#6B21A8' : '#D1D5DB',
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'background 0.2s',
+            flexShrink: 0,
+          }}
+        >
+          <span style={{
+            position: 'absolute',
+            top: '2px',
+            left: showRetired ? '22px' : '2px',
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            background: '#FFFFFF',
+            transition: 'left 0.2s',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          }} />
+        </button>
+      </div>
+
       {/* ── Player count ── */}
       {!loading && !error && (
         <div style={{ padding: '10px 16px 4px', fontSize: '13px', color: '#6B7280' }}>
@@ -367,12 +413,16 @@ export default function Roster() {
         )}
 
         {!loading && !error && filtered.map(player => (
-          <PlayerCard
+          <div
             key={player.id}
-            player={player}
-            onEdit={() => openEdit(player)}
-            onDelete={() => setDeletingPlayer(player)}
-          />
+            style={player.status === 'Retired' ? { opacity: 0.7 } : undefined}
+          >
+            <PlayerCard
+              player={player}
+              onEdit={() => setOverlayPlayer(player)}
+              onDelete={() => setDeletingPlayer(player)}
+            />
+          </div>
         ))}
       </div>
 
@@ -389,6 +439,14 @@ export default function Roster() {
           player={deletingPlayer}
           onCancel={() => setDeletingPlayer(null)}
           onDeleted={() => { setDeletingPlayer(null); refetch() }}
+        />
+      )}
+
+      {overlayPlayer && (
+        <PlayerDetailOverlay
+          player={overlayPlayer}
+          onClose={() => setOverlayPlayer(null)}
+          onSaved={() => { setOverlayPlayer(null); refetch() }}
         />
       )}
     </div>
