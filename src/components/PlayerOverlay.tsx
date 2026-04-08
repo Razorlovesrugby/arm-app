@@ -71,6 +71,12 @@ export default function PlayerOverlay({
   const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Lock body scroll while overlay is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   // Sync when player changes
   useEffect(() => {
     setCaptainState(isCaptain)
@@ -142,6 +148,7 @@ export default function PlayerOverlay({
         borderRadius: '16px 16px 0 0',
         maxHeight: '88vh',
         overflowY: 'auto',
+        overscrollBehavior: 'contain',
         WebkitOverflowScrolling: 'touch',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>

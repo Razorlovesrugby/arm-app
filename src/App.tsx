@@ -14,6 +14,7 @@ import Weeks from './pages/Weeks'
 import Results from './pages/Results'
 import ResultDetail from './pages/ResultDetail'
 import ClubSettings from './pages/ClubSettings'
+import Grid from './pages/Grid'
 import AvailabilityForm from './pages/AvailabilityForm'
 import { useClubSettings } from './hooks/useClubSettings'
 
@@ -70,6 +71,8 @@ export default function App() {
 
             <Route path="results" element={<Results />} />
             <Route path="results/:weekId" element={<ResultDetail />} />
+
+            <Route path="grid" element={<Grid />} />
 
             <Route path="club-settings" element={<ClubSettings />} />
 

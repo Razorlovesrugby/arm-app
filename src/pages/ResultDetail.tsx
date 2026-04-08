@@ -45,6 +45,11 @@ function MatchEventsSheet({
   const [counts, setCounts] = useState<PlayerEventCounts[]>(initialCounts)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   function updateCount(
     playerId: string,
     field: keyof Omit<PlayerEventCounts, 'playerId'>,
@@ -73,7 +78,7 @@ function MatchEventsSheet({
         </div>
 
         {/* Player list */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto overscroll-contain flex-1">
           {players.map(player => {
             const isExpanded = expandedId === player.id
             const hasEvents = (['try','conversion','penalty','drop_goal','yellow_card','red_card'] as const)

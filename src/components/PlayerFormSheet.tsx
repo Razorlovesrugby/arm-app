@@ -53,6 +53,12 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
 
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   // Populate form when editing
   useEffect(() => {
     if (player) {
@@ -172,6 +178,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
         borderTopRightRadius: '20px',
         maxHeight: '92dvh',
         overflowY: 'auto',
+        overscrollBehavior: 'contain',
         // Tablet+: centred modal
         // (override via media query below)
       }}

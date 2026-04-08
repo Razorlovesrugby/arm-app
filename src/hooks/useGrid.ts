@@ -1,0 +1,111 @@
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { supabase, AvailabilityResponse, Availability } from '../lib/supabase'
+
+export interface GridPlayer {
+  id: string
+  name: string
+}
+
+export interface GridWeek {
+  id: string
+  label: string
+  start_date: string
+}
+
+// 2D lookup: availabilityMatrix[playerId][weekId] = Availability | null
+export type AvailabilityMatrix = Record<string, Record<string, Availability | null>>
+
+interface UseGridResult {
+  players: GridPlayer[]
+  weeks: GridWeek[]
+  matrix: AvailabilityMatrix
+  loading: boolean
+  error: string | null
+  refetch: () => void
+}
+
+export function useGrid(): UseGridResult {
+  const [players, setPlayers] = useState<GridPlayer[]>([])
+  const [weeks, setWeeks] = useState<GridWeek[]>([])
+  const [responses, setResponses] = useState<AvailabilityResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    const today = new Date().toISOString().split('T')[0]
+
+    const [playersRes, weeksRes] = await Promise.all([
+      supabase
+        .from('players')
+        .select('id, name')
+        .eq('is_retired', false)
+        .order('name', { ascending: true }),
+      supabase
+        .from('weeks')
+        .select('id, label, start_date')
+        .gte('start_date', today)
+        .eq('status', 'Open')
+        .order('start_date', { ascending: true }),
+    ])
+
+    if (playersRes.error) {
+      setError(playersRes.error.message)
+      setLoading(false)
+      return
+    }
+    if (weeksRes.error) {
+      setError(weeksRes.error.message)
+      setLoading(false)
+      return
+    }
+
+    const fetchedPlayers = (playersRes.data ?? []) as GridPlayer[]
+    const fetchedWeeks = (weeksRes.data ?? []) as GridWeek[]
+
+    setPlayers(fetchedPlayers)
+    setWeeks(fetchedWeeks)
+
+    if (fetchedPlayers.length === 0 || fetchedWeeks.length === 0) {
+      setResponses([])
+      setLoading(false)
+      return
+    }
+
+    const playerIds = fetchedPlayers.map(p => p.id)
+    const weekIds = fetchedWeeks.map(w => w.id)
+
+    const { data: respData, error: respError } = await supabase
+      .from('availability_responses')
+      .select('player_id, week_id, availability')
+      .in('player_id', playerIds)
+      .in('week_id', weekIds)
+
+    if (respError) {
+      setError(respError.message)
+      setLoading(false)
+      return
+    }
+
+    setResponses((respData ?? []) as AvailabilityResponse[])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
+
+  // Build 2D dictionary: matrix[playerId][weekId] = Availability | null
+  const matrix = useMemo<AvailabilityMatrix>(() => {
+    const m: AvailabilityMatrix = {}
+    for (const r of responses) {
+      if (!m[r.player_id]) m[r.player_id] = {}
+      m[r.player_id][r.week_id] = r.availability
+    }
+    return m
+  }, [responses])
+
+  return { players, weeks, matrix, loading, error, refetch: fetchAll }
+}

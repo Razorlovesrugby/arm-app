@@ -59,7 +59,7 @@ export default function Roster() {
     return list
   }, [players, search, filterStatus, filterType, filterPosition, sortKey, showArchived])
 
-  const activeFilters = [filterStatus, filterType, filterPosition].filter(Boolean).length + (showArchived ? 1 : 0)
+  const activeFilters = [filterStatus, filterType, filterPosition].filter(Boolean).length + (showArchived ? 1 : 0) + (showRetired ? 1 : 0)
 
   function openAdd() {
     setEditingPlayer(null)
@@ -76,6 +76,7 @@ export default function Roster() {
     setFilterType('')
     setFilterPosition('')
     setShowArchived(false)
+    setShowRetired(false)
   }
 
   function exportCSV() {
@@ -254,6 +255,28 @@ export default function Roster() {
             </span>
           </label>
 
+          {/* Show Retired toggle */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            fontSize: '13px', color: '#374151', cursor: 'pointer',
+            padding: '7px 10px',
+            border: '1px solid',
+            borderColor: showRetired ? '#6B21A8' : '#E5E7EB',
+            borderRadius: '8px',
+            background: showRetired ? '#F3E8FF' : '#FFFFFF',
+            userSelect: 'none',
+          }}>
+            <input
+              type="checkbox"
+              checked={showRetired}
+              onChange={e => setShowRetired(e.target.checked)}
+              style={{ accentColor: '#6B21A8', width: '14px', height: '14px', cursor: 'pointer' }}
+            />
+            <span style={{ color: showRetired ? '#6B21A8' : '#374151', fontWeight: showRetired ? '600' : '400' }}>
+              Show Retired
+            </span>
+          </label>
+
           {activeFilters > 0 && (
             <button
               onClick={clearFilters}
@@ -280,49 +303,6 @@ export default function Roster() {
           </button>
         </div>
       )}
-
-      {/* ── Show Retired toggle ── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '10px 16px',
-        borderBottom: '1px solid #E5E7EB',
-        background: '#FFFFFF',
-      }}>
-        <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-          Show Retired Players
-        </span>
-        <button
-          type="button"
-          onClick={() => setShowRetired(v => !v)}
-          role="switch"
-          aria-checked={showRetired}
-          style={{
-            width: '44px',
-            height: '24px',
-            borderRadius: '999px',
-            border: 'none',
-            background: showRetired ? '#6B21A8' : '#D1D5DB',
-            cursor: 'pointer',
-            position: 'relative',
-            transition: 'background 0.2s',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{
-            position: 'absolute',
-            top: '2px',
-            left: showRetired ? '22px' : '2px',
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            background: '#FFFFFF',
-            transition: 'left 0.2s',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-          }} />
-        </button>
-      </div>
 
       {/* ── Player count ── */}
       {!loading && !error && (

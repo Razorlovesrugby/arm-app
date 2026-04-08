@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, Copy, Share2, Plus, Check, Link, Pencil, X } from 'lucide-react'
 import { useWeeks, WeekWithTeams, AvailabilityCounts } from '../hooks/useWeeks'
@@ -81,6 +81,11 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<{ start?: string; end?: string; label?: string; teams?: string }>({})
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   // Auto-update label when start date changes (unless user manually edited it)
   const handleStartChange = useCallback((val: string) => {
     setStartDate(val)
@@ -151,6 +156,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
         borderTopRightRadius: '20px',
         maxHeight: '90vh',
         overflowY: 'auto',
+        overscrollBehavior: 'contain',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }
     : {
@@ -164,6 +170,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
         maxWidth: '520px',
         maxHeight: '90vh',
         overflowY: 'auto',
+        overscrollBehavior: 'contain',
       }
 
   return (
