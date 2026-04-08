@@ -68,11 +68,6 @@ export default function Roster() {
     setSheetOpen(true)
   }
 
-  function openEdit(player: Player) {
-    setEditingPlayer(player)
-    setSheetOpen(true)
-  }
-
   function clearFilters() {
     setFilterStatus('')
     setFilterType('')
