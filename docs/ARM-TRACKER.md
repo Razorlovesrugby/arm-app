@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-07**
-**Current position: Phase 11 Complete. Ready for Phase 12 UI Pivot.**
+**Last updated: 2026-04-08**
+**Current position: Phase 12.3 Complete. Ready for Phase 12.4 (Player Overlay with Caps and Court Fines).**
 
 ---
 
@@ -28,7 +28,7 @@
 | 9 | Close Week — confirmation dialog, set Closed, last_played fields, archive_game_notes insert | ✅ Done |
 | 10 | Exports — jsPDF PDF + plain text, native OS share sheet | ⏳ Pending |
 | 11 | v2.0 Architecture Pivot — Schema refactor for concurrent Selection/Results (Archive logic integrated into v2.0 Results view) | ✅ Done |
-| 12 | UI Pivot — Sidebar Navigation, Results Mode toggle, Scoring/MVP entry, Player Overlay upgrade | ▶ Next |
+| 12 | UI Pivot — Sidebar Navigation, Results Mode toggle, Scoring/MVP entry, Player Overlay upgrade | ✅ Done |
 | 13 | Exports — jsPDF PDF + plain text, native OS share sheet | ⏳ Pending |
 | 14 | Polish & Performance — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
 
@@ -177,13 +177,45 @@
 
 ---
 
-### Phase 12 ▶ Next — UI Pivot
+### Phase 12 — UI Pivot
 | CP | Description | Status |
 |---|---|---|
-| 12.1 | Refactor Layout.tsx to Sidebar Navigation | ▶ Next |
-| 12.2 | Implement 'Results Mode' toggle in Board.tsx | ⏳ Pending |
-| 12.3 | Integrate Scoring/MVP entry into the Selection Board | ⏳ Pending |
+| 12.1 | Refactor Layout.tsx to Sidebar Navigation | ✅ Done |
+| 12.2 | Layout Fixes, Results Mode & Match Events | ✅ Done |
+| 12.3 | Weeks Tab UX Overhaul & Always Visible Results Ledger | ✅ Done |
 | 12.4 | Update Player Overlay with Caps and Court Fines display | ⏳ Pending |
+
+**Phase 12.1 Details:**
+- **Commit:** 9428a5d "Phase 12.1: Sidebar Navigation Refactor & Global White-labeling"
+- **Files changed:** 34 files, 12,912 insertions(+), 691 deletions(-)
+- **Deployment:** Pushed to GitHub, Vercel auto-deploy triggered
+- **UAT:** Comprehensive test suite created at `/docs/UAT_PHASE_12_1.md`
+- **Acceptance Criteria:** All 13 criteria met (dynamic branding, responsive sidebar, logo implementation, bottom nav removal, Archive route deprecated)
+
+**Phase 12.2 Ready:**
+- **Spec:** `/docs/phase-specs/12.2_ACTIVE_SPEC.md` created
+- **Scope:** Fix UI regressions, implement Results pages, add match events with cards
+- **Files:** 11 files to create/modify, Migration 012 required
+- **Status:** Ready for implementation
+
+**Phase 12.3 Completed:**
+- **Commits:** 
+  - `7363eb8` "Phase 12.3: Weeks tab UX overhaul — month filter, availability counts, inline label editing, dynamic team creation"
+  - `f6ddcf0` "Phase 12.3: Transform Results tab into Fixture & Results Ledger — show all weeks, upcoming badge, safe null score display"
+- **Scope:** 
+  1. Weeks Tab UX Overhaul: Month filtering, availability counts dashboard, inline label editing, dynamic team creation
+  2. Always Visible Results Ledger: Transform Results tab to show all weeks (past, present, future) with "Upcoming" badge
+- **Key Features:**
+  - Month timeline filter with "ALL" pill for weeks view
+  - At-a-glance availability counts (green/amber/red badges)
+  - Inline editable week labels with pencil icon
+  - Dynamic team creation (add/remove teams, duplicate prevention)
+  - Results tab shows ALL weeks as "Fixture & Results Ledger"
+  - "Upcoming" badge for weeks with no scores
+  - Safe null score display ("– : –")
+- **Files Modified:** `src/hooks/useWeeks.ts`, `src/pages/Weeks.tsx`, `src/pages/Results.tsx`
+- **Status:** ✅ Done and deployed
+
 
 ---
 
