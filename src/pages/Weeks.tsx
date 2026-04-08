@@ -61,17 +61,23 @@ interface CreateWeekFormProps {
   onClose: () => void
   onCreated: () => void
   createWeek: ReturnType<typeof useWeeks>['createWeek']
+  defaultTeams?: string[]
 }
 
-function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps) {
+function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: CreateWeekFormProps) {
   const defaultStart = getCurrentMonday()
   const defaultEnd = getCurrentSunday()
+
+  const initialTeams = defaultTeams && defaultTeams.length > 0
+    ? [...defaultTeams]
+    : ['1st XV', '2nd XV']
 
   const [startDate, setStartDate] = useState(defaultStart)
   const [endDate, setEndDate] = useState(defaultEnd)
   const [label, setLabel] = useState(autoLabel(defaultStart))
   const [labelTouched, setLabelTouched] = useState(false)
-  const [teamNames, setTeamNames] = useState<string[]>(['Team 1', 'Team 2', 'Team 3', 'Team 4', 'Team 5'])
+  const [teamNames, setTeamNames] = useState<string[]>(initialTeams)
+  const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<{ start?: string; end?: string; label?: string; teams?: string }>({})
 
@@ -122,6 +128,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
       end_date: endDate,
       label: label.trim(),
       teamNames: trimmedTeams,
+      notes: notes.trim() || undefined,
     })
     setSaving(false)
     if (error) {
@@ -316,6 +323,33 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
             {errors.teams && <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.teams}</p>}
           </div>
 
+          {/* Game Notes */}
+          <div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+              Game Notes
+            </label>
+            <p style={{ margin: '0 0 6px', fontSize: '12px', color: '#6B7280' }}>
+              Optional — kickoff time, location, bus info, etc.
+            </p>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="e.g. KO 3pm, Riverside Park, Bus departs clubhouse at 2pm"
+              maxLength={1000}
+              rows={3}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '10px 12px', borderRadius: '8px',
+                border: '1px solid #E5E7EB',
+                fontSize: '14px', color: '#111827', background: '#FFFFFF',
+                outline: 'none', resize: 'vertical',
+              }}
+            />
+            <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#9CA3AF', textAlign: 'right' }}>
+              {notes.length}/1000
+            </p>
+          </div>
+
           {/* Footer buttons */}
           <div style={{ display: 'flex', gap: '10px', paddingTop: '8px' }}>
             <button
@@ -359,7 +393,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek }: CreateWeekFormProps)
 interface WeekCardProps {
   week: WeekWithTeams
   counts: AvailabilityCounts
-  updateWeek: (weekId: string, label: string) => Promise<{ error: string | null }>
+  updateWeek: (weekId: string, label: string, notes?: string) => Promise<{ error: string | null }>
   onOpenBoard: () => void
   clubName?: string
 }
@@ -370,6 +404,12 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Notes state
+  const [notesExpanded, setNotesExpanded] = useState(false)
+  const [editNotes, setEditNotes] = useState(week.notes ?? '')
+  const [notesSaving, setNotesSaving] = useState(false)
+  const [notesSaveError, setNotesSaveError] = useState<string | null>(null)
 
   const url = availabilityUrl(week.availability_link_token)
   const total = counts.available + counts.tbc + counts.unavailable
@@ -417,6 +457,18 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
     }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function saveNotes() {
+    setNotesSaving(true)
+    setNotesSaveError(null)
+    const { error } = await updateWeek(week.id, week.label, editNotes)
+    setNotesSaving(false)
+    if (error) {
+      setNotesSaveError(error)
+    } else {
+      setNotesExpanded(false)
+    }
   }
 
   async function handleShare() {
@@ -629,6 +681,71 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
         ))}
         {week.week_teams.length === 0 && (
           <span style={{ fontSize: '12px', color: '#9CA3AF' }}>No teams</span>
+        )}
+      </div>
+
+      {/* Game Notes */}
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid #F3F4F6' }}>
+        {!notesExpanded ? (
+          <button
+            onClick={() => { setEditNotes(week.notes ?? ''); setNotesExpanded(true) }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: '12px', fontWeight: '500',
+              color: week.notes ? '#374151' : '#9CA3AF',
+              padding: 0, textAlign: 'left', width: '100%',
+            }}
+          >
+            {week.notes
+              ? <span><span style={{ color: '#6B7280', marginRight: '6px' }}>📋</span>{week.notes}</span>
+              : '+ Add game notes'}
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <textarea
+              autoFocus
+              value={editNotes}
+              onChange={e => setEditNotes(e.target.value)}
+              maxLength={1000}
+              rows={3}
+              placeholder="Kickoff time, location, bus info…"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '8px 10px', borderRadius: '8px',
+                border: '1px solid #6B21A8',
+                fontSize: '13px', color: '#111827', background: '#FFFFFF',
+                outline: 'none', resize: 'vertical',
+              }}
+            />
+            {notesSaveError && (
+              <p style={{ margin: 0, fontSize: '12px', color: '#DC2626' }}>{notesSaveError}</p>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setNotesExpanded(false)}
+                style={{
+                  padding: '6px 12px', borderRadius: '6px',
+                  border: '1px solid #E5E7EB', background: '#FFFFFF',
+                  fontSize: '13px', fontWeight: '500', color: '#374151',
+                  cursor: 'pointer', minHeight: '36px',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveNotes}
+                disabled={notesSaving}
+                style={{
+                  padding: '6px 12px', borderRadius: '6px',
+                  border: 'none', background: notesSaving ? '#9CA3AF' : '#6B21A8',
+                  fontSize: '13px', fontWeight: '600', color: '#FFFFFF',
+                  cursor: notesSaving ? 'not-allowed' : 'pointer', minHeight: '36px',
+                }}
+              >
+                {notesSaving ? 'Saving…' : 'Save Notes'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -851,6 +968,11 @@ export default function Weeks() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {}}
           createWeek={createWeek}
+          defaultTeams={
+            clubSettings?.default_teams && clubSettings.default_teams.length > 0
+              ? clubSettings.default_teams
+              : ['1st XV', '2nd XV']
+          }
         />
       )}
     </>

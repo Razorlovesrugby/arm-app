@@ -25,7 +25,7 @@ interface UseWeeksResult {
   refetch: () => void
   availabilityCounts: Record<string, AvailabilityCounts>
   createWeek: (params: CreateWeekParams) => Promise<{ data: Week | null; error: string | null }>
-  updateWeek: (weekId: string, label: string) => Promise<{ error: string | null }>
+  updateWeek: (weekId: string, label: string, notes?: string) => Promise<{ error: string | null }>
   closeWeek: (weekId: string, force?: boolean) => Promise<{
     warnings: CloseWeekWarning[]
     error: string | null
@@ -38,7 +38,8 @@ export interface CreateWeekParams {
   start_date: string
   end_date: string
   label: string
-  teamNames: string[]
+  teamNames: string[] // COPIED from default_teams, not referenced
+  notes?: string // NEW
 }
 
 export function useWeeks(): UseWeeksResult {
@@ -92,7 +93,7 @@ export function useWeeks(): UseWeeksResult {
   }, [fetchWeeks])
 
   const createWeek = useCallback(
-    async ({ start_date, end_date, label, teamNames }: CreateWeekParams) => {
+    async ({ start_date, end_date, label, teamNames, notes }: CreateWeekParams) => {
       const token = crypto.randomUUID()
 
       const { data: weekData, error: weekError } = await supabase
@@ -103,6 +104,7 @@ export function useWeeks(): UseWeeksResult {
           label,
           status: 'Open',
           availability_link_token: token,
+          ...(notes ? { notes: notes.trim() } : {}),
         })
         .select()
         .single()
@@ -134,10 +136,12 @@ export function useWeeks(): UseWeeksResult {
   )
 
   const updateWeek = useCallback(
-    async (weekId: string, label: string): Promise<{ error: string | null }> => {
+    async (weekId: string, label: string, notes?: string): Promise<{ error: string | null }> => {
+      const updateData: Record<string, string | null> = { label }
+      if (notes !== undefined) updateData.notes = notes.trim() || null
       const { error } = await supabase
         .from('weeks')
-        .update({ label })
+        .update(updateData)
         .eq('id', weekId)
       if (!error) await fetchWeeks()
       return { error: error?.message ?? null }

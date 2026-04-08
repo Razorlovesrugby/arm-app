@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -123,6 +123,77 @@ function MatchEventsSheet({
   )
 }
 
+// ─── Opponent Input ───────────────────────────────────────────────────────────
+
+interface OpponentInputProps {
+  team: WeekTeam
+  weekTeamId: string
+}
+
+function OpponentInput({ team, weekTeamId }: OpponentInputProps) {
+  const [localOpponent, setLocalOpponent] = useState(team.opponent || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  const handleSave = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    abortControllerRef.current = new AbortController()
+    setIsSaving(true)
+
+    try {
+      const { error } = await supabase
+        .from('week_teams')
+        .update({ opponent: localOpponent.trim() || null })
+        .eq('id', weekTeamId)
+
+      if (abortControllerRef.current.signal.aborted) return
+
+      if (error) {
+        console.error('Failed to save opponent:', error.message)
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Failed to save opponent:', err.message)
+      }
+    } finally {
+      if (!abortControllerRef.current?.signal.aborted) {
+        setIsSaving(false)
+      }
+    }
+  }, [weekTeamId, localOpponent])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <span className="text-sm font-medium text-gray-700">{team.team_name}</span>
+      <span className="text-sm text-gray-400">vs</span>
+      <input
+        type="text"
+        value={localOpponent}
+        onChange={e => setLocalOpponent(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={e => e.key === 'Enter' && handleSave()}
+        placeholder="Opponent name"
+        maxLength={100}
+        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm"
+      />
+      {isSaving && (
+        <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-800 rounded-full animate-spin" />
+      )}
+    </div>
+  )
+}
+
 // ─── Team Result Card ─────────────────────────────────────────────────────────
 
 interface TeamResultCardProps {
@@ -173,9 +244,9 @@ function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: Te
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 overflow-hidden">
-      {/* Team name */}
+      {/* Team name + opponent */}
       <div className="px-4 pt-4 pb-2 border-b border-gray-100">
-        <h2 className="text-base font-bold text-gray-900">{team.team_name}</h2>
+        <OpponentInput team={team} weekTeamId={team.id} />
       </div>
 
       {/* Score inputs */}

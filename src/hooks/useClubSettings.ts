@@ -42,22 +42,30 @@ export function useClubSettings(): UseClubSettingsResult {
   const updateClubSettings = useCallback(async (
     settings: Partial<ClubSettings>
   ): Promise<{ error: string | null }> => {
-    // Get the current club settings ID
     const currentSettings = clubSettings
     if (!currentSettings) {
       return { error: 'No club settings found' }
+    }
+
+    // Validate default_teams
+    if (settings.default_teams !== undefined && settings.default_teams !== null) {
+      if (settings.default_teams.length > 10) {
+        return { error: 'Maximum 10 default teams allowed' }
+      }
+      if (settings.default_teams.some(t => !t.trim())) {
+        return { error: 'Team names cannot be empty' }
+      }
     }
 
     const { error } = await supabase
       .from('club_settings')
       .update(settings)
       .eq('id', currentSettings.id)
-    
+
     if (error) {
       return { error: error.message }
     }
-    
-    // Refetch to update local state
+
     await fetchClubSettings()
     return { error: null }
   }, [clubSettings, fetchClubSettings])

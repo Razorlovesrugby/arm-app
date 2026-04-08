@@ -58,6 +58,7 @@ export interface Week {
   label: string
   status: WeekStatus
   availability_link_token: string
+  notes: string | null
   created_at: string
 }
 
@@ -72,6 +73,7 @@ export interface WeekTeam {
   score_for: number | null
   score_against: number | null
   match_report: string | null
+  opponent: string | null
 }
 
 export interface AvailabilityResponse {
@@ -134,6 +136,7 @@ export interface ClubSettings {
   primary_color: string
   secondary_color: string
   logo_url: string | null
+  default_teams: string[] | null
   created_at: string
   updated_at: string
 }
