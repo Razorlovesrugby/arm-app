@@ -200,7 +200,135 @@
 - CP-7.6 — `PlayerOverlay`: bottom sheet (mobile) / centred modal (desktop). Shows Coach Notes (editable textarea + Save button, saves to `players.notes`). Shows Availability Note (read-only, yellow callout, hidden if none submitted, labelled "Availability Note — Week of [label]"). Player info row shows status / type / secondary positions.
 - CP-7.7 — Integration: `SelectionBoard` + `PlayerOverlay` wired into `Weeks.tsx`. Board renders below `WeekDetail` for open weeks only. `useSelectionBoard` called with `weekId = null` for closed/no weeks (hook no-ops). Commit: `8e39d8f`.
 
-**
+---
+
+## Session Summary — Phase 8 Complete — 2026-04-01
+
+### Phase 8 — Auto-Remove Unavailable Players — Completed
+
+**Commit:** `503c301` "CP8: Finalization & Post-Match Workflow"
+
+**Scope:** Automatic removal of unavailable players from team selections and post-match workflow enhancements
+
+**Key Features:**
+- **Migration 008_cp8_schema.sql:** Added `week_teams.is_active` column (Bye toggle) and expanded `archive_game_notes` with `player_type_snapshot` and `position_snapshot` columns
+- **Migration 009_cp8_trigger.sql:** PostgreSQL trigger that automatically removes players from all `team_selections` when they submit `availability = 'Unavailable'`
+  - Preserves sparse JSONB array structure by replacing player UUID with JSON null (maintains shirt numbers for other players)
+  - Clears `captain_id` if the removed player was captain
+  - Uses `@>` operator for efficient lookup of rows containing the player
+- **Migration 010_cp8_close_week_rpc.sql:** Atomic `close_week` RPC function that:
+  - Sets week status to 'Closed'
+  - Updates `players.last_played_date` and `players.last_played_team` for all players in active teams
+  - Upserts `archive_game_notes` with name/type/position snapshots
+  - Security DEFINER for predictable RLS permissions
+- **Close Week Dialog:** Danger modal with empty-active-team warning variant in `Weeks.tsx`
+- **Team Active (Bye) Toggle:** Added to Team Management sheet in Selection Board
+- **Archive Implementation:** Full archive tab with reverse-chronological closed weeks, pill team tabs, click-to-edit game notes with auto-save, Player History search, and deep-link teleportation
+
+**Files Modified:** 10 files including migrations, `useWeeks.ts`, `useSelectionBoard.ts`, `Weeks.tsx`, `Archive.tsx`, `Layout.tsx`
+
+**Current State:**
+- Last clean checkpoint: Phase 8 Complete
+- All changes committed: Yes
+- Pushed to GitHub: Yes
+- Live URL: https://arm-app-black.vercel.app
+
+---
+
+## Session Summary — Phase 9 Complete — 2026-04-01
+
+### Phase 9 — Close Week & Archive Integration — Completed
+
+**Note:** Phase 9 was delivered as part of the same commit as Phase 8 (`503c301`) as they represent the complete Finalization & Post-Match Workflow.
+
+**Key Accomplishments:**
+- **Close Week Validation:** `useWeeks.closeWeek()` validates empty active teams and shows warnings before closing
+- **Atomic Close Operation:** Single RPC call handles all close week operations atomically
+- **Player History Preservation:** Archive snapshots capture player state at time of game (name, type, position)
+- **Archive Navigation:** 4-tab bottom navigation with Archive tab added to `Layout.tsx`
+- **Game Notes Auto-save:** Debounced auto-save on textarea changes in archive view
+- **Player History Search:** `ilike` query across archived players, sorted by most recent week
+- **Deep-link Teleportation:** Search results link to `/archive?tab=archive&week=X&team=Y&player=Z` with auto-expansion and scroll-to-center
+
+**Integration Notes:**
+- Close Week functionality integrated into Weeks tab with visual feedback
+- Archive tab provides comprehensive historical view of all closed weeks
+- Player search enables quick lookup of past performances and notes
+- Deep linking allows coaches to share specific player/team/week combinations
+
+**Current State:**
+- Last clean checkpoint: Phase 9 Complete  
+- All changes committed: Yes
+- Pushed to GitHub: Yes
+- Tests passing: N/A
+
+---
+
+## Session Summary — Phase 11 Complete — 2026-04-07
+
+### Phase 11 — v2.0 Architecture Pivot — Completed
+
+**Note:** Archive functionality is no longer a standalone locked tab; historical data is now accessed via the concurrent "Results" toggle on the Selection Board.
+
+**Key Accomplishments:**
+- **Migration 011_v2_pivot.sql** applied: Added club_settings, match_events tables, and players.historical_caps, court_fines, is_retired columns
+- **TypeScript interfaces updated:** ClubSettings, MatchEvent, Player, WeekTeam with new v2.0 fields
+- **Dynamic branding implemented:** useClubSettings hook created, removed hardcoded "Belsize Park RFC" strings
+- **Enhanced hooks:** usePlayers with retired/archived filtering, useWeeks with updateMatchScore/updateMatchReport
+- **Legacy v1.9 features:** Archive tab, game notes auto-save, player history search, deep-linking preserved
+
+**Files Modified:**
+- `supabase/migrations/011_v2_pivot.sql` — New migration
+- `src/lib/supabase.ts` — Type definitions updated
+- `src/hooks/useClubSettings.ts` — New hook for dynamic branding
+- `src/hooks/usePlayers.ts` — Enhanced with filtering
+- `src/hooks/useWeeks.ts` — Enhanced with scoring functions
+- Multiple UI files — Removed hardcoded club name strings
+
+**Commit:** `9f061bd` "update ARM-TRACKER: phases 8, 9, 11 marked Done"
+
+---
+
+## Session Summary — Phase 12.1 Complete — 2026-04-07
+
+### Phase 12.1 — Sidebar Navigation Refactor & Global White-labeling — Completed
+
+**Commit:** `9428a5d` "Phase 12.1: Sidebar Navigation Refactor & Global White-labeling"
+
+**Scope:** Major UI pivot from bottom navigation to sidebar navigation with dynamic branding
+
+**Key Features:**
+- **Sidebar Navigation:** Replaced bottom tab bar with responsive sidebar (collapsed on mobile, expanded on tablet/desktop)
+- **Dynamic Branding:** Club name, logo, and colors loaded from club_settings table
+- **Logo Implementation:** SVG/PNG logo support with fallback to club name
+- **Route Updates:** Archive route deprecated, consistent navigation structure
+- **UAT Suite:** Comprehensive test suite created at `/docs/UAT_PHASE_12_1.md`
+
+**Files Changed:** 34 files, 12,912 insertions(+), 691 deletions(-)
+**Deployment:** Pushed to GitHub, Vercel auto-deploy triggered
+**Acceptance Criteria:** All 13 criteria met
+
+---
+
+## Session Summary — Phase 12.2 Complete — 2026-04-07
+
+### Phase 12.2 — Layout Fixes, Results Mode & Match Events — Completed
+
+**Commit:** `22bc1c5` "Phase 12.2: sidebar layout, Results pages, match events, ClubSettings placeholder"
+
+**Scope:** Fix UI regressions, implement Results pages, add match events with cards
+
+**Key Features:**
+- **Layout Fixes:** Hamburger button z-index/safe-area issues resolved
+- **Results Pages:** `/results` index page and `/results/:weekId` detail page
+- **Match Events:** Card types (yellow_card, red_card) added to match_events constraint
+- **Club Settings Placeholder:** Basic page created at `/club-settings`
+- **Close Week Removal:** Removed from Weeks.tsx as per v2.0 architecture
+
+**Migration Applied:** `012_match_cards.sql` — Updated match_events.event_type constraint
+**Files Created/Modified:** 11 files including Results.tsx, ResultDetail.tsx, useMatchEvents.ts
+**Status:** ✅ Done and deployed
+
 ---
 
 ## Session Summary — Phase 12.3 Complete — 2026-04-08
