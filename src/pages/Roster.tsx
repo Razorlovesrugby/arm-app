@@ -5,7 +5,6 @@ import { Player, PlayerStatus, PlayerType, Position, POSITIONS, PLAYER_TYPES } f
 import PlayerCard from '../components/PlayerCard'
 import PlayerFormSheet from '../components/PlayerFormSheet'
 import DeletePlayerDialog from '../components/DeletePlayerDialog'
-import PlayerDetailOverlay from '../components/PlayerDetailOverlay'
 
 // Statuses shown in the Roster filter dropdown — Archived is handled by its own toggle
 const ROSTER_FILTER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired']
@@ -29,7 +28,6 @@ export default function Roster() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [deletingPlayer, setDeletingPlayer] = useState<Player | null>(null)
-  const [overlayPlayer, setOverlayPlayer] = useState<Player | null>(null)
 
   // Derived: filtered + sorted list
   const filtered = useMemo(() => {
@@ -65,6 +63,11 @@ export default function Roster() {
 
   function openAdd() {
     setEditingPlayer(null)
+    setSheetOpen(true)
+  }
+
+  function openEdit(player: Player) {
+    setEditingPlayer(player)
     setSheetOpen(true)
   }
 
@@ -414,7 +417,7 @@ export default function Roster() {
           >
             <PlayerCard
               player={player}
-              onEdit={() => setOverlayPlayer(player)}
+              onEdit={() => openEdit(player)}
               onDelete={() => setDeletingPlayer(player)}
             />
           </div>
@@ -434,14 +437,6 @@ export default function Roster() {
           player={deletingPlayer}
           onCancel={() => setDeletingPlayer(null)}
           onDeleted={() => { setDeletingPlayer(null); refetch() }}
-        />
-      )}
-
-      {overlayPlayer && (
-        <PlayerDetailOverlay
-          player={overlayPlayer}
-          onClose={() => setOverlayPlayer(null)}
-          onSaved={() => { setOverlayPlayer(null); refetch() }}
         />
       )}
     </div>
