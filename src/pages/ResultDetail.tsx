@@ -4,7 +4,9 @@ import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useWeeks } from '../hooks/useWeeks'
 import { useMatchEvents, type PlayerEventCounts } from '../hooks/useMatchEvents'
-import type { WeekTeam, Player } from '../lib/supabase'
+import { useClubSettings } from '../hooks/useClubSettings'
+import { PDFDownloadButton } from '../components/PDFDownloadLink'
+import type { WeekTeam, Player, PDFTeam, PDFPlayer } from '../lib/supabase'
 
 // ─── Stepper ─────────────────────────────────────────────────────────────────
 
@@ -376,15 +378,25 @@ function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: Te
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const RUGBY_POSITIONS: Record<number, string> = {
+  1: 'Loosehead Prop',   2: 'Hooker',             3: 'Tighthead Prop',
+  4: 'Lock',             5: 'Lock',               6: 'Blindside Flanker',
+  7: 'Openside Flanker', 8: 'Number 8',           9: 'Scrum-half',
+  10: 'Fly-half',        11: 'Left Wing',          12: 'Inside Centre',
+  13: 'Outside Centre',  14: 'Right Wing',         15: 'Fullback',
+}
+
 export default function ResultDetail() {
   const { weekId } = useParams<{ weekId: string }>()
   const navigate   = useNavigate()
   const { weeks, updateMatchScore, updateMatchReport } = useWeeks()
+  const { clubSettings } = useClubSettings()
 
   const week = weeks.find(w => w.id === weekId)
 
   // Players for each team (keyed by week_team_id)
-  const [teamPlayers, setTeamPlayers] = useState<Record<string, Player[]>>({})
+  const [teamPlayers,  setTeamPlayers]  = useState<Record<string, Player[]>>({})
+  const [teamCaptains, setTeamCaptains] = useState<Record<string, string | null>>({})
 
   useEffect(() => {
     if (!week) return
@@ -393,20 +405,20 @@ export default function ResultDetail() {
     async function loadPlayers() {
       const results = await Promise.all(
         activeTeams.map(async team => {
-          // Get team_selections to find player order
+          // Get team_selections to find player order and captain
           const { data: selData } = await supabase
             .from('team_selections')
-            .select('player_order')
+            .select('player_order, captain_id')
             .eq('week_id', week!.id)
             .eq('week_team_id', team.id)
             .single()
 
-          if (!selData) return [team.id, []] as [string, Player[]]
+          if (!selData) return { teamId: team.id, players: [] as Player[], captainId: null }
 
           const playerIds = (selData.player_order as (string | null)[])
             .filter((id): id is string => id !== null)
 
-          if (playerIds.length === 0) return [team.id, []] as [string, Player[]]
+          if (playerIds.length === 0) return { teamId: team.id, players: [] as Player[], captainId: selData.captain_id ?? null }
 
           const { data: playerData } = await supabase
             .from('players')
@@ -418,10 +430,11 @@ export default function ResultDetail() {
             .map(id => (playerData ?? []).find((p: Player) => p.id === id))
             .filter((p): p is Player => !!p)
 
-          return [team.id, ordered] as [string, Player[]]
+          return { teamId: team.id, players: ordered, captainId: selData.captain_id ?? null }
         })
       )
-      setTeamPlayers(Object.fromEntries(results))
+      setTeamPlayers(Object.fromEntries(results.map(r => [r.teamId, r.players])))
+      setTeamCaptains(Object.fromEntries(results.map(r => [r.teamId, r.captainId])))
     }
 
     loadPlayers()
@@ -437,6 +450,31 @@ export default function ResultDetail() {
 
   const activeTeams = week.week_teams.filter(t => t.is_active !== false)
 
+  // Build PDF data from loaded players
+  const pdfTeams: PDFTeam[] = activeTeams
+    .filter(team => (teamPlayers[team.id] ?? []).length > 0)
+    .map(team => {
+      const players = teamPlayers[team.id] ?? []
+      const captainId = teamCaptains[team.id] ?? null
+      const pdfPlayers: PDFPlayer[] = players.map((p, idx) => {
+        const shirtNumber = idx + 1
+        return {
+          id:          p.id,
+          shirtNumber,
+          fullName:    p.name,
+          isCaptain:   captainId === p.id,
+          position:    RUGBY_POSITIONS[shirtNumber],
+        }
+      })
+      return {
+        teamName:   team.team_name,
+        players:    pdfPlayers,
+        matchNotes: team.match_report ?? undefined,
+        opponent:   team.opponent ?? undefined,
+        matchDate:  week.label,
+      }
+    })
+
   return (
     <div className="max-w-2xl mx-auto px-4 pb-20">
       {/* Header */}
@@ -448,9 +486,15 @@ export default function ResultDetail() {
         >
           <ChevronLeft size={24} />
         </button>
-        <h1 className="flex-1 text-center text-lg font-semibold text-gray-900 pr-6">
+        <h1 className="flex-1 text-center text-lg font-semibold text-gray-900">
           {week.label}
         </h1>
+        <PDFDownloadButton
+          teams={pdfTeams}
+          brandColor={clubSettings?.primary_color ?? '#1e40af'}
+          clubName={clubSettings?.club_name}
+          fileName={`team-sheet-${week.label.replace(/\s+/g, '-').toLowerCase()}.pdf`}
+        />
       </div>
 
       {activeTeams.length === 0 && (

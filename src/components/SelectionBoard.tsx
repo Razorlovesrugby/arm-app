@@ -29,8 +29,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Week, WeekTeam, Player } from '../lib/supabase'
-import { useSelectionBoard, type SelectionTeam } from '../hooks/useSelectionBoard'
+import { useSelectionBoard, selectionTeamsToPDF, type SelectionTeam } from '../hooks/useSelectionBoard'
+import { useClubSettings } from '../hooks/useClubSettings'
 import PlayerOverlay from './PlayerOverlay'
+import { PDFDownloadButton } from './PDFDownloadLink'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -667,6 +669,8 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     assignPlayer, removePlayer, reorderTeam, setCaptain, saveTeamSettings,
   } = board
 
+  const { clubSettings } = useClubSettings()
+
   // ── Active team state ──────────────────────────────────────────────────────
 
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null)
@@ -814,9 +818,20 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           <span style={{ color: '#6B21A8', fontSize: 14 }}>▾</span>
         </button>
 
-        {/* Right: save badge + gear */}
+        {/* Right: save badge + PDF + gear */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <SaveBadge status={saveStatus} onRetry={() => board.setSaveStatus('idle')} />
+          {teams.length > 0 && (
+            <PDFDownloadButton
+              teams={selectionTeamsToPDF(teams, {
+                matchDate: activeWeek ? formatWeekDate(activeWeek.start_date) : undefined,
+              })}
+              brandColor={clubSettings?.primary_color ?? '#1e40af'}
+              clubName={clubSettings?.club_name}
+              fileName="team-sheet.pdf"
+              dark
+            />
+          )}
           <button
             onClick={() => gearTarget && setTeamMgmtOpen(true)}
             disabled={!gearTarget}

@@ -156,3 +156,25 @@ export const MATCH_EVENT_TYPES: MatchEventType[] = [
   'mvp_3', 'mvp_2', 'mvp_1', 'dotd',
   'yellow_card', 'red_card',
 ]
+
+// ============================================================
+// PDF Types (Phase 13)
+// ============================================================
+
+export interface PDFPlayer {
+  id: string
+  shirtNumber: number
+  fullName: string
+  isCaptain: boolean
+  position?: string
+}
+
+export interface PDFTeam {
+  teamName: string
+  players: PDFPlayer[]
+  matchNotes?: string
+  matchDate?: string
+  opponent?: string
+  venue?: string
+  kickoffTime?: string
+}

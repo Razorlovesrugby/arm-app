@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Player, WeekTeam, TeamSelection, AvailabilityResponse } from '../lib/supabase'
+import type { Player, WeekTeam, TeamSelection, AvailabilityResponse, PDFTeam, PDFPlayer } from '../lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,6 +47,51 @@ export interface UseSelectionBoardReturn {
     teamId: string,
     patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible' | 'is_active'>>
   ) => Promise<boolean>  // true = success, false = failure (stays open, error badge shown)
+}
+
+// ─── Rugby position labels (shirt number → position name) ─────────────────────
+
+const RUGBY_POSITIONS: Record<number, string> = {
+  1: 'Loosehead Prop',   2: 'Hooker',             3: 'Tighthead Prop',
+  4: 'Lock',             5: 'Lock',               6: 'Blindside Flanker',
+  7: 'Openside Flanker', 8: 'Number 8',           9: 'Scrum-half',
+  10: 'Fly-half',        11: 'Left Wing',          12: 'Inside Centre',
+  13: 'Outside Centre',  14: 'Right Wing',         15: 'Fullback',
+}
+
+// ─── PDF data transformer ─────────────────────────────────────────────────────
+
+/**
+ * Transforms SelectionTeam[] (from useSelectionBoard) into PDFTeam[] for TeamSheetPDF.
+ * Shirt numbers are derived from slot position (index + 1).
+ */
+export function selectionTeamsToPDF(
+  teams: SelectionTeam[],
+  options?: { matchDate?: string },
+): PDFTeam[] {
+  return teams.map(team => {
+    const players: PDFPlayer[] = team.players
+      .map((player, idx): PDFPlayer | null => {
+        if (!player) return null
+        const shirtNumber = idx + 1
+        return {
+          id:          player.id,
+          shirtNumber,
+          fullName:    player.name,
+          isCaptain:   team.captainId === player.id,
+          position:    RUGBY_POSITIONS[shirtNumber],
+        }
+      })
+      .filter((p): p is PDFPlayer => p !== null)
+
+    return {
+      teamName:   team.weekTeam.team_name,
+      players,
+      matchNotes: team.weekTeam.match_report ?? undefined,
+      opponent:   team.weekTeam.opponent ?? undefined,
+      matchDate:  options?.matchDate,
+    }
+  })
 }
 
 // ─── Date helper ──────────────────────────────────────────────────────────────
