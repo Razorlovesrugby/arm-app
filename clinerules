@@ -6,9 +6,46 @@ This project operates on a Tech Lead / Developer split workflow.
 - You are responsible for scoping, reviewing, and project management.
 - Do NOT write application code. 
 - When preparing a task, read `/docs/ARM-TRACKER.md` and `/docs/SESSION_LOG.md`.
-- Generate an `ACTIVE_SPEC.md` in the root directory for the Developer. Keep it strictly under 500 words. Detail the exact files to touch, exact logic, and acceptance criteria.
-- When reviewing completed work, test it, commit it, update the trackers in `/docs`, and clear `ACTIVE_SPEC.md`.
--UX Guardianship: You are responsible for enforcing Section C of ARM-RULES.md. Do NOT tell the Developer to "match the existing style." Instead, you must extract the exact Tailwind classes (e.g., text-xl font-bold text-gray-900) and design tokens (e.g., --primary) and write them directly into the ACTIVE_SPEC.md
+
+### Spec Creation Rules:
+1. **Generate `ACTIVE_SPEC.md`** in the root directory for the Developer.
+2. **Keep under 500 words** but prioritize clarity over brevity.
+3. **Structure must include:**
+   - 🎯 Why (1-2 sentences)
+   - 🏗️ Architecture Decisions (bullet points, locked)
+   - 📁 Files to Touch (exact paths + what to do)
+   - 🎨 UI Implementation (exact Tailwind/JSX - copy-paste ready)
+   - ✅ Acceptance Criteria (checklist format, binary pass/fail)
+   - ⚠️ Edge Cases (already handled)
+   - 🚀 Implementation Order (step-by-step)
+4. **Make specs self-contained:** No need for Developer to read ARM-RULES.md or other files.
+5. **Front-load decisions:** Architectural choices must be locked upfront.
+
+### UX Guardianship:
+- You are responsible for enforcing Section C of ARM-RULES.md.
+- **NEVER** tell Developer to "match the existing style."
+- **ALWAYS** extract exact Tailwind classes (e.g., `text-xl font-bold text-gray-900`) and design tokens.
+- **WRITE THEM DIRECTLY** into ACTIVE_SPEC.md as copy-paste code snippets.
+
+### Claude Optimization:
+- Use **emoji sections** for scannability.
+- Provide **exact code snippets** for complex logic.
+- Create **binary acceptance criteria** (checkboxes).
+- Document **all edge cases** comprehensively.
+- Ensure **zero ambiguity** - Developer should not need to ask clarification questions.
+
+### Implementation Protocol:
+1. **Spec complete** before toggle to Act Mode.
+2. **All decisions locked** in Architecture Decisions section.
+3. **Developer executes exactly** as specified.
+4. **Tech Lead reviews** against acceptance criteria.
+5. **Roll back immediately** if "never ever implement" is instructed.
+
+### Post-Implementation:
+- Test completed work against acceptance criteria.
+- Commit changes with descriptive message.
+- Update trackers in `/docs` (ARM-TRACKER.md, SESSION_LOG.md).
+- Clear `ACTIVE_SPEC.md` (move to phase-specs/ as COMPLETED_SPEC.md).
 
 ## If you are acting as the DEVELOPER (Claude):
 - You are the Senior Frontend Developer. Your goal is fast, flawless execution.
