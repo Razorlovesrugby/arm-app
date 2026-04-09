@@ -20,6 +20,8 @@ export interface PlayerEventCounts {
   drop_goal: number
   yellow_card: number
   red_card: number
+  conversionMisses: number
+  penaltyMisses: number
 }
 
 export function useMatchEvents() {
@@ -49,6 +51,7 @@ export function useMatchEvents() {
     const SCORING_POINTS: Record<string, number> = {
       try: 5, conversion: 2, penalty: 3, drop_goal: 3,
       yellow_card: 0, red_card: 0,
+      'Conversion Miss': 0, 'Penalty Miss': 0,
     }
 
     // Delete all scoring events for this team (not awards — handled separately)
@@ -57,23 +60,29 @@ export function useMatchEvents() {
       .delete()
       .eq('week_id', weekId)
       .eq('week_team_id', weekTeamId)
-      .in('event_type', ['try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card'])
+      .in('event_type', ['try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card', 'Conversion Miss', 'Penalty Miss'])
 
     // Build insert rows — one row per occurrence
     const rows: Omit<MatchEvent, 'id' | 'created_at'>[] = []
     for (const p of playerCounts) {
       const types: (keyof Omit<PlayerEventCounts, 'playerId'>)[] = [
         'try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card',
+        'conversionMisses', 'penaltyMisses',
       ]
       for (const t of types) {
         const count = p[t]
+        const eventType = (
+          t === 'conversionMisses' ? 'Conversion Miss' :
+          t === 'penaltyMisses'    ? 'Penalty Miss'    :
+          t
+        ) as MatchEventType
         for (let i = 0; i < count; i++) {
           rows.push({
             week_id:      weekId,
             week_team_id: weekTeamId,
             player_id:    p.playerId,
-            event_type:   t as MatchEventType,
-            points:       SCORING_POINTS[t] ?? 0,
+            event_type:   eventType,
+            points:       SCORING_POINTS[eventType] ?? 0,
           })
         }
       }
@@ -136,12 +145,14 @@ export function useMatchEvents() {
       const count = (t: MatchEventType) => pEvents.filter(e => e.event_type === t).length
       return {
         playerId,
-        try:         count('try'),
-        conversion:  count('conversion'),
-        penalty:     count('penalty'),
-        drop_goal:   count('drop_goal'),
-        yellow_card: count('yellow_card'),
-        red_card:    count('red_card'),
+        try:              count('try'),
+        conversion:       count('conversion'),
+        penalty:          count('penalty'),
+        drop_goal:        count('drop_goal'),
+        yellow_card:      count('yellow_card'),
+        red_card:         count('red_card'),
+        conversionMisses: count('Conversion Miss'),
+        penaltyMisses:    count('Penalty Miss'),
       }
     })
   }

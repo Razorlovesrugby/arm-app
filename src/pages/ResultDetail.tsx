@@ -83,7 +83,7 @@ function MatchEventsSheet({
         <div className="overflow-y-auto overscroll-contain flex-1">
           {players.map(player => {
             const isExpanded = expandedId === player.id
-            const hasEvents = (['try','conversion','penalty','drop_goal','yellow_card','red_card'] as const)
+            const hasEvents = (['try','conversion','penalty','drop_goal','yellow_card','red_card','conversionMisses','penaltyMisses'] as const)
               .some(f => getCount(player.id, f) > 0)
             return (
               <div key={player.id} className="border-b border-gray-100">
@@ -94,7 +94,7 @@ function MatchEventsSheet({
                   <div>
                     <span className="text-sm font-semibold text-gray-900">{player.name}</span>
                     {hasEvents && (
-                      <span className="ml-2 text-xs text-purple-700 font-medium">● events</span>
+                      <span className="ml-2 text-xs text-purple-700 font-medium">●</span>
                     )}
                   </div>
                   <span className="text-gray-400 text-sm">{isExpanded ? '▲' : '▼'}</span>
@@ -103,8 +103,91 @@ function MatchEventsSheet({
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-3">
                     <Stepper label="Tries"        value={getCount(player.id, 'try')}         onChange={v => updateCount(player.id, 'try', v)} />
-                    <Stepper label="Conversions"  value={getCount(player.id, 'conversion')}  onChange={v => updateCount(player.id, 'conversion', v)} />
-                    <Stepper label="Penalties"    value={getCount(player.id, 'penalty')}     onChange={v => updateCount(player.id, 'penalty', v)} />
+
+                    {/* Conversions - Made vs Attempted */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-gray-700">Conversions</div>
+                      <div className="flex gap-3">
+                        {/* MADE */}
+                        <div className="flex-1 flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                          <span className="text-xs text-gray-600">Made</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => updateCount(player.id, 'conversion', Math.max(0, getCount(player.id, 'conversion') - 1))}
+                            >−</button>
+                            <span className="w-6 text-center font-medium">{getCount(player.id, 'conversion')}</span>
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => updateCount(player.id, 'conversion', getCount(player.id, 'conversion') + 1)}
+                            >+</button>
+                          </div>
+                        </div>
+                        {/* ATTEMPTED */}
+                        <div className="flex-1 flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                          <span className="text-xs text-gray-600">Attempted</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => {
+                                const misses = getCount(player.id, 'conversionMisses')
+                                if (misses > 0) updateCount(player.id, 'conversionMisses', misses - 1)
+                              }}
+                            >−</button>
+                            <span className="w-6 text-center font-medium">
+                              {getCount(player.id, 'conversion') + getCount(player.id, 'conversionMisses')}
+                            </span>
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => updateCount(player.id, 'conversionMisses', getCount(player.id, 'conversionMisses') + 1)}
+                            >+</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Penalties - Made vs Attempted */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-gray-700">Penalties</div>
+                      <div className="flex gap-3">
+                        {/* MADE */}
+                        <div className="flex-1 flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                          <span className="text-xs text-gray-600">Made</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => updateCount(player.id, 'penalty', Math.max(0, getCount(player.id, 'penalty') - 1))}
+                            >−</button>
+                            <span className="w-6 text-center font-medium">{getCount(player.id, 'penalty')}</span>
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => updateCount(player.id, 'penalty', getCount(player.id, 'penalty') + 1)}
+                            >+</button>
+                          </div>
+                        </div>
+                        {/* ATTEMPTED */}
+                        <div className="flex-1 flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                          <span className="text-xs text-gray-600">Attempted</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => {
+                                const misses = getCount(player.id, 'penaltyMisses')
+                                if (misses > 0) updateCount(player.id, 'penaltyMisses', misses - 1)
+                              }}
+                            >−</button>
+                            <span className="w-6 text-center font-medium">
+                              {getCount(player.id, 'penalty') + getCount(player.id, 'penaltyMisses')}
+                            </span>
+                            <button
+                              className="w-6 h-6 rounded-full bg-gray-100 text-gray-700 font-bold text-sm flex items-center justify-center"
+                              onClick={() => updateCount(player.id, 'penaltyMisses', getCount(player.id, 'penaltyMisses') + 1)}
+                            >+</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <Stepper label="Drop Goals"   value={getCount(player.id, 'drop_goal')}   onChange={v => updateCount(player.id, 'drop_goal', v)} />
                     <Stepper label="Yellow Cards" value={getCount(player.id, 'yellow_card')} onChange={v => updateCount(player.id, 'yellow_card', v)} />
                     <Stepper label="Red Cards"    value={getCount(player.id, 'red_card')}    onChange={v => updateCount(player.id, 'red_card', v)} />

@@ -129,6 +129,7 @@ export type MatchEventType =
   | 'try' | 'conversion' | 'penalty' | 'drop_goal'
   | 'mvp_3' | 'mvp_2' | 'mvp_1' | 'dotd'
   | 'yellow_card' | 'red_card'
+  | 'Conversion Miss' | 'Penalty Miss'
 
 export interface ClubSettings {
   id: string
@@ -155,6 +156,7 @@ export const MATCH_EVENT_TYPES: MatchEventType[] = [
   'try', 'conversion', 'penalty', 'drop_goal',
   'mvp_3', 'mvp_2', 'mvp_1', 'dotd',
   'yellow_card', 'red_card',
+  'Conversion Miss', 'Penalty Miss',
 ]
 
 // ============================================================
