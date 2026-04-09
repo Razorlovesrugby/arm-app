@@ -1,0 +1,201 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red173\green176\blue178;\red15\green16\blue16;}
+{\*\expandedcolortbl;;\cssrgb\c73333\c74510\c74902;\cssrgb\c7059\c7451\c7843;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs24 \cf2 \cb3 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 # ACTIVE SPEC: Phase 14.1 \'97 Native App Shell Layout Refactor\cb1 \
+\
+\cb3 ## Overview\cb1 \
+\cb3 **Phase:** 14.1 \'97 Layout / UX Enhancement  \cb1 \
+\cb3 **Priority:** High  \cb1 \
+\cb3 **Target:** Transition the ARM sports management app from a "document-style" scrolling layout to a "Native App Shell" feel  \cb1 \
+\cb3 **Status:** Ready for Implementation  \cb1 \
+\cb3 **Previous Phase:** 13 Complete (PDF Export Feature)\cb1 \
+\
+\cb3 **Use this template to generate feature specifications that follow the strict Tech Lead/Developer workflow defined in `.clinerules`.**\cb1 \
+\
+\cb3 ## When to Use This Template\cb1 \
+\cb3 - For any new feature or significant enhancement\cb1 \
+\cb3 - When you need to create an `ACTIVE_SPEC.md` for the Developer (Claude)\cb1 \
+\cb3 - Before handing any task to the Developer for implementation\cb1 \
+\
+\cb3 ## How to Use This Template\cb1 \
+\cb3 1. Fill in all bracketed `[ ]` sections with specific details\cb1 \
+\cb3 2. Keep the total spec under 500 words (prioritize clarity over brevity)\cb1 \
+\cb3 3. Ensure all architectural decisions are locked upfront\cb1 \
+\cb3 4. Provide exact code snippets for UI implementation\cb1 \
+\cb3 5. Make the spec self-contained - Developer should not need to read other docs\cb1 \
+\
+\cb3 ---\cb1 \
+\
+\cb3 ## \uc0\u55356 \u57263  Why (1-2 sentences)\cb1 \
+\cb3 Transition the ARM sports management app from a "document-style" scrolling layout to a "Native App Shell" feel where specific containers scroll internally while the viewport remains fixed. This improves mobile UX by preventing scroll-chaining, ensuring sticky headers work correctly, and creating a more native app experience.\cb1 \
+\
+\cb3 ## \uc0\u55356 \u57303 \u65039  Architecture Decisions (Locked)\cb1 \
+\cb3 1. **Fixed Viewport Strategy** - Use `100dvh` (dynamic viewport height) instead of `100vh` to handle mobile Safari address bar\cb1 \
+\cb3 2. **Internal Scroll Containers** - Main content areas (Roster, Master Grid, Starters) must use `overflow-y: auto` with `overscroll-behavior: contain`\cb1 \
+\cb3 3. **Sticky Headers** - Master Availability Grid headers must remain `position: sticky` with proper z-index stacking\cb1 \
+\cb3 4. **Tailwind CSS Implementation** - Convert inline styles to Tailwind CSS classes for consistency\cb1 \
+\cb3 5. **Mobile-First Approach** - All solutions must work on iOS Safari with address bar and Android Chrome\cb1 \
+\cb3 6. **No Breaking Changes** - Maintain existing functionality while improving layout structure\cb1 \
+\
+\cb3 ## \uc0\u55357 \u56513  Files to Touch (Exact paths + what to do)\cb1 \
+\
+\cb3 ### Updated Files:\cb1 \
+\cb3 1. **`src/components/Layout.tsx`** - Refactor to use fixed viewport with `100dvh` and proper scroll container structure\cb1 \
+\cb3 2. **`src/pages/Grid.tsx`** - Enhance sticky table headers with proper Tailwind CSS and ensure they work within the new scroll container\cb1 \
+\cb3 3. **`src/pages/Roster.tsx`** - Convert inline styles to Tailwind CSS and ensure proper scroll container behavior\cb1 \
+\cb3 4. **`src/index.css`** - Add global CSS utilities for scroll behavior and viewport handling if needed\cb1 \
+\cb3 5. **`src/pages/Board.tsx`** - Ensure Selection Board works within new scroll container structure\cb1 \
+\cb3 6. **`src/pages/DepthChart.tsx`** - Ensure Depth Chart works within new scroll container structure\cb1 \
+\
+\cb3 ### Integration Points:\cb1 \
+\cb3 7. **All page components** - Must work within the new Layout container structure without breaking existing functionality\cb1 \
+\cb3 8. **Modal/dialog components** - Must prevent scroll-chaining when open (overscroll-behavior)\cb1 \
+\
+\cb3 ## \uc0\u55356 \u57256  UI Implementation (Exact Tailwind/JSX - copy-paste ready)\cb1 \
+\
+\cb3 ### Layout.tsx Refactor:\cb1 \
+\cb3 ```tsx\cb1 \
+\cb3 // src/components/Layout.tsx - Updated structure\cb1 \
+\cb3 export default function Layout() \{\cb1 \
+\cb3   const [sidebarOpen, setSidebarOpen] = useState(false)\cb1 \
+\cb3   const \{ clubSettings \} = useClubSettings()\cb1 \
+\
+\cb3   return (\cb1 \
+\cb3     <div className="flex flex-col h-[100dvh] bg-gray-50">\cb1 \
+\cb3       \{/* Sidebar (handles its own overlay on mobile) */\}\cb1 \
+\cb3       <Sidebar isOpen=\{sidebarOpen\} onClose=\{() => setSidebarOpen(false)\} />\cb1 \
+\
+\cb3       \{/* Main content */\}\cb1 \
+\cb3       <div className="flex-1 flex flex-col overflow-hidden">\cb1 \
+\cb3         \{/* Mobile header */\}\cb1 \
+\cb3         <header\cb1 \
+\cb3           className="md:hidden flex items-center justify-between px-4 bg-white border-b border-gray-200 flex-shrink-0"\cb1 \
+\cb3           style=\{\{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(env(safe-area-inset-top) + 56px)' \}\}\cb1 \
+\cb3         >\cb1 \
+\cb3           <button\cb1 \
+\cb3             onClick=\{() => setSidebarOpen(true)\}\cb1 \
+\cb3             className="relative z-40 p-2 rounded-lg hover:bg-gray-100 transition-colors"\cb1 \
+\cb3             aria-label="Open menu"\cb1 \
+\cb3           >\cb1 \
+\cb3             <Menu size=\{24\} className="text-gray-700" />\cb1 \
+\cb3           </button>\cb1 \
+\cb3           <div className="text-lg font-semibold text-gray-900">\cb1 \
+\cb3             \{clubSettings?.club_name || 'ARM'\}\cb1 \
+\cb3           </div>\cb1 \
+\cb3           <div className="w-10" />\cb1 \
+\cb3         </header>\cb1 \
+\
+\cb3         \{/* Page content - THIS IS THE KEY SCROLL CONTAINER */\}\cb1 \
+\cb3         <main className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">\cb1 \
+\cb3           <Outlet />\cb1 \
+\cb3         </main>\cb1 \
+\cb3       </div>\cb1 \
+\cb3     </div>\cb1 \
+\cb3   )\cb1 \
+\cb3 \}\cb1 \
+\cb3 ```\cb1 \
+\
+\cb3 ### Grid.tsx Table Header Enhancement:\cb1 \
+\cb3 ```tsx\cb1 \
+\cb3 // src/pages/Grid.tsx - Enhanced sticky headers\cb1 \
+\cb3 <th style=\{\{\cb1 \
+\cb3   position: 'sticky', \cb1 \
+\cb3   top: 0, \cb1 \
+\cb3   left: 0, \cb1 \
+\cb3   zIndex: 30,\cb1 \
+\cb3   background: '#FFFFFF',\cb1 \
+\cb3   borderRight: '1px solid #E5E7EB',\cb1 \
+\cb3   borderBottom: '2px solid #E5E7EB',\cb1 \
+\cb3   padding: '10px 14px',\cb1 \
+\cb3   minWidth: 140,\cb1 \
+\cb3   textAlign: 'left',\cb1 \
+\cb3   backdropFilter: 'blur(8px)', // Optional: improves visual appearance\cb1 \
+\cb3   WebkitBackdropFilter: 'blur(8px)',\cb1 \
+\cb3 \}\}>\cb1 \
+\cb3   <span className="text-sm font-semibold text-gray-700">Player</span>\cb1 \
+\cb3 </th>\cb1 \
+\cb3 ```\cb1 \
+\
+\cb3 ## \uc0\u9989  Acceptance Criteria (Checklist format, binary pass/fail)\cb1 \
+\
+\cb3 ### Core Layout Functionality\cb1 \
+\cb3 - [ ] Viewport is fixed at `100dvh` - app frame never grows beyond screen height\cb1 \
+\cb3 - [ ] Main content area scrolls internally with `overflow-y: auto`\cb1 \
+\cb3 - [ ] `overscroll-behavior: contain` prevents scroll-chaining to parent/body\cb1 \
+\cb3 - [ ] Mobile Safari address bar doesn't cause layout jumps or white space\cb1 \
+\
+\cb3 ### Sticky Headers\cb1 \
+\cb3 - [ ] Master Availability Grid headers remain sticky while scrolling player names\cb1 \
+\cb3 - [ ] Sticky headers have proper z-index stacking (headers above content)\cb1 \
+\cb3 - [ ] Headers maintain background color/opacity when scrolled\cb1 \
+\cb3 - [ ] Horizontal scrolling works correctly with sticky left column\cb1 \
+\
+\cb3 ### Mobile UX\cb1 \
+\cb3 - [ ] No scroll-chaining when modals (Edit Player) are open\cb1 \
+\cb3 - [ ] Safe area insets respected on iOS (notch/home indicator)\cb1 \
+\cb3 - [ ] Touch scrolling feels native with momentum and rubber-banding\cb1 \
+\cb3 - [ ] Address bar hide/show doesn't break layout\cb1 \
+\
+\cb3 ### Integration\cb1 \
+\cb3 - [ ] All existing pages (Roster, Grid, Board, DepthChart) work without regression\cb1 \
+\cb3 - [ ] Sidebar navigation functions correctly\cb1 \
+\cb3 - [ ] Modal/dialog components open without scroll issues\cb1 \
+\cb3 - [ ] Performance: No layout thrashing or jank during scrolling\cb1 \
+\
+\cb3 ## \uc0\u9888 \u65039  Edge Cases (Already Handled)\cb1 \
+\cb3 1. **Mobile Safari 100vh bug** - Using `100dvh` instead of `100vh` handles dynamic viewport\cb1 \
+\cb3 2. **Scroll-chaining prevention** - `overscroll-behavior: contain` on scroll containers\cb1 \
+\cb3 3. **Z-index conflicts** - Proper stacking context for sticky headers vs modals\cb1 \
+\cb3 4. **Safe area insets** - Already implemented in Layout.tsx for iOS notch\cb1 \
+\cb3 5. **Browser support** - Fallbacks for browsers that don't support `100dvh` or `overscroll-behavior`\cb1 \
+\
+\cb3 ## \uc0\u55357 \u56960  Implementation Order (Step-by-Step)\cb1 \
+\
+\cb3 ### Step 1: Update Layout.tsx with fixed viewport\cb1 \
+\cb3 ```bash\cb1 \
+\cb3 # Modify src/components/Layout.tsx to use h-[100dvh] and overscroll-contain\cb1 \
+\cb3 ```\cb1 \
+\
+\cb3 ### Step 2: Convert Grid.tsx inline styles to Tailwind where possible\cb1 \
+\cb3 ```bash\cb1 \
+\cb3 # Enhance sticky headers in src/pages/Grid.tsx with proper CSS\cb1 \
+\cb3 ```\cb1 \
+\
+\cb3 ### Step 3: Update Roster.tsx scroll container\cb1 \
+\cb3 ```bash\cb1 \
+\cb3 # Ensure Roster page works within new scroll container structure\cb1 \
+\cb3 ```\cb1 \
+\
+\cb3 ### Step 4: Test all pages for regression\cb1 \
+\cb3 ```bash\cb1 \
+\cb3 # Test Roster, Grid, Board, DepthChart, Weeks, Results pages\cb1 \
+\cb3 ```\cb1 \
+\
+\cb3 ### Step 5: Mobile testing\cb1 \
+\cb3 ```bash\cb1 \
+\cb3 # Test on iOS Safari and Android Chrome for mobile-specific issues\cb1 \
+\cb3 ```\cb1 \
+\
+\cb3 ---\cb1 \
+\
+\cb3 ## \uc0\u55357 \u56541  Notes for Tech Lead (Not for Developer)\cb1 \
+\cb3 - **Reference Documents:** `/.docs/architecture.md`, `/.docs/ARM-TRACKER.md`, `src/index.css`\cb1 \
+\cb3 - **UX Consistency:** Follow existing color scheme and spacing from architecture.md\cb1 \
+\cb3 - **Database Impact:** No database changes required - pure frontend layout refactor\cb1 \
+\cb3 - **Session Log Entry:** Update SESSION_LOG.md after completion with "Native App Shell Layout Refactor"\cb1 \
+\
+\cb3 ## \uc0\u55357 \u57000  Post-Implementation Documentation (Tech Lead Responsibility)\cb1 \
+\cb3 After Developer completes implementation, Tech Lead MUST:\cb1 \
+\
+\cb3 1. **Update `/.docs/SESSION_LOG.md`** with new entry using exact format\cb1 \
+\cb3 2. **Update `/.docs/ARM-TRACKER.md`** - move task to "Done" section  \cb1 \
+\cb3 3. **Update `/.docs/architecture.md`** with new layout patterns if established\cb1 \
+\cb3 4. **Update `/.docs/database_schema.md`** - no changes needed\cb1 \
+\cb3 5. **Move `ACTIVE_SPEC.md` to `/.docs/phase-specs/`** as `Native_App_Shell_Layout_COMPLETED_SPEC.md`\cb1 \
+}

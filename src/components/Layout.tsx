@@ -12,7 +12,7 @@ export default function Layout() {
   const { clubSettings } = useClubSettings()
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-[100dvh] bg-gray-50">
       {/* Sidebar (handles its own overlay on mobile) */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -37,7 +37,7 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">
           <Outlet />
         </main>
       </div>

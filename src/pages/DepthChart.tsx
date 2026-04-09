@@ -296,6 +296,7 @@ export default function DepthChart() {
       <div style={{
         overflowX: 'auto',
         overflowY: 'visible',
+        overscrollBehavior: 'contain',
         padding: '16px',
         display: 'flex',
         gap: '10px',

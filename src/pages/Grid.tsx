@@ -220,7 +220,7 @@ export default function Grid() {
       </div>
 
       {/* Scrollable table container */}
-      <div style={{ flex: 1, overflow: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
+      <div style={{ flex: 1, overflow: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' as any }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'auto' }}>
           <thead>
             <tr>
@@ -233,6 +233,8 @@ export default function Grid() {
                 padding: '10px 14px',
                 minWidth: 140,
                 textAlign: 'left',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Player</span>
               </th>

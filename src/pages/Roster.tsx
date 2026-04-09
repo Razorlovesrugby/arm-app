@@ -314,7 +314,7 @@ export default function Roster() {
       )}
 
       {/* ── Main content ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px 16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: '8px 16px 16px' }}>
 
         {loading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
