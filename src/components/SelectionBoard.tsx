@@ -29,8 +29,10 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Week, WeekTeam, Player } from '../lib/supabase'
-import { useSelectionBoard, type SelectionTeam } from '../hooks/useSelectionBoard'
+import { useSelectionBoard, selectionTeamsToPDF, type SelectionTeam } from '../hooks/useSelectionBoard'
+import { useClubSettings } from '../hooks/useClubSettings'
 import PlayerOverlay from './PlayerOverlay'
+import { PDFDownloadButton } from './PDFDownloadLink'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -289,6 +291,11 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
   const [activeFilter, setActiveFilter] = useState<PoolFilter>('All')
   const FILTERS: PoolFilter[] = ['All', 'Available', 'TBC', 'Forward', 'Back']
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const filtered = unassigned.filter(p => {
     const av  = availabilityMap[p.id]?.availability
     const pos = p.primary_position ?? ''
@@ -320,7 +327,7 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
           ))}
         </div>
 
-        <div style={{ overflowY: 'auto', flex: 1 }}>
+        <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', flex: 1 }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 16px', fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
               {unassigned.length === 0 ? 'All players assigned' : 'No players match this filter'}
@@ -371,6 +378,11 @@ interface TeamManagementSheetProps {
 function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManagementSheetProps) {
   const [name,     setName]     = useState(team.team_name)
   const [starters, setStarters] = useState(team.starters_count ?? 15)
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
   const [visible,  setVisible]  = useState(team.visible)
   const [isActive, setIsActive] = useState(team.is_active ?? true)
   const [saving,   setSaving]   = useState(false)
@@ -516,6 +528,11 @@ function WeekPickerSheet({ weeks, activeWeekId, onSelect, onClose }: WeekPickerS
     new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
   )
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
@@ -531,7 +548,7 @@ function WeekPickerSheet({ weeks, activeWeekId, onSelect, onClose }: WeekPickerS
         </div>
 
         {/* Week list */}
-        <div style={{ overflowY: 'auto', flex: 1 }}>
+        <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', flex: 1 }}>
           {sorted.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px 16px', fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
               No weeks yet. Create one in the Weeks screen.
@@ -651,6 +668,8 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     loading, error, saveStatus,
     assignPlayer, removePlayer, reorderTeam, setCaptain, saveTeamSettings,
   } = board
+
+  const { clubSettings } = useClubSettings()
 
   // ── Active team state ──────────────────────────────────────────────────────
 
@@ -799,9 +818,20 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           <span style={{ color: '#6B21A8', fontSize: 14 }}>▾</span>
         </button>
 
-        {/* Right: save badge + gear */}
+        {/* Right: save badge + PDF + gear */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <SaveBadge status={saveStatus} onRetry={() => board.setSaveStatus('idle')} />
+          {teams.length > 0 && (
+            <PDFDownloadButton
+              teams={selectionTeamsToPDF(teams, {
+                matchDate: activeWeek ? formatWeekDate(activeWeek.start_date) : undefined,
+              })}
+              brandColor={clubSettings?.primary_color ?? '#1e40af'}
+              clubName={clubSettings?.club_name}
+              fileName="team-sheet.pdf"
+              dark
+            />
+          )}
           <button
             onClick={() => gearTarget && setTeamMgmtOpen(true)}
             disabled={!gearTarget}

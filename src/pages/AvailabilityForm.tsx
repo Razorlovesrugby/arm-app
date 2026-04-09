@@ -1,10 +1,11 @@
 import { useEffect, useState, FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import {
-  supabase, Week, Position, Availability,
+  supabase, Week, Position, Availability, ClubSettings,
   POSITIONS, normalisePhone,
 } from '../lib/supabase'
 import { useClubSettings } from '../hooks/useClubSettings'
+import { getContrastColor } from '../lib/colorUtils'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ const AVAILABILITY_OPTIONS: {
 
 export default function AvailabilityForm() {
   const { token } = useParams<{ token: string }>()
+  const { clubSettings } = useClubSettings()
 
   // Token / week resolution state
   const [week, setWeek] = useState<Week | null>(null)
@@ -221,11 +223,15 @@ export default function AvailabilityForm() {
     }
   }
 
+  const brandColor = clubSettings?.primary_color || '#6B21A8'
+  const contrastClass = getContrastColor(brandColor)
+  const btnTextColor = contrastClass === 'text-white' ? '#FFFFFF' : '#111827'
+
   // ── Render: loading ───────────────────────────────────────
   if (tokenState === 'loading') {
     return (
       <Shell>
-        <Logo />
+        <Logo clubSettings={clubSettings} />
         <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
           <div style={spinnerStyle} />
           <style>{spinnerCSS}</style>
@@ -238,7 +244,7 @@ export default function AvailabilityForm() {
   if (tokenState === 'invalid') {
     return (
       <Shell>
-        <Logo />
+        <Logo clubSettings={clubSettings} />
         <div style={cardStyle}>
           <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔗</div>
           <h2 style={headingStyle}>Link not found</h2>
@@ -254,7 +260,7 @@ export default function AvailabilityForm() {
   if (tokenState === 'closed') {
     return (
       <Shell>
-        <Logo />
+        <Logo clubSettings={clubSettings} />
         <div style={cardStyle}>
           <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔒</div>
           <h2 style={headingStyle}>Submissions closed</h2>
@@ -271,7 +277,7 @@ export default function AvailabilityForm() {
     const availabilityLabel = AVAILABILITY_OPTIONS.find(o => o.value === form.availability)
     return (
       <Shell>
-        <Logo />
+        <Logo clubSettings={clubSettings} />
         <div style={cardStyle}>
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
           <h2 style={headingStyle}>Thanks, {form.name.split(' ')[0]}!</h2>
@@ -298,7 +304,7 @@ export default function AvailabilityForm() {
     <Shell>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <Logo />
+        <Logo clubSettings={clubSettings} />
         <h1 style={{
           fontSize: '20px', fontWeight: '700', color: '#111827',
           margin: '0 0 4px', letterSpacing: '-0.3px',
@@ -309,6 +315,24 @@ export default function AvailabilityForm() {
           {week?.label}
         </p>
       </div>
+
+      {/* Game Notes info box */}
+      {week?.notes && (
+        <div style={{
+          background: '#F0F9FF',
+          border: '1px solid #BAE6FD',
+          borderRadius: '10px',
+          padding: '12px 14px',
+          marginBottom: '20px',
+        }}>
+          <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: '600', color: '#0369A1' }}>
+            Game Info
+          </p>
+          <p style={{ margin: 0, fontSize: '14px', color: '#0369A1', lineHeight: '1.5' }}>
+            {week.notes}
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
@@ -464,8 +488,8 @@ export default function AvailabilityForm() {
           style={{
             width: '100%',
             minHeight: '52px',
-            background: submitting ? '#9333EA' : '#6B21A8',
-            color: '#FFFFFF',
+            backgroundColor: brandColor,
+            color: btnTextColor,
             border: 'none',
             borderRadius: '12px',
             fontSize: '16px',
@@ -502,22 +526,27 @@ function Shell({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Logo() {
-  const { clubSettings, loading: clubLoading } = useClubSettings()
-  
+function Logo({ clubSettings }: { clubSettings: ClubSettings | null }) {
+  const [logoError, setLogoError] = useState(false)
+  const showClubLogo = clubSettings?.logo_url && !logoError
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', flexDirection: 'column', alignItems: 'center' }}>
-      <img 
-        src="/icons/Logo.png" 
-        alt="ARM Logo" 
-        style={{ 
-          maxHeight: '52px', 
-          width: 'auto', 
-          objectFit: 'contain',
-          marginBottom: '8px',
-        }} 
-      />
-      {!clubLoading && clubSettings?.club_name && (
+      {showClubLogo ? (
+        <img
+          src={clubSettings!.logo_url!}
+          alt={clubSettings?.club_name || 'Club Logo'}
+          style={{ maxHeight: '52px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }}
+          onError={() => setLogoError(true)}
+        />
+      ) : (
+        <img
+          src="/icons/Logo.png"
+          alt="ARM Logo"
+          style={{ maxHeight: '52px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }}
+        />
+      )}
+      {clubSettings?.club_name && (
         <div style={{ fontSize: '14px', color: '#6B7280', fontWeight: '500' }}>
           {clubSettings.club_name}
         </div>

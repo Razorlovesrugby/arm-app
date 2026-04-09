@@ -29,7 +29,7 @@ export function usePlayers(options?: UsePlayersOptions): UsePlayersResult {
     
     // Apply filters at database level for efficiency
     if (excludeRetired) {
-      query = query.eq('is_retired', false)
+      query = query.neq('status', 'Retired')
     }
     if (excludeArchived) {
       query = query.neq('status', 'Archived')

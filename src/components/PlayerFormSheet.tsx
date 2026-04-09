@@ -4,6 +4,7 @@ import {
   supabase, Player, Position, PlayerType, PlayerStatus,
   POSITIONS, PLAYER_TYPES, PLAYER_STATUSES, normalisePhone,
 } from '../lib/supabase'
+import { usePlayerDetails, PlayerStats } from '../hooks/usePlayerDetails'
 
 interface Props {
   player: Player | null   // null = add mode
@@ -22,6 +23,8 @@ interface FormState {
   status: PlayerStatus
   subscription_paid: boolean
   notes: string
+  historical_caps: number
+  court_fines: string
 }
 
 const EMPTY: FormState = {
@@ -35,6 +38,8 @@ const EMPTY: FormState = {
   status: 'Active',
   subscription_paid: false,
   notes: '',
+  historical_caps: 0,
+  court_fines: '',
 }
 
 export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
@@ -42,6 +47,17 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
+
+  const { fetchPlayerStats } = usePlayerDetails()
+  const [stats, setStats] = useState<PlayerStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [statsError, setStatsError] = useState<string | null>(null)
+
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
 
   // Populate form when editing
   useEffect(() => {
@@ -57,11 +73,22 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
         status: player.status,
         subscription_paid: player.subscription_paid,
         notes: player.notes ?? '',
+        historical_caps: player.historical_caps ?? 0,
+        court_fines: player.court_fines ?? '',
       })
+      // Load career stats lazily
+      setStats(null)
+      setStatsLoading(true)
+      setStatsError(null)
+      fetchPlayerStats(player.id)
+        .then(s => setStats(s))
+        .catch((e: unknown) => setStatsError(e instanceof Error ? e.message : 'Failed to load stats'))
+        .finally(() => setStatsLoading(false))
     } else {
       setForm(EMPTY)
+      setStats(null)
     }
-  }, [player])
+  }, [player, fetchPlayerStats])
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm(f => ({ ...f, [key]: value }))
@@ -107,6 +134,8 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
       status:              form.status,
       subscription_paid:   form.subscription_paid,
       notes:               form.notes.trim() || null,
+      historical_caps:     form.historical_caps,
+      court_fines:         form.court_fines.trim() || null,
     }
 
     let err
@@ -149,6 +178,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
         borderTopRightRadius: '20px',
         maxHeight: '92dvh',
         overflowY: 'auto',
+        overscrollBehavior: 'contain',
         // Tablet+: centred modal
         // (override via media query below)
       }}
@@ -324,6 +354,85 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
             />
           </Field>
 
+          {/* ── CRM section (edit mode only) ── */}
+          {isEdit && (
+            <>
+              <div style={{ height: '1px', background: '#E5E7EB', margin: '8px 0 20px' }} />
+
+              {/* Career Stats */}
+              <p style={{ margin: '0 0 12px', fontSize: '11px', fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Career Stats
+              </p>
+
+              {statsLoading && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+                  <div style={{
+                    width: 24, height: 24,
+                    border: '3px solid #E5E7EB',
+                    borderTopColor: '#6B21A8',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+              )}
+
+              {!statsLoading && statsError && (
+                <p style={{ fontSize: '13px', color: '#92400E', background: '#FEF3C7', borderRadius: '8px', padding: '8px 12px', margin: '0 0 16px' }}>
+                  Could not load stats: {statsError}
+                </p>
+              )}
+
+              {!statsLoading && !statsError && stats && Object.values(stats).every(v => v === 0) && (
+                <p style={{ fontSize: '13px', fontStyle: 'italic', color: '#9CA3AF', textAlign: 'center', padding: '12px 0 20px', margin: 0 }}>
+                  No match events recorded
+                </p>
+              )}
+
+              {!statsLoading && !statsError && stats && !Object.values(stats).every(v => v === 0) && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '20px' }}>
+                  {stats.tries > 0       && <StatCard value={stats.tries}       label="Tries" />}
+                  {stats.conversions > 0 && <StatCard value={stats.conversions} label="Conversions" />}
+                  {stats.penalties > 0   && <StatCard value={stats.penalties}   label="Penalties" />}
+                  {stats.dropGoals > 0   && <StatCard value={stats.dropGoals}   label="Drop Goals" />}
+                  {stats.yellowCards > 0 && <StatCard value={stats.yellowCards} label="Yellow Cards" />}
+                  {stats.redCards > 0    && <StatCard value={stats.redCards}    label="Red Cards" />}
+                  {stats.dotd > 0        && <StatCard value={stats.dotd}        label="DOTD" />}
+                  {stats.mvpPoints > 0   && <StatCard value={stats.mvpPoints}   label="MVP Points" />}
+                </div>
+              )}
+
+              {/* Total Caps */}
+              <Field label="Total Caps">
+                <input
+                  type="number"
+                  min={0}
+                  value={form.historical_caps}
+                  onChange={e => set('historical_caps', parseInt(e.target.value) || 0)}
+                  style={inputStyle(false)}
+                />
+                <span style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '3px', display: 'block' }}>
+                  Manual override of auto-calculated caps
+                </span>
+              </Field>
+
+              {/* Court Fines */}
+              <Field label="Court Fines">
+                <textarea
+                  value={form.court_fines}
+                  onChange={e => set('court_fines', e.target.value)}
+                  maxLength={1000}
+                  placeholder="Record any court fines or notes…"
+                  rows={3}
+                  style={{ ...inputStyle(false), resize: 'vertical' }}
+                />
+                <div style={{ fontSize: '12px', color: '#9CA3AF', textAlign: 'right', marginTop: '2px' }}>
+                  {form.court_fines.length}/1000
+                </div>
+              </Field>
+            </>
+          )}
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', marginTop: '8px', paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <button
@@ -392,6 +501,20 @@ function Field({
       </label>
       {children}
       {error && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{error}</p>}
+    </div>
+  )
+}
+
+function StatCard({ value, label }: { value: number; label: string }) {
+  return (
+    <div style={{
+      background: '#F9FAFB',
+      borderRadius: '10px',
+      padding: '12px',
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827' }}>{value}</div>
+      <div style={{ fontSize: '11px', fontWeight: '500', color: '#6B7280', marginTop: '2px' }}>{label}</div>
     </div>
   )
 }

@@ -58,6 +58,7 @@ export interface Week {
   label: string
   status: WeekStatus
   availability_link_token: string
+  notes: string | null
   created_at: string
 }
 
@@ -72,6 +73,7 @@ export interface WeekTeam {
   score_for: number | null
   score_against: number | null
   match_report: string | null
+  opponent: string | null
 }
 
 export interface AvailabilityResponse {
@@ -134,6 +136,7 @@ export interface ClubSettings {
   primary_color: string
   secondary_color: string
   logo_url: string | null
+  default_teams: string[] | null
   created_at: string
   updated_at: string
 }
@@ -153,3 +156,25 @@ export const MATCH_EVENT_TYPES: MatchEventType[] = [
   'mvp_3', 'mvp_2', 'mvp_1', 'dotd',
   'yellow_card', 'red_card',
 ]
+
+// ============================================================
+// PDF Types (Phase 13)
+// ============================================================
+
+export interface PDFPlayer {
+  id: string
+  shirtNumber: number
+  fullName: string
+  isCaptain: boolean
+  position?: string
+}
+
+export interface PDFTeam {
+  teamName: string
+  players: PDFPlayer[]
+  matchNotes?: string
+  matchDate?: string
+  opponent?: string
+  venue?: string
+  kickoffTime?: string
+}

@@ -12,7 +12,8 @@ const ROSTER_FILTER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailabl
 type SortKey = 'name' | 'position' | 'status'
 
 export default function Roster() {
-  const { players, loading, error, refetch } = usePlayers()
+  const [showRetired, setShowRetired] = useState(false)
+  const { players, loading, error, refetch } = usePlayers({ excludeRetired: !showRetired })
 
   // Search + filter state
   const [search, setSearch] = useState('')
@@ -58,7 +59,7 @@ export default function Roster() {
     return list
   }, [players, search, filterStatus, filterType, filterPosition, sortKey, showArchived])
 
-  const activeFilters = [filterStatus, filterType, filterPosition].filter(Boolean).length + (showArchived ? 1 : 0)
+  const activeFilters = [filterStatus, filterType, filterPosition].filter(Boolean).length + (showArchived ? 1 : 0) + (showRetired ? 1 : 0)
 
   function openAdd() {
     setEditingPlayer(null)
@@ -75,6 +76,7 @@ export default function Roster() {
     setFilterType('')
     setFilterPosition('')
     setShowArchived(false)
+    setShowRetired(false)
   }
 
   function exportCSV() {
@@ -253,6 +255,28 @@ export default function Roster() {
             </span>
           </label>
 
+          {/* Show Retired toggle */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            fontSize: '13px', color: '#374151', cursor: 'pointer',
+            padding: '7px 10px',
+            border: '1px solid',
+            borderColor: showRetired ? '#6B21A8' : '#E5E7EB',
+            borderRadius: '8px',
+            background: showRetired ? '#F3E8FF' : '#FFFFFF',
+            userSelect: 'none',
+          }}>
+            <input
+              type="checkbox"
+              checked={showRetired}
+              onChange={e => setShowRetired(e.target.checked)}
+              style={{ accentColor: '#6B21A8', width: '14px', height: '14px', cursor: 'pointer' }}
+            />
+            <span style={{ color: showRetired ? '#6B21A8' : '#374151', fontWeight: showRetired ? '600' : '400' }}>
+              Show Retired
+            </span>
+          </label>
+
           {activeFilters > 0 && (
             <button
               onClick={clearFilters}
@@ -367,12 +391,16 @@ export default function Roster() {
         )}
 
         {!loading && !error && filtered.map(player => (
-          <PlayerCard
+          <div
             key={player.id}
-            player={player}
-            onEdit={() => openEdit(player)}
-            onDelete={() => setDeletingPlayer(player)}
-          />
+            style={player.status === 'Retired' ? { opacity: 0.7 } : undefined}
+          >
+            <PlayerCard
+              player={player}
+              onEdit={() => openEdit(player)}
+              onDelete={() => setDeletingPlayer(player)}
+            />
+          </div>
         ))}
       </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase, Player } from '../lib/supabase'
 
 interface Props {
@@ -10,6 +10,11 @@ interface Props {
 export default function DeletePlayerDialog({ player, onCancel, onDeleted }: Props) {
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
 
   async function handleDelete() {
     setDeleting(true)

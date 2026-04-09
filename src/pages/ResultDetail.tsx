@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useWeeks } from '../hooks/useWeeks'
 import { useMatchEvents, type PlayerEventCounts } from '../hooks/useMatchEvents'
-import type { WeekTeam, Player } from '../lib/supabase'
+import { useClubSettings } from '../hooks/useClubSettings'
+import { PDFDownloadButton } from '../components/PDFDownloadLink'
+import type { WeekTeam, Player, PDFTeam, PDFPlayer } from '../lib/supabase'
 
 // ─── Stepper ─────────────────────────────────────────────────────────────────
 
@@ -45,6 +47,11 @@ function MatchEventsSheet({
   const [counts, setCounts] = useState<PlayerEventCounts[]>(initialCounts)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   function updateCount(
     playerId: string,
     field: keyof Omit<PlayerEventCounts, 'playerId'>,
@@ -73,7 +80,7 @@ function MatchEventsSheet({
         </div>
 
         {/* Player list */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto overscroll-contain flex-1">
           {players.map(player => {
             const isExpanded = expandedId === player.id
             const hasEvents = (['try','conversion','penalty','drop_goal','yellow_card','red_card'] as const)
@@ -119,6 +126,77 @@ function MatchEventsSheet({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Opponent Input ───────────────────────────────────────────────────────────
+
+interface OpponentInputProps {
+  team: WeekTeam
+  weekTeamId: string
+}
+
+function OpponentInput({ team, weekTeamId }: OpponentInputProps) {
+  const [localOpponent, setLocalOpponent] = useState(team.opponent || '')
+  const [isSaving, setIsSaving] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  const handleSave = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    abortControllerRef.current = new AbortController()
+    setIsSaving(true)
+
+    try {
+      const { error } = await supabase
+        .from('week_teams')
+        .update({ opponent: localOpponent.trim() || null })
+        .eq('id', weekTeamId)
+
+      if (abortControllerRef.current.signal.aborted) return
+
+      if (error) {
+        console.error('Failed to save opponent:', error.message)
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Failed to save opponent:', err.message)
+      }
+    } finally {
+      if (!abortControllerRef.current?.signal.aborted) {
+        setIsSaving(false)
+      }
+    }
+  }, [weekTeamId, localOpponent])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <span className="text-sm font-medium text-gray-700">{team.team_name}</span>
+      <span className="text-sm text-gray-400">vs</span>
+      <input
+        type="text"
+        value={localOpponent}
+        onChange={e => setLocalOpponent(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={e => e.key === 'Enter' && handleSave()}
+        placeholder="Opponent name"
+        maxLength={100}
+        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm"
+      />
+      {isSaving && (
+        <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-800 rounded-full animate-spin" />
+      )}
     </div>
   )
 }
@@ -173,9 +251,9 @@ function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: Te
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 overflow-hidden">
-      {/* Team name */}
+      {/* Team name + opponent */}
       <div className="px-4 pt-4 pb-2 border-b border-gray-100">
-        <h2 className="text-base font-bold text-gray-900">{team.team_name}</h2>
+        <OpponentInput team={team} weekTeamId={team.id} />
       </div>
 
       {/* Score inputs */}
@@ -300,15 +378,25 @@ function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: Te
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const RUGBY_POSITIONS: Record<number, string> = {
+  1: 'Loosehead Prop',   2: 'Hooker',             3: 'Tighthead Prop',
+  4: 'Lock',             5: 'Lock',               6: 'Blindside Flanker',
+  7: 'Openside Flanker', 8: 'Number 8',           9: 'Scrum-half',
+  10: 'Fly-half',        11: 'Left Wing',          12: 'Inside Centre',
+  13: 'Outside Centre',  14: 'Right Wing',         15: 'Fullback',
+}
+
 export default function ResultDetail() {
   const { weekId } = useParams<{ weekId: string }>()
   const navigate   = useNavigate()
   const { weeks, updateMatchScore, updateMatchReport } = useWeeks()
+  const { clubSettings } = useClubSettings()
 
   const week = weeks.find(w => w.id === weekId)
 
   // Players for each team (keyed by week_team_id)
-  const [teamPlayers, setTeamPlayers] = useState<Record<string, Player[]>>({})
+  const [teamPlayers,  setTeamPlayers]  = useState<Record<string, Player[]>>({})
+  const [teamCaptains, setTeamCaptains] = useState<Record<string, string | null>>({})
 
   useEffect(() => {
     if (!week) return
@@ -317,20 +405,20 @@ export default function ResultDetail() {
     async function loadPlayers() {
       const results = await Promise.all(
         activeTeams.map(async team => {
-          // Get team_selections to find player order
+          // Get team_selections to find player order and captain
           const { data: selData } = await supabase
             .from('team_selections')
-            .select('player_order')
+            .select('player_order, captain_id')
             .eq('week_id', week!.id)
             .eq('week_team_id', team.id)
             .single()
 
-          if (!selData) return [team.id, []] as [string, Player[]]
+          if (!selData) return { teamId: team.id, players: [] as Player[], captainId: null }
 
           const playerIds = (selData.player_order as (string | null)[])
             .filter((id): id is string => id !== null)
 
-          if (playerIds.length === 0) return [team.id, []] as [string, Player[]]
+          if (playerIds.length === 0) return { teamId: team.id, players: [] as Player[], captainId: selData.captain_id ?? null }
 
           const { data: playerData } = await supabase
             .from('players')
@@ -342,10 +430,11 @@ export default function ResultDetail() {
             .map(id => (playerData ?? []).find((p: Player) => p.id === id))
             .filter((p): p is Player => !!p)
 
-          return [team.id, ordered] as [string, Player[]]
+          return { teamId: team.id, players: ordered, captainId: selData.captain_id ?? null }
         })
       )
-      setTeamPlayers(Object.fromEntries(results))
+      setTeamPlayers(Object.fromEntries(results.map(r => [r.teamId, r.players])))
+      setTeamCaptains(Object.fromEntries(results.map(r => [r.teamId, r.captainId])))
     }
 
     loadPlayers()
@@ -361,6 +450,31 @@ export default function ResultDetail() {
 
   const activeTeams = week.week_teams.filter(t => t.is_active !== false)
 
+  // Build PDF data from loaded players
+  const pdfTeams: PDFTeam[] = activeTeams
+    .filter(team => (teamPlayers[team.id] ?? []).length > 0)
+    .map(team => {
+      const players = teamPlayers[team.id] ?? []
+      const captainId = teamCaptains[team.id] ?? null
+      const pdfPlayers: PDFPlayer[] = players.map((p, idx) => {
+        const shirtNumber = idx + 1
+        return {
+          id:          p.id,
+          shirtNumber,
+          fullName:    p.name,
+          isCaptain:   captainId === p.id,
+          position:    RUGBY_POSITIONS[shirtNumber],
+        }
+      })
+      return {
+        teamName:   team.team_name,
+        players:    pdfPlayers,
+        matchNotes: team.match_report ?? undefined,
+        opponent:   team.opponent ?? undefined,
+        matchDate:  week.label,
+      }
+    })
+
   return (
     <div className="max-w-2xl mx-auto px-4 pb-20">
       {/* Header */}
@@ -372,9 +486,15 @@ export default function ResultDetail() {
         >
           <ChevronLeft size={24} />
         </button>
-        <h1 className="flex-1 text-center text-lg font-semibold text-gray-900 pr-6">
+        <h1 className="flex-1 text-center text-lg font-semibold text-gray-900">
           {week.label}
         </h1>
+        <PDFDownloadButton
+          teams={pdfTeams}
+          brandColor={clubSettings?.primary_color ?? '#1e40af'}
+          clubName={clubSettings?.club_name}
+          fileName={`team-sheet-${week.label.replace(/\s+/g, '-').toLowerCase()}.pdf`}
+        />
       </div>
 
       {activeTeams.length === 0 && (
