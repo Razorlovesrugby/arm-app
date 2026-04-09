@@ -81,7 +81,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       onClick={onToggle}
       style={{
         width: 44, height: 26,
-        background: on ? '#6B21A8' : '#333',
+        background: on ? '#6B21A8' : '#D1D5DB',
         borderRadius: 13, position: 'relative', cursor: 'pointer',
         transition: 'background 0.2s', flexShrink: 0,
       }}
@@ -111,23 +111,23 @@ function DroppableGhostRow({ slot, startersCount }: { slot: number; startersCoun
       ref={setNodeRef}
       style={{
         height: 52, display: 'flex', alignItems: 'center', gap: 8,
-        padding: '0 12px', borderBottom: '1px solid #0f0f0f',
-        background: isOver ? 'rgba(107,33,168,0.18)' : '#000',
+        padding: '0 12px', borderBottom: '1px solid #E5E7EB',
+        background: isOver ? 'rgba(107,33,168,0.08)' : '#FFFFFF',
         outline: isOver ? '1px dashed rgba(107,33,168,0.55)' : 'none',
         outlineOffset: '-1px',
         transition: 'background 0.1s',
         opacity: isOver ? 0.9 : 0.35,
       }}
     >
-      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: isOver ? 'rgba(167,139,250,0.9)' : 'rgba(255,255,255,0.35)', flexShrink: 0, transition: 'color 0.1s' }}>
+      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: isOver ? 'rgba(107,33,168,0.9)' : '#9CA3AF', flexShrink: 0, transition: 'color 0.1s' }}>
         {slot}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 13, fontStyle: 'italic', color: isOver ? 'rgba(167,139,250,0.7)' : 'rgba(255,255,255,0.2)', transition: 'color 0.1s' }}>
+        <span style={{ fontSize: 13, fontStyle: 'italic', color: isOver ? 'rgba(107,33,168,0.7)' : '#9CA3AF', transition: 'color 0.1s' }}>
           {isOver ? 'Drop here' : 'Unfilled'}
         </span>
         {hint && !isOver && (
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 8 }}>{hint}</span>
+          <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 8 }}>{hint}</span>
         )}
       </div>
     </div>
@@ -169,10 +169,10 @@ function FilledRow({
       style={{
         ...style,
         height: 52, display: 'flex', alignItems: 'center', gap: 8,
-        padding: '0 8px 0 12px', borderBottom: '1px solid #0f0f0f', background: '#000',
+        padding: '0 8px 0 12px', borderBottom: '1px solid #E5E7EB', background: '#FFFFFF',
       }}
     >
-      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>
+      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#6B7280', flexShrink: 0 }}>
         {slot}
       </span>
 
@@ -181,14 +181,14 @@ function FilledRow({
         style={{ flex: 1, minWidth: 0, cursor: sheetOpen ? 'default' : 'pointer', overflow: 'hidden' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#111827', whiteSpace: 'normal', wordBreak: 'break-word' }}>
             {playerName}
           </span>
           {isCaptain && (
             <span style={{ background: '#6B21A8', color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 3, flexShrink: 0 }}>C</span>
           )}
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 11, color: '#6B7280', whiteSpace: 'normal', wordBreak: 'break-word' }}>
           {primaryPosition ?? '—'}
         </div>
       </div>
@@ -199,7 +199,7 @@ function FilledRow({
 
       <div
         {...attributes} {...listeners}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, flexShrink: 0, cursor: 'grab', touchAction: 'none', color: 'rgba(255,255,255,0.18)', fontSize: 18 }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, flexShrink: 0, cursor: 'grab', touchAction: 'none', color: '#D1D5DB', fontSize: 18 }}
       >
         ⠿
       </div>
@@ -220,9 +220,9 @@ function RemoveButton({ onRemove }: { onRemove: () => void }) {
       onPointerLeave={() => setPressed(false)}
       style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-        border: pressed ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.1)',
-        background: pressed ? 'rgba(239,68,68,0.15)' : 'transparent',
-        color: pressed ? '#ef4444' : 'rgba(255,255,255,0.35)',
+        border: pressed ? '1px solid rgba(220,38,38,0.5)' : '1px solid #E5E7EB',
+        background: pressed ? 'rgba(220,38,38,0.15)' : '#FFFFFF',
+        color: pressed ? '#DC2626' : '#6B7280',
         fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.1s', padding: 8, margin: -8,
       }}
@@ -237,7 +237,7 @@ function BenchDivider() {
   return (
     <div style={{ position: 'relative', margin: '6px 0', display: 'flex', alignItems: 'center' }}>
       <div style={{ flex: 1, borderTop: '1px dashed rgba(107,33,168,0.35)' }} />
-      <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', background: '#000', padding: '0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(107,33,168,0.55)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+      <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', background: '#F8F8F8', padding: '0 8px', fontSize: 10, fontWeight: 700, color: 'rgba(107,33,168,0.55)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
         BENCH
       </span>
     </div>
@@ -249,10 +249,10 @@ function BenchDivider() {
 function SectionHeader({ label, count, total }: { label: string; count: number; total?: number }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 12px 4px' }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
         {label}
       </span>
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+      <span style={{ fontSize: 11, color: '#6B7280' }}>
         {total !== undefined ? `${count} / ${total}` : count}
       </span>
     </div>
@@ -265,7 +265,7 @@ function SaveBadge({ status, onRetry }: { status: 'idle' | 'saved' | 'error'; on
   if (status === 'idle') return null
   if (status === 'saved') return <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>✓ Saved</span>
   return (
-    <button onClick={onRetry} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#ef4444', padding: 0 }}>
+    <button onClick={onRetry} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#DC2626', padding: 0 }}>
       Save failed — tap to retry
     </button>
   )
@@ -311,25 +311,25 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
 
-      <div style={{ position: 'relative', zIndex: 1, background: '#111', borderRadius: '16px 16px 0 0', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', zIndex: 1, background: '#FFFFFF', borderRadius: '16px 16px 0 0', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px', flexShrink: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Add to {teamName}</span>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: '#222', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Add to {teamName}</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: '#F3F4F6', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto', flexShrink: 0, borderBottom: '1px solid #1f1f1f', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto', flexShrink: 0, borderBottom: '1px solid #E5E7EB', WebkitOverflowScrolling: 'touch' }}>
           {FILTERS.map(f => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeFilter === f ? '#6B21A8' : '#1a1a1a', color: activeFilter === f ? '#fff' : 'rgba(255,255,255,0.5)' }}
+              style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeFilter === f ? '#6B21A8' : '#F3F4F6', color: activeFilter === f ? '#fff' : '#6B7280' }}
             >{f}</button>
           ))}
         </div>
 
         <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', flex: 1 }}>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 16px', fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+            <div style={{ textAlign: 'center', padding: '32px 16px', fontSize: 14, color: '#6B7280' }}>
               {unassigned.length === 0 ? 'All players assigned' : 'No players match this filter'}
             </div>
           ) : (
@@ -341,11 +341,11 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
                 <div
                   key={p.id}
                   onClick={() => onOpenOverlay(p.id)}
-                  style={{ minHeight: 56, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', gap: 12 }}
+                  style={{ minHeight: 56, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', gap: 12 }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', whiteSpace: 'normal', wordBreak: 'break-word' }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: '#6B7280', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                       {p.primary_position ?? 'Unspecified'} · {p.player_type}
                     </div>
                   </div>
@@ -409,14 +409,14 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
 
-      <div style={{ position: 'relative', zIndex: 1, background: '#111', borderRadius: '16px 16px 0 0', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div style={{ position: 'relative', zIndex: 1, background: '#FFFFFF', borderRadius: '16px 16px 0 0', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {/* Drag pill */}
-        <div style={{ width: 36, height: 4, background: '#333', borderRadius: 2, margin: '12px auto 0' }} />
+        <div style={{ width: 36, height: 4, background: '#E5E7EB', borderRadius: 2, margin: '12px auto 0' }} />
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Manage Team</span>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: '#222', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Manage Team</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: '#F3F4F6', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
 
         {/* Body */}
@@ -424,7 +424,7 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
 
           {/* Field 1 — Team Name */}
           <div>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#6B7280', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 8 }}>
               Team Name
             </div>
             <input
@@ -433,34 +433,34 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
               placeholder="Team name"
               style={{
                 width: '100%', boxSizing: 'border-box',
-                background: '#1a1a1a', border: '1px solid #2a2a2a',
+                background: '#FFFFFF', border: '1px solid #E5E7EB',
                 borderRadius: 10, padding: '10px 12px',
-                fontSize: 15, color: '#fff', outline: 'none', fontFamily: 'inherit',
+                fontSize: 15, color: '#111827', outline: 'none', fontFamily: 'inherit',
               }}
               onFocus={e => (e.target.style.borderColor = 'rgba(107,33,168,0.5)')}
-              onBlur={e  => (e.target.style.borderColor = '#2a2a2a')}
+              onBlur={e  => (e.target.style.borderColor = '#E5E7EB')}
             />
           </div>
 
           {/* Field 2 — Starters Count */}
           <div>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 10 }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#6B7280', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 10 }}>
               Starters
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, justifyContent: 'center' }}>
               <button
                 onClick={() => setStarters(s => Math.max(1, s - 1))}
-                style={{ width: 38, height: 38, background: '#222', border: '1px solid #333', borderRadius: 10, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                style={{ width: 38, height: 38, background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 10, color: '#111827', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
               >−</button>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#fff', minWidth: 32, textAlign: 'center' }}>
+              <span style={{ fontSize: 22, fontWeight: 700, color: '#111827', minWidth: 32, textAlign: 'center' }}>
                 {starters}
               </span>
               <button
                 onClick={() => setStarters(s => Math.min(22, s + 1))}
-                style={{ width: 38, height: 38, background: '#222', border: '1px solid #333', borderRadius: 10, color: '#fff', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                style={{ width: 38, height: 38, background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: 10, color: '#111827', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
               >+</button>
             </div>
-            <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 8 }}>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#6B7280', marginTop: 8 }}>
               Slots 1–{starters} = starters
             </div>
           </div>
@@ -468,8 +468,8 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
           {/* Field 3 — Visibility */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Show this team</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Hide tab on the board this week</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Show this team</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>Hide tab on the board this week</div>
             </div>
             <Toggle on={visible} onToggle={() => setVisible(v => !v)} />
           </div>
@@ -477,8 +477,8 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
           {/* Field 4 — Team Active (Bye toggle) */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Team playing</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Team playing</div>
+              <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                 Off = Bye. Skips empty-player warning on Close Week.
               </div>
             </div>
@@ -491,10 +491,10 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
             disabled={!canSave || saving}
             style={{
               width: '100%', height: 46,
-              background: canSave && !saving ? '#6B21A8' : '#2a2a2a',
+              background: canSave && !saving ? '#6B21A8' : '#F3F4F6',
               border: 'none', borderRadius: 12,
               cursor: canSave && !saving ? 'pointer' : 'not-allowed',
-              fontSize: 15, fontWeight: 700, color: canSave && !saving ? '#fff' : 'rgba(255,255,255,0.3)',
+              fontSize: 15, fontWeight: 700, color: canSave && !saving ? '#fff' : '#9CA3AF',
               transition: 'background 0.15s',
             }}
           >
@@ -502,7 +502,7 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
           </button>
 
           {saveStatus === 'error' && (
-            <div style={{ textAlign: 'center', fontSize: 12, color: '#ef4444', marginTop: -8 }}>
+            <div style={{ textAlign: 'center', fontSize: 12, color: '#DC2626', marginTop: -8 }}>
               Save failed — please try again
             </div>
           )}
@@ -537,20 +537,20 @@ function WeekPickerSheet({ weeks, activeWeekId, onSelect, onClose }: WeekPickerS
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
 
-      <div style={{ position: 'relative', zIndex: 1, background: '#111', borderRadius: '16px 16px 0 0', maxHeight: '80vh', display: 'flex', flexDirection: 'column', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div style={{ position: 'relative', zIndex: 1, background: '#FFFFFF', borderRadius: '16px 16px 0 0', maxHeight: '80vh', display: 'flex', flexDirection: 'column', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {/* Drag pill */}
-        <div style={{ width: 36, height: 4, background: '#333', borderRadius: 2, margin: '12px auto 0', flexShrink: 0 }} />
+        <div style={{ width: 36, height: 4, background: '#E5E7EB', borderRadius: 2, margin: '12px auto 0', flexShrink: 0 }} />
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px', flexShrink: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Select Week</span>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: '#222', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Select Week</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: '#F3F4F6', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
 
         {/* Week list */}
         <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', flex: 1 }}>
           {sorted.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px 16px', fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+            <div style={{ textAlign: 'center', padding: '32px 16px', fontSize: 14, color: '#6B7280' }}>
               No weeks yet. Create one in the Weeks screen.
             </div>
           ) : (
@@ -560,13 +560,13 @@ function WeekPickerSheet({ weeks, activeWeekId, onSelect, onClose }: WeekPickerS
                 <div
                   key={w.id}
                   onClick={() => { if (!isActive) onSelect(w.id); else onClose() }}
-                  style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer', gap: 12 }}
+                  style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid #E5E7EB', cursor: 'pointer', gap: 12 }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>
                       {formatWeekDate(w.start_date)}
                     </div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
                       {w.label}
                     </div>
                   </div>
@@ -800,20 +800,20 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#000', color: '#fff', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8F8F8', color: '#111827', overflow: 'hidden' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       {/* paddingTop: Layout.tsx now handles env(safe-area-inset-top) globally — no per-component fix needed */}
-      <div style={{ flexShrink: 0, background: '#000', paddingTop: '10px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111' }}>
+      <div style={{ flexShrink: 0, background: '#FFFFFF', paddingTop: '10px', paddingBottom: '10px', paddingLeft: '16px', paddingRight: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E5E7EB' }}>
         {/* Week label — tappable, opens Week Picker */}
         <button
           onClick={() => setWeekPickerOpen(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' }}
         >
           {weekLabel ? (
-            <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{weekLabel}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>{weekLabel}</span>
           ) : (
-            <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)' }}>Select a week</span>
+            <span style={{ fontSize: 15, color: '#6B7280' }}>Select a week</span>
           )}
           <span style={{ color: '#6B21A8', fontSize: 14 }}>▾</span>
         </button>
@@ -835,14 +835,14 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           <button
             onClick={() => gearTarget && setTeamMgmtOpen(true)}
             disabled={!gearTarget}
-            style={{ width: 32, height: 32, background: '#1a1a1a', border: 'none', borderRadius: 8, cursor: gearTarget ? 'pointer' : 'default', fontSize: 16, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: 32, height: 32, background: '#F3F4F6', border: 'none', borderRadius: 8, cursor: gearTarget ? 'pointer' : 'default', fontSize: 16, color: '#6B7280', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             aria-label="Team management"
           >⚙</button>
         </div>
       </div>
 
       {/* ── Team tabs ──────────────────────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, display: 'flex', overflowX: 'auto', gap: 0, borderBottom: '1px solid #1a1a1a', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+      <div style={{ flexShrink: 0, display: 'flex', overflowX: 'auto', gap: 0, borderBottom: '1px solid #E5E7EB', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
         {teams.map(t => {
           const isActive = t.weekTeam.id === activeTeamId
           return (
@@ -853,7 +853,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
                 flexShrink: 0, padding: '10px 16px',
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: 14, fontWeight: 600,
-                color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
+                color: isActive ? '#111827' : '#6B7280',
                 borderBottom: isActive ? '2px solid #6B21A8' : '2px solid transparent',
                 whiteSpace: 'nowrap', WebkitTapHighlightColor: 'transparent',
               }}
@@ -872,19 +872,19 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
         }}
       >
         {loading && teams.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 32, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Loading…</div>
+          <div style={{ textAlign: 'center', padding: 32, color: '#6B7280', fontSize: 14 }}>Loading…</div>
         )}
 
         {!loading && error && (
-          <div style={{ textAlign: 'center', padding: 32, color: '#ef4444', fontSize: 14 }}>{error}</div>
+          <div style={{ textAlign: 'center', padding: 32, color: '#DC2626', fontSize: 14 }}>{error}</div>
         )}
 
         {!loading && !error && !activeTeam && activeWeekId && (
-          <div style={{ textAlign: 'center', padding: 32, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>No teams for this week.</div>
+          <div style={{ textAlign: 'center', padding: 32, color: '#6B7280', fontSize: 14 }}>No teams for this week.</div>
         )}
 
         {!loading && !error && !activeWeekId && (
-          <div style={{ textAlign: 'center', padding: 32, color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Select a week to view the board.</div>
+          <div style={{ textAlign: 'center', padding: 32, color: '#6B7280', fontSize: 14 }}>Select a week to view the board.</div>
         )}
 
         {!loading && !error && activeTeam && (
@@ -909,9 +909,9 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
 
             <DragOverlay>
               {draggingPlayer && draggingSlot !== null ? (
-                <div style={{ height: 52, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: '#1a1a1a', borderRadius: 8, border: '1px solid rgba(107,33,168,0.4)', boxShadow: '0 8px 24px rgba(0,0,0,0.8)', width: '90vw', maxWidth: 400 }}>
-                  <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>{draggingSlot}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', flex: 1 }}>{draggingPlayer.name}</span>
+                <div style={{ height: 52, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: '#FFFFFF', borderRadius: 8, border: '1px solid rgba(107,33,168,0.4)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', width: '90vw', maxWidth: 400 }}>
+                  <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#6B7280' }}>{draggingSlot}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#111827', flex: 1 }}>{draggingPlayer.name}</span>
                 </div>
               ) : null}
             </DragOverlay>
@@ -921,7 +921,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
 
       {/* ── Add Players pill ───────────────────────────────────────────────── */}
       {activeTeam && (
-        <div style={{ flexShrink: 0, padding: '10px 16px 16px', background: 'linear-gradient(to top, #000 55%, transparent)', position: 'relative', zIndex: 10 }}>
+        <div style={{ flexShrink: 0, padding: '10px 16px 16px', background: 'linear-gradient(to top, #F8F8F8 55%, transparent)', position: 'relative', zIndex: 10 }}>
           <button
             onClick={() => setPoolOpen(true)}
             style={{ width: '100%', height: 50, background: '#6B21A8', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
@@ -940,7 +940,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           teamName={activeTeam.weekTeam.team_name}
           unassigned={unassignedPlayers}
           availabilityMap={availabilityMap}
-          onAssign={(pid) => { assignPlayer(activeTeam.weekTeam.id, pid); setPoolOpen(false) }}
+          onAssign={(pid) => { assignPlayer(activeTeam.weekTeam.id, pid); }}
           onOpenOverlay={(pid) => { setPoolOpen(false); setOverlayPlayerId(pid) }}
           onClose={() => setPoolOpen(false)}
         />

@@ -95,9 +95,8 @@ function SortablePlayerChip({ player, onTap }: ChipProps) {
           fontSize: '13px',
           fontWeight: '500',
           color: '#111827',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
         }}
       >
         {player.name}
@@ -149,12 +148,10 @@ function Column({ col, onTap, onReorder }: ColumnProps) {
 
   return (
     <div style={{
-      minWidth: '172px',
-      width: '172px',
+      width: '100%',
       background: '#F8F8F8',
       borderRadius: '12px',
       padding: '12px 10px',
-      flexShrink: 0,
     }}>
       {/* Column header */}
       <div style={{
@@ -292,25 +289,20 @@ export default function DepthChart() {
         </p>
       </div>
 
-      {/* Horizontally scrollable columns */}
+      {/* Vertically stacked columns */}
       <div style={{
-        overflowX: 'auto',
-        overflowY: 'visible',
-        overscrollBehavior: 'contain',
         padding: '16px',
         display: 'flex',
-        gap: '10px',
-        WebkitOverflowScrolling: 'touch',
-        scrollSnapType: 'x mandatory',
+        flexDirection: 'column',
+        gap: '16px',
       }}>
         {columns.map((col) => (
-          <div key={col.position} style={{ scrollSnapAlign: 'start' }}>
-            <Column
-              col={col}
-              onTap={handleTap}
-              onReorder={updateOrder}
-            />
-          </div>
+          <Column
+            key={col.position}
+            col={col}
+            onTap={handleTap}
+            onReorder={updateOrder}
+          />
         ))}
       </div>
 
