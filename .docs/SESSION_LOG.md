@@ -200,3 +200,28 @@ ARM Session Log
 - CP-7.6 — `PlayerOverlay`: bottom sheet (mobile) / centred modal (desktop). Shows Coach Notes (editable textarea + Save button, saves to `players.notes`). Shows Availability Note (read-only, yellow callout, hidden if none submitted, labelled "Availability Note — Week of [label]"). Player info row shows status / type / secondary positions.
 - CP-7.7 — Integration: `SelectionBoard` + `PlayerOverlay` wired into `Weeks.tsx`. `Weeks.tsx` now has a "Selection Board" tab (mobile) / side-by-side panel (desktop). Tab shows only when a week is selected. `PlayerOverlay` opens from any player chip in Selection Board.
 - CP-7.8 —
+
+---
+
+## Session Summary — Phase 14.2 Complete — 2026-04-09
+
+### ACTIVE SPEC version confirmed
+- ACTIVE_SPEC_14.2.md read in full. Used as source of truth for Phase 14.2.
+
+### Phase 14.2 — Depth Chart UX, Selection Board Light Mode & Bulk Add — Completed
+
+- **Depth Chart Vertical Layout**: Updated `src/pages/DepthChart.tsx` to stack position columns vertically with `flexDirection: 'column'`, replacing horizontal scroll. Column containers use `width: '100%'` instead of fixed `172px`. Player names wrap naturally with `whiteSpace: 'normal'` and `wordBreak: 'break-word'`.
+- **Selection Board Light Mode**: Swept `src/components/SelectionBoard.tsx` for Light Mode color conversions: replaced all hardcoded dark colors (`#000`, `#111`, `#fff`) with design tokens (`#F8F8F8` background, `#FFFFFF` surfaces, `#111827` text primary, `#6B7280` text secondary, `#E5E7EB` borders). "Add Players" button remains purple (`#6B21A8`). Bottom gradient fades into Light Mode background.
+- **Bulk Add Functionality**: Removed `setPoolOpen(false)` from `onAssign` callback in PoolSheet rendering (line 943). Users can now tap multiple players rapidly without sheet closing.
+- **Text Truncation Removal**: Updated player name elements in both Depth Chart and Selection Board to use `whiteSpace: 'normal'` and `wordBreak: 'break-word'`, removing `whiteSpace: 'nowrap'` and `textOverflow: 'ellipsis'`. Full player names are visible and wrap naturally.
+- **Danger Colors Standardization**: Replaced all instances of `#ef4444` with global secondary danger color `#DC2626` in Selection Board 'Remove' buttons, error states, and save badges.
+
+### Infrastructure note
+- GitHub commit: `e802bd4` — "14.2, dep th chart vertical"
+- All changes pushed to GitHub and deployed to Vercel.
+
+### Next session starts at
+- **Phase 12** — Polish: empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+
+
+### Paste this at the start of next session
+"Continuing ARM Phase 12 from CP-12.1. Phases 1–14.2 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder, vertical layout), Weeks tab (create, UUID token, share), Availability Form, Selection Board (Light Mode, bulk add, text wrapping), Native App Shell Layout, and Depth Chart UX improvements. Live at https://arm-app-black.vercel.app. Phase 12 focuses on polish: empty states across all screens, error banners + Saved inline feedback, touch target audit (44px minimum), Lighthouse PWA score 90+."

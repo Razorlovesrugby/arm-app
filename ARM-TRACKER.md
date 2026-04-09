@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-01**
-**Current position: CP8 complete (503c301). Migrations 008–010 written — apply before push. Next: git push origin main from terminal.**
+**Last updated: 2026-04-09**
+**Current position: Phase 14.2 complete (e802bd4). Depth Chart vertical layout, Selection Board Light Mode, bulk add functionality implemented. Next: Phase 12 (Polish).**
 
 ---
 
@@ -29,6 +29,8 @@
 | 10 | Exports — jsPDF PDF + plain text, native OS share sheet | ⏳ Pending |
 | 11 | Archive — Closed Weeks sub-tab, inline Game Notes, Player History Search sub-tab | ✅ Done |
 | 12 | Polish — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
+| 14 | Native App Shell Layout Refactor — fixed viewport, scroll containers, sticky headers | ✅ Done |
+| 14.2 | Depth Chart UX, Selection Board Light Mode & Bulk Add — vertical layout, light mode colors, bulk add, text wrapping | ✅ Done |
 
 ---
 
