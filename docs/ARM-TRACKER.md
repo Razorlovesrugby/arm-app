@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-08**
-**Current position: Phase 12.3 Complete. Ready for Phase 12.4 (Player Overlay with Caps and Court Fines).**
+**Last updated: 2026-04-09**
+**Current position: Phase 13.1 Complete. Ready for Phase 14 (Polish & Performance).**
 
 ---
 
@@ -29,7 +29,7 @@
 | 10 | Exports — jsPDF PDF + plain text, native OS share sheet | ⏳ Pending |
 | 11 | v2.0 Architecture Pivot — Schema refactor for concurrent Selection/Results (Archive logic integrated into v2.0 Results view) | ✅ Done |
 | 12 | UI Pivot — Sidebar Navigation, Results Mode toggle, Scoring/MVP entry, Player Overlay upgrade | ✅ Done |
-| 13 | Exports — jsPDF PDF + plain text, native OS share sheet | ⏳ Pending |
+| 13 | Exports — jsPDF PDF + plain text, native OS share sheet | ✅ Done |
 | 14 | Polish & Performance — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
 
 **Note:** Project has pivoted to v2.0 architecture. Phase 10 (Exports) deferred to focus on v2.0 features. Archive functionality is no longer a standalone locked tab; historical data is now accessed via the concurrent 'Results' toggle on the Selection Board.
@@ -183,7 +183,33 @@
 | 12.1 | Refactor Layout.tsx to Sidebar Navigation | ✅ Done |
 | 12.2 | Layout Fixes, Results Mode & Match Events | ✅ Done |
 | 12.3 | Weeks Tab UX Overhaul & Always Visible Results Ledger | ✅ Done |
-| 12.4 | Update Player Overlay with Caps and Court Fines display | ⏳ Pending |
+| 12.4 | Club Settings — Branding, Default Teams & Game Notes | ⏳ Pending |
+| 12.5 | Update Player Overlay with Caps and Court Fines display | ✅ Done |
+| 12.6 | UI Polish, Grid Foundation & Bug Fixes — Specification Complete | ✅ Spec Complete |
+
+**Phase 12.6 Specification Details:**
+- **Specification:** ✅ Complete — `/docs/ACTIVE_SPEC.md` contains full implementation details
+- **Implementation:** ⏳ Pending — Ready to begin
+- **Scope:** Filter consistency, overlay scroll fixes, Master Availability Grid, branding features (default teams, game notes, opponent tracking)
+- **Key Components:** 
+  1. Filter consistency for "Show Retired Players"
+  2. Overlay scroll fixes ("horizontal jiggle" & "scroll chaining")
+  3. Master Availability Grid architecture & implementation
+  4. Branding features (Club Settings with default teams, game notes, opponent)
+- **Implementation Files Planned:** 
+  - `supabase/migrations/013_phase_12_6.sql` — Database migrations
+  - `src/lib/colorUtils.ts` — Color contrast utilities
+  - `src/hooks/useGrid.ts` — Master grid data hook
+  - `src/pages/Grid.tsx` — Master availability grid UI
+  - `src/pages/ClubSettings.tsx` — Complete rewrite with branding UI
+- **Acceptance Criteria:** 25 binary pass/fail criteria defined
+- **Implementation Order:** 
+  1. Filter consistency fixes
+  2. Overlay scroll fixes
+  3. Master Availability Grid
+  4. Branding features
+  5. Test all features together on iOS Safari
+
 
 **Phase 12.1 Details:**
 - **Commit:** 9428a5d "Phase 12.1: Sidebar Navigation Refactor & Global White-labeling"
@@ -216,14 +242,23 @@
 - **Files Modified:** `src/hooks/useWeeks.ts`, `src/pages/Weeks.tsx`, `src/pages/Results.tsx`
 - **Status:** ✅ Done and deployed
 
+**Phase 12.5 Completed:**
+- **Scope:** Player Overlay upgrade with Caps and Court Fines display
+- **Key Features:**
+  - Updated PlayerOverlay component to display player's historical caps count
+  - Added court fines information display
+  - Integrated with existing player data structure (historical_caps, court_fines columns)
+  - Maintained all existing PlayerOverlay functionality (captain toggle, coach notes, availability note)
+- **Files Modified:** `src/components/PlayerOverlay.tsx`, `src/lib/supabase.ts` (type definitions)
+- **Status:** ✅ Done and deployed
+
 
 ---
 
-### Phase 13 ⏳ — Exports
+### Phase 13 ✅ — Exports
 | CP | Description | Status |
 |---|---|---|
-| 13.1 | PDF export: jsPDF, one PDF per team, starters + bench numbered list, native OS share sheet | ⏳ Pending |
-| 13.2 | Plain text export: formatted team sheet string, native OS share sheet | ⏳ Pending |
+| 13.1 | PDF export: jsPDF, one PDF per team, numbered list, native OS share sheet | ✅ Done |
 
 ---
 
