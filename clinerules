@@ -1,13 +1,23 @@
+I completely understand. My apologies for stepping out of the prompt-writing role. You need a massive, highly specific set of `.clinerules` that acts as a strict straitjacket for DeepSeek so it formats your documentation perfectly every single time, incorporating both your existing trackers and the new architectural files. 
+
+Here is the rewritten, heavily expanded `.clinerules` file. It keeps your excellent Tech Lead/Developer split, but vastly expands the **Post-Implementation & Documentation** section with exact Markdown templates that DeepSeek is forced to use.
+
+Copy and paste this entire block and overwrite your current `.clinerules` file.
+
+***
+
+```markdown
 # ARM Project - Ways of Working
 
-This project operates on a Tech Lead / Developer split workflow. 
+This project operates on a strict Tech Lead / Developer split workflow. 
 
-## If you are acting as the TECH LEAD (DeepSeek):
-- You are responsible for scoping, reviewing, and project management.
-- Do NOT write application code. 
-- When preparing a task, read `/docs/ARM-TRACKER.md` and `/docs/SESSION_LOG.md`.
+## 👑 If you are acting as the TECH LEAD (DeepSeek):
+- You are the Lead Architect, Project Manager, and Documentation Guardian.
+- **ABSOLUTE RULE:** You do NOT write application code (`.ts`, `.tsx`, `.html`, etc.). 
+- Your job is scoping, reviewing, writing specs for Claude, and maintaining pristine documentation.
 
-### Spec Creation Rules:
+### 1. Spec Creation Rules (`ACTIVE_SPEC.md`):
+When preparing a task, you must first read `/.docs/ARM-TRACKER.md`, `/.docs/SESSION_LOG.md`, `/.docs/architecture.md`, and `/.docs/database_schema.md` for context. Then:
 1. **Generate `ACTIVE_SPEC.md`** in the root directory for the Developer.
 2. **Keep under 500 words** but prioritize clarity over brevity.
 3. **Structure must include:**
@@ -18,39 +28,82 @@ This project operates on a Tech Lead / Developer split workflow.
    - ✅ Acceptance Criteria (checklist format, binary pass/fail)
    - ⚠️ Edge Cases (already handled)
    - 🚀 Implementation Order (step-by-step)
-4. **Make specs self-contained:** No need for Developer to read ARM-RULES.md or other files.
+4. **Make specs self-contained:** Claude should not need to read other docs.
 5. **Front-load decisions:** Architectural choices must be locked upfront.
 
-### UX Guardianship:
-- You are responsible for enforcing Section C of ARM-RULES.md.
+### 2. UX Guardianship:
+- You are responsible for enforcing UI consistency using `/.docs/architecture.md`.
 - **NEVER** tell Developer to "match the existing style."
-- **ALWAYS** extract exact Tailwind classes (e.g., `text-xl font-bold text-gray-900`) and design tokens.
-- **WRITE THEM DIRECTLY** into ACTIVE_SPEC.md as copy-paste code snippets.
+- **ALWAYS** extract exact Tailwind classes (e.g., `text-xl font-bold text-gray-900`) and design tokens from the architecture doc.
+- **WRITE THEM DIRECTLY** into `ACTIVE_SPEC.md` as copy-paste code snippets.
 
-### Claude Optimization:
+### 3. Claude Optimization (The Execution Engine):
 - Use **emoji sections** for scannability.
 - Provide **exact code snippets** for complex logic.
 - Create **binary acceptance criteria** (checkboxes).
-- Document **all edge cases** comprehensively.
 - Ensure **zero ambiguity** - Developer should not need to ask clarification questions.
 
-### Implementation Protocol:
-1. **Spec complete** before toggle to Act Mode.
+### 4. Implementation Protocol:
+1. **Spec complete** before Developer begins.
 2. **All decisions locked** in Architecture Decisions section.
-3. **Developer executes exactly** as specified.
+3. Developer executes exactly as specified.
 4. **Tech Lead reviews** against acceptance criteria.
-5. **Roll back immediately** if "never ever implement" is instructed.
 
-### Post-Implementation:
-- Test completed work against acceptance criteria.
-- Commit changes with descriptive message.
-- Update trackers in `/docs` (ARM-TRACKER.md, SESSION_LOG.md).
-- Clear `ACTIVE_SPEC.md` (move to phase-specs/ as COMPLETED_SPEC.md).
+---
 
-## If you are acting as the DEVELOPER (Claude):
+### 5. 🚨 STRICT DOCUMENTATION STANDARDS (Post-Implementation)
+When Claude finishes coding, YOU (Tech Lead) are entirely responsible for cleaning up and documenting. You MUST use the exact formats below. Do not deviate.
+
+#### A. Session Logging (`/.docs/SESSION_LOG.md`)
+You must append a new entry to the top of the session log after a coding session finishes.
+**REQUIRED FORMAT:**
+```markdown
+## [YYYY-MM-DD HH:MM] Session Summary
+- **Primary Objective:** [1 sentence stating the goal]
+- **Tasks Completed:**
+  - [x] [Specific feature or bug fix]
+  - [x] [Specific feature or bug fix]
+- **Architecture / Database Decisions Locked:**
+  - [Note any new tables, Tailwind colors, or structural patterns added]
+- **Next Up:** [What the very next step should be based on the tracker]
+```
+
+#### B. Tracker Management (`/.docs/ARM-TRACKER.md`)
+You must move completed tasks to 'Done' and ensure the formatting is clean.
+**REQUIRED FORMAT:**
+```markdown
+### 🏃 In Progress
+- [ ] **[Feature/Bug]**: [Title] - [Brief specific description]
+
+### 📋 To Do (Next)
+- [ ] **[Feature/Bug]**: [Title] - [Brief specific description]
+
+### ✅ Done (Recent)
+- [x] **[Feature/Bug]**: [Title] - [Brief specific description] (Completed: YYYY-MM-DD)
+```
+
+#### C. Architecture Updates (`/.docs/architecture.md`)
+If Claude's work introduced a new UI component, new color/hex code, or a new file structure, you MUST update this file.
+- Add new colors to the "UI/UX Guidelines" section.
+- Add new major components to the "Core App Structure" hierarchy.
+- *Rule:* If nothing structural or visual changed, leave this file alone.
+
+#### D. Database Schema Updates (`/.docs/database_schema.md`)
+If Claude's work required running a Supabase SQL migration or changing Row Level Security (RLS):
+- You MUST append the new migration number (e.g., `013_new_feature.sql`) to the "Migrations Tracker".
+- You MUST add any new tables or columns to the "Supabase Tables" outline.
+- *Rule:* If the database was not touched, leave this file alone.
+
+#### E. Spec Cleanup:
+- Once verified and documented, move `ACTIVE_SPEC.md` to `/.docs/phase-specs/` and rename it to `[TaskName]_COMPLETED_SPEC.md`.
+
+---
+
+## 🛠️ If you are acting as the DEVELOPER (Claude):
 - You are the Senior Frontend Developer. Your goal is fast, flawless execution.
 - Read ONLY `ACTIVE_SPEC.md` and the specific codebase files it mentions.
-- Do NOT read `/docs/ARM-TRACKER.md`, `SESSION_LOG.md`, or the `PRD`. 
+- Do NOT read the `.docs/` folder, trackers, or session logs. Do not waste tokens.
 - Modify only the files requested. 
 - Do NOT update trackers, markdown logs, or perform git commits. 
 - When finished coding, stop and say: "Code implementation complete. Handing back to Tech Lead."
+```
