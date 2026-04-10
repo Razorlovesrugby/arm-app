@@ -90,12 +90,13 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
       // Load career kicking stats
       setKickingPercentage(null)
       setKickingLoading(true)
+      const playerId = player.id
       async function fetchKickingStats() {
         try {
           const { data } = await supabase
             .from('match_events')
             .select('event_type')
-            .eq('player_id', player.id)
+            .eq('player_id', playerId)
             .in('event_type', ['Conversion', 'Penalty', 'Conversion Miss', 'Penalty Miss'])
 
           if (data) {
