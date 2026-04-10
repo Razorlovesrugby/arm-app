@@ -1,191 +1,286 @@
-# ACTIVE SPEC: Phase 14.1 — Native App Shell Layout Refactor
+# ACTIVE_SPEC: Phase 14.4 — Club Settings Expansion & Critical Bug Fixes
 
 ## Overview
-**Phase:** 14.1 — Layout / UX Enhancement  
+**Phase:** 14.4 — Polish & Performance  
 **Priority:** High  
-**Target:** Transition the ARM sports management app from a "document-style" scrolling layout to a "Native App Shell" feel  
+**Target:** Reduce friction for players by adding position toggle in Availability Form and fix critical scroll lock bug. Give coaches control over default squad size. Debug and stabilize PlayerOverlay Kicking % metric.  
 **Status:** Ready for Implementation  
-**Previous Phase:** 13 Complete (PDF Export Feature)
+**Previous Phase:** 14.3 (Match Event UX, Kicking Stats & Career Percentage)
 
-**Use this template to generate feature specifications that follow the strict Tech Lead/Developer workflow defined in `.clinerules`.**
-
-## When to Use This Template
-- For any new feature or significant enhancement
-- When you need to create an `ACTIVE_SPEC.md` for the Developer (Claude)
-- Before handing any task to the Developer for implementation
-
-## How to Use This Template
-1. Fill in all bracketed `[ ]` sections with specific details
-2. Keep the total spec under 500 words (prioritize clarity over brevity)
-3. Ensure all architectural decisions are locked upfront
-4. Provide exact code snippets for UI implementation
-5. Make the spec self-contained - Developer should not need to read other docs
-
----
-
-## 🎯 Why (1-2 sentences)
-Transition the ARM sports management app from a "document-style" scrolling layout to a "Native App Shell" feel where specific containers scroll internally while the viewport remains fixed. This improves mobile UX by preventing scroll-chaining, ensuring sticky headers work correctly, and creating a more native app experience.
+## 🎯 Why (1‑2 sentences)
+To reduce friction for players, the Availability Form needs an option to hide position fields, and its critical scroll‑lock bug must be fixed immediately. For coaches, the default squad size (currently hardcoded to 23) must be customizable in Club Settings. Finally, the PlayerOverlay Kicking % metric must be debugged and stabilized.
 
 ## 🏗️ Architecture Decisions (Locked)
-1. **Fixed Viewport Strategy** - Use `100dvh` (dynamic viewport height) instead of `100vh` to handle mobile Safari address bar
-2. **Internal Scroll Containers** - Main content areas (Roster, Master Grid, Starters) must use `overflow-y: auto` with `overscroll-behavior: contain`
-3. **Sticky Headers** - Master Availability Grid headers must remain `position: sticky` with proper z-index stacking
-4. **Tailwind CSS Implementation** - Convert inline styles to Tailwind CSS classes for consistency
-5. **Mobile-First Approach** - All solutions must work on iOS Safari with address bar and Android Chrome
-6. **No Breaking Changes** - Maintain existing functionality while improving layout structure
+1. **Database Schema:** Migration `015_phase_14_4.sql` adds two columns to `club_settings`:
+   - `default_squad_size` (integer, default 22)
+   - `require_positions_in_form` (boolean, default true)
+2. **Selection Board Math:** `SelectionBoard.tsx` currently hardcodes `benchCount = 8`. Refactor to read `default_squad_size` from settings, dynamically calculating `benchCount = Math.max(0, squadSize - startersCount)`.
+3. **Form Layout Fix:** The root container of `AvailabilityForm.tsx` (Shell component) must be strictly forced to `minHeight: '100dvh'`, `overflowY: 'auto'`, and `WebkitOverflowScrolling: 'touch'` to restore mobile touch scrolling.
+4. **Kicking % Debug:** The `PlayerOverlay` fetch query will be hardened: fetch ALL events for the player and filter them in JavaScript to bypass any Supabase case‑sensitivity or enum mismatch errors.
+5. **UI Consistency:** New fields in ClubSettings.tsx must follow existing Tailwind/design token patterns (light mode surfaces, proper spacing, clear labels).
 
 ## 📁 Files to Touch (Exact paths + what to do)
 
-### Updated Files:
-1. **`src/components/Layout.tsx`** - Refactor to use fixed viewport with `100dvh` and proper scroll container structure
-2. **`src/pages/Grid.tsx`** - Enhance sticky table headers with proper Tailwind CSS and ensure they work within the new scroll container
-3. **`src/pages/Roster.tsx`** - Convert inline styles to Tailwind CSS and ensure proper scroll container behavior
-4. **`src/index.css`** - Add global CSS utilities for scroll behavior and viewport handling if needed
-5. **`src/pages/Board.tsx`** - Ensure Selection Board works within new scroll container structure
-6. **`src/pages/DepthChart.tsx`** - Ensure Depth Chart works within new scroll container structure
+### 1. `supabase/migrations/015_phase_14_4.sql` (Create new)
+- Add `default_squad_size` and `require_positions_in_form` columns to `club_settings` table.
+- Set default values (22, true) and ensure column‑level comments.
+- Migration must be idempotent (`IF NOT EXISTS`).
 
-### Integration Points:
-7. **All page components** - Must work within the new Layout container structure without breaking existing functionality
-8. **Modal/dialog components** - Must prevent scroll-chaining when open (overscroll-behavior)
+### 2. `src/lib/supabase.ts` (Update types)
+- Extend `ClubSettings` interface to include `default_squad_size?: number` and `require_positions_in_form?: boolean`.
 
-## 🎨 UI Implementation (Exact Tailwind/JSX - copy-paste ready)
+### 3. `src/pages/ClubSettings.tsx`
+- Add a number input for "Default Squad Size" (label it clearly, placeholder "22").
+- Add a toggle/checkbox for "Ask for Player Positions on Availability Form".
+- Update validation to accept the new fields.
+- Update the `updateClubSettings` call to include both new fields.
 
-### Layout.tsx Refactor:
+### 4. `src/pages/AvailabilityForm.tsx` (Scroll Bug & Position Toggle)
+- **Scroll Fix:** Locate the outermost Shell `<div>`. Ensure its styles include:
+  - `minHeight: '100dvh'`
+  - `display: 'flex'`
+  - `flexDirection: 'column'`
+  - `overflowY: 'auto'`
+  - `WebkitOverflowScrolling: 'touch'`
+  - `position: 'relative'`
+- **Toggle Logic:** Fetch `club_settings`. If `require_positions_in_form` is false, completely hide the Primary and Secondary position select dropdowns.
+
+### 5. `src/components/SelectionBoard.tsx` (Dynamic Squad Size)
+- Locate the `benchCount` variable (line 598).
+- Refactor to read `clubSettings?.default_squad_size ?? 22`.
+- Calculate `benchCount = Math.max(0, squadSize - startersCount)`.
+- Ensure the `totalSlots` calculation (line 745) also uses dynamic squad size.
+
+### 6. `src/components/PlayerOverlay.tsx` (Kick % Fix)
+- Replace the current `.in('event_type', [...])` query (lines 91‑96) with a simple `.select('event_type').eq('player_id', player.id)`.
+- Filter the returned data in JavaScript for 'conversion', 'penalty', 'Conversion Miss', 'Penalty Miss'.
+- Calculate makes/total and set `kickingPct` accordingly.
+
+## 🎨 UI Implementation (Exact Tailwind/JSX - copy‑paste ready)
+
+### 1. `supabase/migrations/015_phase_14_4.sql`
+```sql
+-- Migration 015: Phase 14.4 — Club Settings Expansion
+-- Add default_squad_size and require_positions_in_form columns
+
+ALTER TABLE club_settings
+ADD COLUMN IF NOT EXISTS default_squad_size INTEGER DEFAULT 22,
+ADD COLUMN IF NOT EXISTS require_positions_in_form BOOLEAN DEFAULT true;
+
+COMMENT ON COLUMN club_settings.default_squad_size IS 'Default number of players in a full squad (starters + bench)';
+COMMENT ON COLUMN club_settings.require_positions_in_form IS 'Whether the public Availability Form asks for primary/secondary positions';
+```
+
+### 2. `src/lib/supabase.ts` (ClubSettings interface update)
+```ts
+export interface ClubSettings {
+  id: string
+  club_name: string
+  primary_color: string
+  secondary_color: string
+  logo_url: string | null
+  default_teams: string[]
+  default_squad_size?: number            // ← new
+  require_positions_in_form?: boolean    // ← new
+  created_at: string
+  updated_at: string
+}
+```
+
+### 3. `src/pages/ClubSettings.tsx` (New UI fields)
+Add these fields **after** the "Default Teams" section and **before** the "Save error" block:
+
 ```tsx
-// src/components/Layout.tsx - Updated structure
-export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { clubSettings } = useClubSettings()
+{/* Default Squad Size */}
+<div>
+  <label className="text-sm font-medium text-gray-700 mb-1 block">Default Squad Size</label>
+  <input
+    type="number"
+    value={defaultSquadSize}
+    onChange={e => {
+      const val = parseInt(e.target.value, 10)
+      setDefaultSquadSize(isNaN(val) ? 22 : val)
+    }}
+    placeholder="22"
+    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+  />
+  <p className="text-xs text-gray-500 mt-1">
+    Total players (starters + bench) for new weeks. Current week: {clubSettings?.default_squad_size ?? 22}
+  </p>
+</div>
 
+{/* Position Form Requirement */}
+<div>
+  <div className="flex items-center justify-between">
+    <div>
+      <label className="text-sm font-medium text-gray-700">Ask for positions on Availability Form</label>
+      <p className="text-xs text-gray-500">Players will see primary/secondary position dropdowns</p>
+    </div>
+    <Toggle on={requirePositions} onToggle={() => setRequirePositions(v => !v)} />
+  </div>
+</div>
+```
+
+You'll need to add state variables `defaultSquadSize` and `requirePositions`, sync them from `clubSettings`, and include them in the `updateClubSettings` payload.
+
+### 4. `src/pages/AvailabilityForm.tsx` (Shell scroll fix)
+Update the `Shell` component's root `<div>` styles:
+
+```tsx
+function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50">
-      {/* Sidebar (handles its own overlay on mobile) */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile header */}
-        <header
-          className="md:hidden flex items-center justify-between px-4 bg-white border-b border-gray-200 flex-shrink-0"
-          style={{ paddingTop: 'env(safe-area-inset-top)', minHeight: 'calc(env(safe-area-inset-top) + 56px)' }}
-        >
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="relative z-40 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Open menu"
-          >
-            <Menu size={24} className="text-gray-700" />
-          </button>
-          <div className="text-lg font-semibold text-gray-900">
-            {clubSettings?.club_name || 'ARM'}
-          </div>
-          <div className="w-10" />
-        </header>
-
-        {/* Page content - THIS IS THE KEY SCROLL CONTAINER */}
-        <main className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">
-          <Outlet />
-        </main>
+    <div style={{
+      minHeight: '100dvh',
+      background: '#F8F8F8',
+      padding: '32px 20px calc(32px + env(safe-area-inset-bottom))',
+      display: 'flex',
+      flexDirection: 'column',
+      overflowY: 'auto',                     // ← ADD THIS
+      WebkitOverflowScrolling: 'touch',      // ← ADD THIS
+      position: 'relative',                  // ← ADD THIS
+    }}>
+      <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', flex: 1 }}>
+        {children}
       </div>
     </div>
   )
 }
 ```
 
-### Grid.tsx Table Header Enhancement:
+### 5. `src/components/SelectionBoard.tsx` (Dynamic bench calculation)
+Replace the hardcoded `benchCount` (line 598) with:
+
 ```tsx
-// src/pages/Grid.tsx - Enhanced sticky headers
-<th style={{
-  position: 'sticky', 
-  top: 0, 
-  left: 0, 
-  zIndex: 30,
-  background: '#FFFFFF',
-  borderRight: '1px solid #E5E7EB',
-  borderBottom: '2px solid #E5E7EB',
-  padding: '10px 14px',
-  minWidth: 140,
-  textAlign: 'left',
-  backdropFilter: 'blur(8px)', // Optional: improves visual appearance
-  WebkitBackdropFilter: 'blur(8px)',
-}}>
-  <span className="text-sm font-semibold text-gray-700">Player</span>
-</th>
+const squadSize = clubSettings?.default_squad_size ?? 22
+const benchCount = Math.max(0, squadSize - startersCount)
+```
+
+Update the `BENCH_COUNT` constant (line 743) to use the same logic, or replace with a derived variable.
+
+### 6. `src/components/PlayerOverlay.tsx` (Kicking % fix)
+Replace the `fetchKickingStats` useEffect (lines 89‑119) with:
+
+```tsx
+// Fetch career kicking stats
+useEffect(() => {
+  async function fetchKickingStats() {
+    const { data } = await supabase
+      .from('match_events')
+      .select('event_type')
+      .eq('player_id', player.id)
+
+    if (data) {
+      let makes = 0
+      let total = 0
+
+      data.forEach(event => {
+        if (event.event_type === 'conversion' || event.event_type === 'penalty') {
+          makes++
+          total++
+        } else if (event.event_type === 'Conversion Miss' || event.event_type === 'Penalty Miss') {
+          total++
+        }
+      })
+
+      if (total > 0) {
+        setKickingPct(Math.round((makes / total) * 100))
+      } else {
+        setKickingPct(null)
+      }
+    }
+  }
+
+  fetchKickingStats()
+}, [player.id])
 ```
 
 ## ✅ Acceptance Criteria (Checklist format, binary pass/fail)
 
-### Core Layout Functionality
-- [ ] Viewport is fixed at `100dvh` - app frame never grows beyond screen height
-- [ ] Main content area scrolls internally with `overflow-y: auto`
-- [ ] `overscroll-behavior: contain` prevents scroll-chaining to parent/body
-- [ ] Mobile Safari address bar doesn't cause layout jumps or white space
+### Database & Types
+- [ ] Migration 015 runs successfully and adds both columns to `club_settings`.
+- [ ] `ClubSettings` interface includes `default_squad_size` (optional number) and `require_positions_in_form` (optional boolean).
 
-### Sticky Headers
-- [ ] Master Availability Grid headers remain sticky while scrolling player names
-- [ ] Sticky headers have proper z-index stacking (headers above content)
-- [ ] Headers maintain background color/opacity when scrolled
-- [ ] Horizontal scrolling works correctly with sticky left column
+### Club Settings UI
+- [ ] Club Settings screen shows "Default Squad Size" number input with placeholder "22".
+- [ ] Club Settings screen shows "Ask for positions on Availability Form" toggle.
+- [ ] Both fields are saved when "Save Settings" is clicked.
+- [ ] Saved values are restored when the page reloads.
 
-### Mobile UX
-- [ ] No scroll-chaining when modals (Edit Player) are open
-- [ ] Safe area insets respected on iOS (notch/home indicator)
-- [ ] Touch scrolling feels native with momentum and rubber-banding
-- [ ] Address bar hide/show doesn't break layout
+### Availability Form Scroll Fix
+- [ ] Availability Form scrolls smoothly on mobile devices (scroll lock bug eliminated).
+- [ ] Outer Shell container has `overflowY: 'auto'` and `WebkitOverflowScrolling: 'touch'`.
+- [ ] Form remains fully usable on both desktop and mobile Safari/Chrome.
 
-### Integration
-- [ ] All existing pages (Roster, Grid, Board, DepthChart) work without regression
-- [ ] Sidebar navigation functions correctly
-- [ ] Modal/dialog components open without scroll issues
-- [ ] Performance: No layout thrashing or jank during scrolling
+### Availability Form Position Toggle
+- [ ] When `require_positions_in_form` is false, the Primary and Secondary position dropdowns are completely hidden.
+- [ ] When `require_positions_in_form` is true, position fields appear as before.
+- [ ] The toggle respects the club setting fetched from `useClubSettings`.
+
+### Selection Board Dynamic Squad Size
+- [ ] Selection Board generates the exact number of slots based on `default_squad_size` minus `starters_count`.
+- [ ] Bench slots adjust automatically when `default_squad_size` changes in Club Settings.
+- [ ] Fallback to 22 when settings are not yet loaded.
+- [ ] PDF export still works with dynamic squad size.
+
+### PlayerOverlay Kicking %
+- [ ] PlayerOverlay correctly displays the Kicking % if the player has historic kicking events.
+- [ ] Calculation uses all match events (fetched without `.in()` filter) and filters in JavaScript.
+- [ ] Percentage shows `—` when player has no kicking events (makes + misses = 0).
 
 ## ⚠️ Edge Cases (Already Handled)
-1. **Mobile Safari 100vh bug** - Using `100dvh` instead of `100vh` handles dynamic viewport
-2. **Scroll-chaining prevention** - `overscroll-behavior: contain` on scroll containers
-3. **Z-index conflicts** - Proper stacking context for sticky headers vs modals
-4. **Safe area insets** - Already implemented in Layout.tsx for iOS notch
-5. **Browser support** - Fallbacks for browsers that don't support `100dvh` or `overscroll-behavior`
+1. **Legacy Settings Data:** Fallback logic `clubSettings?.default_squad_size ?? 22` ensures no runtime errors if settings fetch resolves before migration applies.
+2. **Negative Bench Count:** `Math.max(0, squadSize - startersCount)` prevents negative bench slots.
+3. **Empty Position Arrays:** When `require_positions_in_form` is false, the form skips position fields entirely; position sync on Available submissions still works with empty values.
+4. **Kicking % Divide‑by‑Zero:** Guard `if (total > 0)` prevents division by zero.
+5. **Browser Support:** `100dvh` already used; `WebkitOverflowScrolling` is Safari‑specific but harmless elsewhere.
 
-## 🚀 Implementation Order (Step-by-Step)
+## 🚀 Implementation Order (Step‑by‑Step)
 
-### Step 1: Update Layout.tsx with fixed viewport
+### Step 1: Write Migration 015 and update TypeScript types
 ```bash
-# Modify src/components/Layout.tsx to use h-[100dvh] and overscroll-contain
+# Create supabase/migrations/015_phase_14_4.sql
+# Update src/lib/supabase.ts ClubSettings interface
 ```
 
-### Step 2: Convert Grid.tsx inline styles to Tailwind where possible
+### Step 2: Fix AvailabilityForm.tsx scroll lock CSS and add position toggle logic
 ```bash
-# Enhance sticky headers in src/pages/Grid.tsx with proper CSS
+# Update Shell component with overflowY: auto
+# Add conditional rendering based on require_positions_in_form
 ```
 
-### Step 3: Update Roster.tsx scroll container
+### Step 3: Fix PlayerOverlay.tsx Kicking % logic
 ```bash
-# Ensure Roster page works within new scroll container structure
+# Replace .in() query with simple .select() and JavaScript filtering
 ```
 
-### Step 4: Test all pages for regression
+### Step 4: Update ClubSettings.tsx UI to accept the new configurations
 ```bash
-# Test Roster, Grid, Board, DepthChart, Weeks, Results pages
+# Add number input and toggle
+# Update state and save payload
 ```
 
-### Step 5: Mobile testing
+### Step 5: Update SelectionBoard.tsx to utilize dynamic squad size
 ```bash
-# Test on iOS Safari and Android Chrome for mobile-specific issues
+# Replace hardcoded benchCount with clubSettings?.default_squad_size ?? 22
+# Adjust totalSlots calculation
 ```
 
----
+### Step 6: Test all changes together on iOS Safari and desktop Chrome
+```bash
+# Verify scroll works, positions toggle, squad size adjusts, kicking % appears
+```
 
 ## 📝 Notes for Tech Lead (Not for Developer)
 - **Reference Documents:** `/.docs/architecture.md`, `/.docs/ARM-TRACKER.md`, `src/index.css`
-- **UX Consistency:** Follow existing color scheme and spacing from architecture.md
-- **Database Impact:** No database changes required - pure frontend layout refactor
-- **Session Log Entry:** Update SESSION_LOG.md after completion with "Native App Shell Layout Refactor"
+- **UX Consistency:** Follow existing light‑mode design tokens from architecture.md
+- **Database Impact:** One migration (015) adds two columns; no breaking changes.
+- **Session Log Entry:** Update SESSION_LOG.md after completion with "Club Settings Expansion & Critical Bug Fixes"
 
-## 🚨 Post-Implementation Documentation (Tech Lead Responsibility)
+## 🚨 Post‑Implementation Documentation (Tech Lead Responsibility)
 After Developer completes implementation, Tech Lead MUST:
 
 1. **Update `/.docs/SESSION_LOG.md`** with new entry using exact format
-2. **Update `/.docs/ARM-TRACKER.md`** - move task to "Done" section  
-3. **Update `/.docs/architecture.md`** with new layout patterns if established
-4. **Update `/.docs/database_schema.md`** - no changes needed
-5. **Move `ACTIVE_SPEC.md` to `/.docs/phase-specs/`** as `Native_App_Shell_Layout_COMPLETED_SPEC.md`
+2. **Update `/.docs/ARM-TRACKER.md`** — move task to "Done" section, push "Empty states" to 14.5, "Error banners" to 14.6, etc.
+3. **Update `/.docs/architecture.md`** if new UI patterns were established
+4. **Update `/.docs/database_schema.md`** with new columns in club_settings table
+5. **Move this `ACTIVE_SPEC.md` to `/.docs/phase‑specs/`** as `14.4_Club_Settings_Expansion_Critical_Bug_Fixes_COMPLETED_SPEC.md`
