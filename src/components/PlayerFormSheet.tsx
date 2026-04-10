@@ -113,7 +113,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
           .from('match_events')
           .select('event_type')
           .eq('player_id', playerId)
-          .in('event_type', ['Try', 'Conversion', 'Penalty', 'Drop Goal', 'Conversion Miss', 'Penalty Miss'])
+          .in('event_type', ['try', 'conversion', 'penalty', 'drop_goal', 'Conversion Miss', 'Penalty Miss'])
 
         if (data) {
           let tries = 0, conversions = 0, penalties = 0, dropGoals = 0
@@ -121,12 +121,12 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
 
           data.forEach(event => {
             switch (event.event_type) {
-              case 'Try':              tries++;                            break
-              case 'Conversion':       conversions++; kickMakes++; kickTotal++; break
-              case 'Penalty':          penalties++;   kickMakes++; kickTotal++; break
-              case 'Drop Goal':        dropGoals++;                       break
-              case 'Conversion Miss':  kickTotal++;                       break
-              case 'Penalty Miss':     kickTotal++;                       break
+              case 'try':              tries++;                                 break
+              case 'conversion':       conversions++; kickMakes++; kickTotal++; break
+              case 'penalty':          penalties++;   kickMakes++; kickTotal++; break
+              case 'drop_goal':        dropGoals++;                             break
+              case 'Conversion Miss':  kickTotal++;                             break
+              case 'Penalty Miss':     kickTotal++;                             break
             }
           })
 
