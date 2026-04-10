@@ -341,25 +341,32 @@ export default function Roster() {
         {!loading && !error && players.length === 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', padding: '64px 24px', gap: '12px', textAlign: 'center',
+            justifyContent: 'center', padding: '64px 16px', textAlign: 'center',
           }}>
-            <span style={{ fontSize: '48px' }}>🏉</span>
-            <p style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: '#F3F4F6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 24, marginBottom: 16,
+            }}>
+              📋
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginBottom: 4, margin: '0 0 4px' }}>
               No players yet
-            </p>
-            <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
-              Tap Add to add your first player.
+            </h3>
+            <p style={{ fontSize: 14, color: '#6B7280', marginBottom: 24, margin: '0 0 24px' }}>
+              Build your squad to get started.
             </p>
             <button
               onClick={openAdd}
               style={{
-                marginTop: '8px', padding: '12px 24px',
-                background: '#6B21A8', color: '#FFFFFF',
-                border: 'none', borderRadius: '10px',
-                fontSize: '15px', fontWeight: '600', cursor: 'pointer',
+                background: '#6B21A8', color: '#fff',
+                border: 'none', borderRadius: 8,
+                padding: '10px 20px',
+                fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}
             >
-              Add Player
+              + Add First Player
             </button>
           </div>
         )}

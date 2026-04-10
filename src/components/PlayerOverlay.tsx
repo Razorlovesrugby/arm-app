@@ -69,7 +69,6 @@ export default function PlayerOverlay({
   const [captainState, setCaptainState] = useState(isCaptain)
   const [coachNotes, setCoachNotes] = useState(player.notes ?? '')
   const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
-  const [kickingPct, setKickingPct] = useState<number | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Lock body scroll while overlay is open
@@ -84,38 +83,6 @@ export default function PlayerOverlay({
     setCoachNotes(player.notes ?? '')
     setNotesSaveStatus('idle')
   }, [player.id, isCaptain, player.notes])
-
-  // Fetch career kicking stats
-  useEffect(() => {
-    async function fetchKickingStats() {
-      const { data } = await supabase
-        .from('match_events')
-        .select('event_type')
-        .eq('player_id', player.id)
-
-      if (data) {
-        let makes = 0
-        let total = 0
-
-        data.forEach(event => {
-          if (event.event_type === 'conversion' || event.event_type === 'penalty') {
-            makes++
-            total++
-          } else if (event.event_type === 'Conversion Miss' || event.event_type === 'Penalty Miss') {
-            total++
-          }
-        })
-
-        if (total > 0) {
-          setKickingPct(Math.round((makes / total) * 100))
-        } else {
-          setKickingPct(null)
-        }
-      }
-    }
-
-    fetchKickingStats()
-  }, [player.id])
 
   // Debounced save for coach notes
   const saveNotes = useCallback(async (value: string) => {
@@ -216,7 +183,6 @@ export default function PlayerOverlay({
             <InfoCell label="Last Team"   value={lastTeam   ?? '—'} />
             <InfoCell label="Last Played" value={lastPlayed ?? '—'} />
             <InfoCell label="Availability" value={avLabel} valueColor={avColor} />
-            <InfoCell label="Kicking %" value={kickingPct !== null ? `${kickingPct}%` : '—'} />
           </div>
 
           {/* Section 3 — Positions */}

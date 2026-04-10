@@ -52,6 +52,8 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
   const [stats, setStats] = useState<PlayerStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
+  const [kickingPercentage, setKickingPercentage] = useState<number | null>(null)
+  const [kickingLoading, setKickingLoading] = useState(false)
 
   // Lock body scroll while sheet is open
   useEffect(() => {
@@ -84,9 +86,43 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
         .then(s => setStats(s))
         .catch((e: unknown) => setStatsError(e instanceof Error ? e.message : 'Failed to load stats'))
         .finally(() => setStatsLoading(false))
+
+      // Load career kicking stats
+      setKickingPercentage(null)
+      setKickingLoading(true)
+      async function fetchKickingStats() {
+        try {
+          const { data } = await supabase
+            .from('match_events')
+            .select('event_type')
+            .eq('player_id', player.id)
+            .in('event_type', ['Conversion', 'Penalty', 'Conversion Miss', 'Penalty Miss'])
+
+          if (data) {
+            let makes = 0
+            let total = 0
+            data.forEach(event => {
+              if (event.event_type === 'Conversion' || event.event_type === 'Penalty') {
+                makes++
+                total++
+              } else if (event.event_type === 'Conversion Miss' || event.event_type === 'Penalty Miss') {
+                total++
+              }
+            })
+            setKickingPercentage(total > 0 ? Math.round((makes / total) * 100) : null)
+          }
+        } catch (error) {
+          console.error('Failed to fetch kicking stats:', error)
+          setKickingPercentage(null)
+        } finally {
+          setKickingLoading(false)
+        }
+      }
+      fetchKickingStats()
     } else {
       setForm(EMPTY)
       setStats(null)
+      setKickingPercentage(null)
     }
   }, [player, fetchPlayerStats])
 
@@ -390,7 +426,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
               )}
 
               {!statsLoading && !statsError && stats && !Object.values(stats).every(v => v === 0) && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '8px' }}>
                   {stats.tries > 0       && <StatCard value={stats.tries}       label="Tries" />}
                   {stats.conversions > 0 && <StatCard value={stats.conversions} label="Conversions" />}
                   {stats.penalties > 0   && <StatCard value={stats.penalties}   label="Penalties" />}
@@ -401,6 +437,17 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
                   {stats.mvpPoints > 0   && <StatCard value={stats.mvpPoints}   label="MVP Points" />}
                 </div>
               )}
+
+              {/* Kicking % */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '20px' }}>
+                {kickingLoading ? (
+                  <StatCard value="Loading…" label="Kicking %" />
+                ) : kickingPercentage !== null ? (
+                  <StatCard value={`${kickingPercentage}%`} label="Kicking %" />
+                ) : (
+                  <StatCard value="—" label="Kicking %" />
+                )}
+              </div>
 
               {/* Total Caps */}
               <Field label="Total Caps">
@@ -505,7 +552,7 @@ function Field({
   )
 }
 
-function StatCard({ value, label }: { value: number; label: string }) {
+function StatCard({ value, label }: { value: number | string; label: string }) {
   return (
     <div style={{
       background: '#F9FAFB',
