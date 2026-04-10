@@ -298,7 +298,8 @@ export default function AvailabilityForm() {
   }
 
   // ── Render: form ──────────────────────────────────────────
-  const showPositions = form.availability !== 'Unavailable'
+  const requirePositionsInForm = clubSettings?.require_positions_in_form ?? true
+  const showPositions = form.availability !== 'Unavailable' && requirePositionsInForm
 
   return (
     <Shell>
@@ -518,8 +519,11 @@ function Shell({ children }: { children: React.ReactNode }) {
       padding: '32px 20px calc(32px + env(safe-area-inset-bottom))',
       display: 'flex',
       flexDirection: 'column',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      position: 'relative',
     }}>
-      <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto' }}>
+      <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', flex: 1 }}>
         {children}
       </div>
     </div>

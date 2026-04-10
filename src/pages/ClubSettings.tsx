@@ -11,6 +11,8 @@ export default function ClubSettings() {
   const [logoUrl, setLogoUrl] = useState('')
   const [logoValid, setLogoValid] = useState(false)
   const [defaultTeams, setDefaultTeams] = useState<string[]>(['1st XV', '2nd XV'])
+  const [defaultSquadSize, setDefaultSquadSize] = useState(22)
+  const [requirePositions, setRequirePositions] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -33,6 +35,8 @@ export default function ClubSettings() {
         ? clubSettings.default_teams
         : ['1st XV', '2nd XV']
     )
+    setDefaultSquadSize(clubSettings.default_squad_size ?? 22)
+    setRequirePositions(clubSettings.require_positions_in_form ?? true)
   }, [clubSettings])
 
   // Cleanup on unmount
@@ -80,6 +84,8 @@ export default function ClubSettings() {
       primary_color: brandColor || '#6B21A8',
       logo_url: logoUrl.trim() || null,
       default_teams: trimmedTeams,
+      default_squad_size: defaultSquadSize,
+      require_positions_in_form: requirePositions,
     })
 
     setSaving(false)
@@ -246,6 +252,45 @@ export default function ClubSettings() {
           </div>
 
           {errors.teams && <p className="text-xs font-medium text-red-600 mt-1">{errors.teams}</p>}
+        </div>
+
+        {/* Default Squad Size */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Default Squad Size</label>
+          <input
+            type="number"
+            value={defaultSquadSize}
+            onChange={e => {
+              const val = parseInt(e.target.value, 10)
+              setDefaultSquadSize(isNaN(val) ? 22 : val)
+            }}
+            placeholder="22"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Total players (starters + bench) for new weeks. Current week: {clubSettings?.default_squad_size ?? 22}
+          </p>
+        </div>
+
+        {/* Position Form Requirement */}
+        <div>
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Ask for positions on Availability Form</label>
+              <p className="text-xs text-gray-500">Players will see primary/secondary position dropdowns</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setRequirePositions(v => !v)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requirePositions ? 'bg-purple-700' : 'bg-gray-200'}`}
+              role="switch"
+              aria-checked={requirePositions}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${requirePositions ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Save error */}

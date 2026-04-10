@@ -590,12 +590,13 @@ interface BoardContentProps {
   sheetOpen: boolean
   onTapPlayer: (playerId: string) => void
   onRemove: (playerId: string) => void
+  defaultSquadSize: number
 }
 
-function BoardContent({ team, availabilityMap, sheetOpen, onTapPlayer, onRemove }: BoardContentProps) {
+function BoardContent({ team, availabilityMap, sheetOpen, onTapPlayer, onRemove, defaultSquadSize }: BoardContentProps) {
   const { weekTeam, players, captainId } = team
   const startersCount = weekTeam.starters_count ?? 15
-  const benchCount    = 8
+  const benchCount    = Math.max(0, defaultSquadSize - startersCount)
 
   const starterPlayers = players.slice(0, startersCount)
   const benchPlayers   = players.slice(startersCount)
@@ -740,7 +741,8 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
 
     const { weekTeam, players } = activeTeam
     const startersCount = weekTeam.starters_count ?? 15
-    const BENCH_COUNT   = 8
+    const squadSize     = clubSettings?.default_squad_size ?? 22
+    const BENCH_COUNT   = Math.max(0, squadSize - startersCount)
     const totalSlots    = startersCount + BENCH_COUNT
     const activeId = active.id as string
     const overId   = over.id   as string
@@ -904,6 +906,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
                 sheetOpen={sheetOpen}
                 onTapPlayer={setOverlayPlayerId}
                 onRemove={(pid) => removePlayer(activeTeam.weekTeam.id, pid)}
+                defaultSquadSize={clubSettings?.default_squad_size ?? 22}
               />
             </SortableContext>
 

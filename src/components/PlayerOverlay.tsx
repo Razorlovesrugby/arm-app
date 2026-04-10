@@ -92,7 +92,6 @@ export default function PlayerOverlay({
         .from('match_events')
         .select('event_type')
         .eq('player_id', player.id)
-        .in('event_type', ['conversion', 'penalty', 'Conversion Miss', 'Penalty Miss'])
 
       if (data) {
         let makes = 0

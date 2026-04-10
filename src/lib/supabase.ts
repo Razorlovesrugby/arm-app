@@ -138,6 +138,8 @@ export interface ClubSettings {
   secondary_color: string
   logo_url: string | null
   default_teams: string[] | null
+  default_squad_size?: number
+  require_positions_in_form?: boolean
   created_at: string
   updated_at: string
 }
