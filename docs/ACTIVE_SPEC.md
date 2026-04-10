@@ -1,196 +1,158 @@
-# ACTIVE_SPEC: 16.1 Database Expansion & Safe Backfill
+# ACTIVE_SPEC: 16.2 Multi-Tenant Frontend Sweep
+
+**Status:** 🏃 In Progress  
+**Priority:** Critical — Enables database lockdown  
+**Frontend Impact:** High — All data hooks require updates  
+**Database Impact:** None — Schema already expanded in 16.1  
+
+---
 
 ### 🎯 Why
-We are migrating to a multi-tenant architecture using the "Expand and Contract" zero-downtime pattern. This phase expands the database schema by adding `club_id` routing, creating the `clubs` and `profiles` tables, and safely backfilling existing users and data to a Master Club. 
-**CRITICAL:** To prevent application breakage, do NOT enforce `NOT NULL` constraints on `club_id` and do NOT enable Row Level Security (RLS) yet.
- for me 
-### 🧠 Context Gathering (COMPLETED)
-Based on analysis of existing migrations, the following core tables require `club_id`:
-1. `players` - Main player roster
-2. `depth_chart_order` - Position ordering  
-3. `weeks` - Weekly scheduling
-4. `week_teams` - Teams within weeks
-5. `availability_responses` - Availability submissions
-6. `team_selections` - Selected players
-7. `club_settings` - Club configuration
-8. `match_events` - Match performance tracking
-9. `training_attendance` - Training records
-10. `archive_game_notes` - Archived game notes
+The database has been soft-expanded to support `club_id` (Phase 16.1). Now, we must sweep the frontend data hooks to actively inject the logged-in coach's `activeClubId` into all database queries and mutations. This prepares the app for the final database lockdown (Phase 16.3) where `club_id` NOT NULL constraints and RLS will be enforced.
 
-### 🏗️ Architecture Decisions
-- **Zero Frontend Impact:** Do NOT touch any UI components or frontend Supabase hooks in this phase.
-- **The Auth Bridge:** A `profiles` table maps `auth.users.id` to a `club_id`.
-- **Complete Backfill:** Both existing *data* AND existing *users* must be mapped to "ARM15 Lite Master".
-- **Soft Schema:** `club_id` is added to data tables as a nullable column. 
+### 🏗️ Architecture Decisions (LOCKED)
+- **The Auth Bridge:** `AuthContext.tsx` already fetches `club_id` from `profiles` table and exposes `activeClubId` via `useAuth()`.
+- **Context Injection:** Every data hook must utilize `useAuth()` to grab the `activeClubId`.
+- **Read Operations:** All `supabase.from('...').select()` calls accessed by the coach MUST append `.eq('club_id', activeClubId)`.
+- **Write Operations:** All `insert()` and `update()` payloads MUST have `club_id: activeClubId` appended.
+- **Anonymous Availability:** The public `AvailabilityForm.tsx` must fetch the week's `club_id` from the database and use it for player creation (not from auth).
+- **Error Handling:** If `activeClubId` is null, hooks should block data operations at the hook level (console.error and abort). UI airlock comes in Phase 16.3.
+- **Migration Strategy:** All hooks updated at once — database is "soft" (no NOT NULL, no RLS) from Phase 16.1.
+- **Testing:** Feature parity only — verify Admin can still see their players and new Weeks save with `club_id` attached.
 
 ### 📁 Files to Touch
-1. `supabase/migrations/017_phase_16_1_expand.sql` (Create new)
-2. `src/lib/supabase.ts` (Update database types)
 
-### 🎨 Logic Implementation
+#### 1. `src/contexts/AuthContext.tsx` (Minor)
+- Add null-check guard for `activeClubId` in fetchProfile
+- Add loading state clarity for `activeClubId`
 
-**1. `supabase/migrations/017_phase_16_1_expand.sql`**
-Write a precise SQL migration:
-* **Step 1:** Create `clubs` table (`id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`, `name TEXT NOT NULL`).
-* **Step 2:** Insert Master Club: `INSERT INTO clubs (name) VALUES ('ARM15 Lite Master') RETURNING id;` (Store in variable).
-* **Step 3:** Create `profiles` table (`id UUID REFERENCES auth.users(id) PRIMARY KEY`, `club_id UUID REFERENCES clubs(id)`, `role TEXT DEFAULT 'coach'`).
-* **Step 4 (User Backfill):** `INSERT INTO profiles (id, club_id) SELECT id, master_id FROM auth.users;`
-* **Step 5:** Add `club_id UUID REFERENCES clubs(id)` to ALL core tables identified during context gathering.
-* **Step 6 (Data Backfill):** `UPDATE [table_name] SET club_id = master_id;` for all core tables.
-* **Step 7:** STOP. Do NOT add `NOT NULL`. Do NOT enable RLS.
+#### 2. `src/hooks/` (Sweep ALL 8 hooks)
+- `usePlayers.ts` — Add `.eq('club_id', activeClubId)` to player queries
+- `useWeeks.ts` — Add `.eq('club_id', activeClubId)` to week queries and `club_id: activeClubId` to insert payloads
+- `useSelectionBoard.ts` — Add club filtering to: players fetch, week_teams fetch, team_selections fetch, availability_responses fetch
+- `useClubSettings.ts` — Add `.eq('club_id', activeClubId)` to club_settings queries
+- `useMatchEvents.ts` — Add `.eq('club_id', activeClubId)` to match_events queries and `club_id: activeClubId` to insert payloads
+- `useDepthChart.ts` — Add `.eq('club_id', activeClubId)` to depth_chart_order queries
+- `useGrid.ts` — Add `.eq('club_id', activeClubId)` to grid queries
+- `usePlayerDetails.ts` — Add `.eq('club_id', activeClubId)` to player detail queries
 
-**2. `src/lib/supabase.ts`**
-* Update Database Types to include the new tables and the new (currently optional) `club_id` columns.
+#### 3. `src/pages/AvailabilityForm.tsx`
+- **CRITICAL:** Fetch week's `club_id` via `SELECT club_id FROM weeks WHERE id = week_id`
+- Store `club_id` in component state
+- When creating new players, add `club_id: weekClubId` to insert payload
+- When inserting availability responses, add `club_id: weekClubId` to insert payload
 
-### ✅ Acceptance Criteria
-- [ ] Migration 017 executes perfectly.
-- [ ] "ARM15 Lite Master" is created.
-- [ ] Existing `auth.users` have a corresponding row in `profiles`.
-- [ ] Existing core data rows have the `club_id` populated.
-- [ ] App continues to function normally (no strict constraints blocking saves).
+#### 4. `src/pages/ClubSettings.tsx`
+- Ensure `useClubSettings` hook filters by `activeClubId` (already covered in hook updates)
 
-### 📝 Implementation Details
+### 🎨 Implementation Patterns
 
-**Migration File Structure (Defensive Code - Separates DDL from DML):**
-```sql
--- Migration 017: Phase 16.1 — Database Expansion & Safe Backfill
--- Expand phase of "Expand and Contract" zero-downtime pattern
--- CRITICAL: Do NOT add NOT NULL constraints or enable RLS in this phase
--- DEFENSIVE: Separates DDL (CREATE/ALTER) from DML (INSERT/UPDATE) to avoid PostgreSQL DO block compilation errors
-
--- ============================================================
--- STEP 1-3: DDL - Create tables and add columns (outside DO block)
--- ============================================================
-
--- Step 1: Create clubs table
-CREATE TABLE IF NOT EXISTS clubs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Step 2: Create profiles table
-CREATE TABLE IF NOT EXISTS profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
-  club_id UUID REFERENCES clubs(id),
-  role TEXT DEFAULT 'coach',
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Step 3: Add nullable club_id to all core tables (DDL must be outside DO block)
-ALTER TABLE players ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE depth_chart_order ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE weeks ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE week_teams ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE availability_responses ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE team_selections ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE club_settings ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE match_events ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE training_attendance ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-ALTER TABLE archive_game_notes ADD COLUMN IF NOT EXISTS club_id UUID REFERENCES clubs(id);
-
--- ============================================================
--- STEP 4-6: DML - Insert data and backfill (inside DO block)
--- ============================================================
-
-DO $$ 
-DECLARE 
-  master_club_id UUID;
-BEGIN
-  -- Step 4: Insert master club and store its ID (with idempotency)
-  -- First, try to get existing master club ID
-  SELECT id INTO master_club_id FROM clubs WHERE name = 'ARM15 Lite Master';
-  
-  -- If not found, insert it
-  IF master_club_id IS NULL THEN
-    INSERT INTO clubs (name) VALUES ('ARM15 Lite Master') 
-    RETURNING id INTO master_club_id;
-  END IF;
-  
-  -- Step 5: Backfill existing users into profiles
-  INSERT INTO profiles (id, club_id)
-  SELECT id, master_club_id FROM auth.users
-  ON CONFLICT (id) DO NOTHING;
-  
-  -- Step 6: Backfill existing data with master club ID
-  -- IMPORTANT: These UPDATE statements reference columns created in Step 3
-  -- Since DDL is outside the DO block, PostgreSQL won't fail during compilation
-  UPDATE players SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE depth_chart_order SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE weeks SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE week_teams SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE availability_responses SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE team_selections SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE club_settings SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE match_events SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE training_attendance SET club_id = master_club_id WHERE club_id IS NULL;
-  UPDATE archive_game_notes SET club_id = master_club_id WHERE club_id IS NULL;
-  
-  -- Step 7: DO NOT add NOT NULL constraints
-  -- Step 8: DO NOT enable RLS
-END $$;
-```
-
-**TypeScript Updates:**
+#### Standard Read Pattern (All Hooks):
 ```typescript
-// Add new interfaces
-export interface Club {
-  id: string;
-  name: string;
-  created_at: string;
+const { activeClubId } = useAuth();
+
+// DEFENSIVE: Block if activeClubId is null
+if (!activeClubId) {
+  console.error('activeClubId is null - cannot fetch data');
+  return; // or set error state
 }
 
-export interface Profile {
-  id: string;
-  club_id?: string; // Optional during expansion phase
-  role: string;
-  created_at: string;
-}
-
-// Update existing interfaces to include optional club_id
-export interface Player {
-  id: string;
-  club_id?: string; // Optional during expansion phase
-  name: string;
-  email: string;
-  // ... existing fields
-}
-
-// Repeat for all other entity interfaces...
+const { data } = await supabase
+  .from('table_name')
+  .select('*')
+  .eq('club_id', activeClubId); // ← CRITICAL
 ```
 
-### ⚠️ Critical Safety Notes
-1. **NULLABLE Columns:** `club_id` must remain nullable to prevent application breakage
-2. **No RLS:** Row Level Security must NOT be enabled in this phase
-3. **Idempotent:** Use `IF NOT EXISTS` and `WHERE club_id IS NULL` for safe re-runs
-4. **PostgreSQL DO Block Trap:** DDL (CREATE/ALTER) must be outside DO block, DML (INSERT/UPDATE) inside DO block to avoid compilation errors
-5. **Defensive Code:** Migration must separate schema changes from data backfill operations
+#### Standard Write Pattern (All Hooks):
+```typescript
+const { activeClubId } = useAuth();
+
+// DEFENSIVE: Block if activeClubId is null
+if (!activeClubId) {
+  console.error('activeClubId is null - cannot write data');
+  return { error: 'No active club' };
+}
+
+const { error } = await supabase
+  .from('table_name')
+  .insert([{ 
+    ...payload, 
+    club_id: activeClubId // ← CRITICAL
+  }]);
+```
+
+#### Anonymous Availability Pattern (AvailabilityForm.tsx):
+```typescript
+// Step 1: Fetch week with club_id
+const { data: week } = await supabase
+  .from('weeks')
+  .select('club_id')
+  .eq('id', weekId)
+  .single();
+
+// Step 2: Use week.club_id for player creation
+const { error } = await supabase
+  .from('players')
+  .insert([{
+    name: form.name,
+    phone: normalisePhone(form.phone),
+    email: form.email || null,
+    date_of_birth: form.birthday || null,
+    club_id: week.club_id, // ← FROM WEEK RECORD
+    subscription_paid: false,
+  }]);
+
+// Step 3: Also add club_id to availability response
+const { error: respErr } = await supabase
+  .from('availability_responses')
+  .insert({
+    week_id: week.id,
+    player_id: playerId,
+    availability: form.availability,
+    club_id: week.club_id, // ← FROM WEEK RECORD
+    submitted_primary_position: form.primaryPosition || null,
+    submitted_secondary_positions: form.secondaryPositions,
+    availability_note: form.availabilityNote.trim() || null,
+  });
+```
+
+### ✅ Acceptance Criteria (Binary Pass/Fail)
+- [ ] `usePlayers` hook filters players by `club_id` and blocks if `activeClubId` is null
+- [ ] `useWeeks` hook filters weeks by `club_id`, includes `club_id` in insert payloads, blocks if null
+- [ ] `useSelectionBoard` hook filters all data by `club_id` and blocks if null
+- [ ] `useClubSettings` hook filters club_settings by `club_id` and blocks if null
+- [ ] `useMatchEvents` hook filters match_events by `club_id`, includes `club_id` in inserts, blocks if null
+- [ ] `useDepthChart` hook filters depth_chart_order by `club_id` and blocks if null
+- [ ] `useGrid` hook filters grid data by `club_id` and blocks if null
+- [ ] `usePlayerDetails` hook filters player details by `club_id` and blocks if null
+- [ ] `AvailabilityForm` fetches week's `club_id`, uses it for player creation and availability responses
+- [ ] `AuthContext` has null-check guards for `activeClubId`
+- [ ] All existing functionality works identically for the master club (ARM15 Lite Master)
+- [ ] No console errors during normal operation (except legitimate null `activeClubId` cases)
+
+### ⚠️ Edge Cases (Already Handled)
+1. **Null activeClubId:** Hooks block operations, console.error, return early (UI airlock in Phase 16.3)
+2. **Anonymous users:** AvailabilityForm fetches week.club_id from database (allowed while RLS is off)
+3. **Existing master club data:** All data already backfilled with master club ID in Phase 16.1
+4. **Cross-club contamination:** With club filtering, coaches only see their own club's data
+5. **Week without club_id:** Should not happen (backfilled in 16.1) but handle gracefully
 
 ### 🚀 Implementation Order
-1. Create `supabase/migrations/017_phase_16_1_expand.sql`
-2. Update `src/lib/supabase.ts` TypeScript definitions
-3. Execute migration in controlled environment
-4. Verify data integrity and application functionality
+1. **AuthContext polish** — Add null-check guards (5 minutes)
+2. **Core hooks sweep** — `usePlayers`, `useWeeks`, `useSelectionBoard` (most critical, 30 minutes)
+3. **Secondary hooks sweep** — `useClubSettings`, `useMatchEvents`, `useDepthChart`, `useGrid`, `usePlayerDetails` (20 minutes)
+4. **Anonymous form update** — Update `AvailabilityForm.tsx` to fetch and use week.club_id (15 minutes)
+5. **Testing** — Verify feature parity: login, roster, weeks, selection board, availability form (10 minutes)
 
-### 🔧 Testing Commands
-```bash
-# Create migration file
-touch supabase/migrations/017_phase_16_1_expand.sql
+### 📋 Notes for Developer
+- **DO NOT** modify database schema or RLS — that's Phase 16.3
+- **DO NOT** update tracker files or documentation — Tech Lead handles that
+- **DO** implement defensive null checks in ALL hooks
+- **DO** test thoroughly: login, roster, weeks, selection board, availability form
+- **DO** ensure zero regression for existing master club functionality
+- **Reference:** Phase 16.1 completed spec shows all tables now have `club_id` column
+- **Time estimate:** 80 minutes total
 
-# Apply migration (in Supabase SQL Editor)
-# Copy and execute migration SQL
+---
 
-# Verify migration
-SELECT COUNT(*) FROM clubs WHERE name = 'ARM15 Lite Master';
-SELECT COUNT(*) FROM profiles;
-SELECT table_name, COUNT(*) as total, COUNT(club_id) as with_club_id 
-FROM information_schema.columns 
-WHERE table_name IN ('players', 'weeks', 'week_teams', 'availability_responses', 'team_selections', 'club_settings', 'match_events', 'training_attendance', 'archive_game_notes', 'depth_chart_order')
-  AND column_name = 'club_id'
-GROUP BY table_name;
-```
-
-**Status:** ✅ Specification Ready for Implementation  
-**Target:** Safe database expansion for multi-tenancy with zero downtime  
-**Priority:** Critical — Foundation for Phase 16.2+  
-**Zero Frontend Impact:** ✅ No UI changes required
+**Ready for Developer execution. When complete, say: "Code implementation complete. Handing back to Tech Lead."**
