@@ -122,7 +122,7 @@ export function useWeeks(): UseWeeksResult {
           ...(notes ? { notes: notes.trim() } : {}),
         })
         .select()
-        .single()
+        .maybeSingle()
 
       if (weekError || !weekData) {
         return { data: null, error: weekError?.message ?? 'Failed to create week' }

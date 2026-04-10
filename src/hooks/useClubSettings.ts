@@ -30,15 +30,18 @@ export function useClubSettings(): UseClubSettingsResult {
       .select('*')
       .eq('club_id', activeClubId)
       .limit(1)
-      .single()
-    
+      .maybeSingle()
+
     if (error) {
       setError(error.message)
+      setClubSettings(null)
+    } else if (!data) {
+      // No row yet for this club — treat as "not configured" rather than an error.
       setClubSettings(null)
     } else {
       setClubSettings(data)
     }
-    
+
     setLoading(false)
   }, [activeClubId])
 

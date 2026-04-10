@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Roster from './pages/Roster'
@@ -42,10 +43,11 @@ function BrandInjector() {
 
 export default function App() {
   return (
-    <AuthProvider>
+    <ErrorBoundary>
       <BrowserRouter>
-        <BrandInjector />
-        <Routes>
+        <AuthProvider>
+          <BrandInjector />
+          <Routes>
 
           {/* Public — no layout */}
           <Route path="/login" element={<Login />} />
@@ -84,8 +86,9 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/roster" replace />} />
 
-        </Routes>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
-    </AuthProvider>
+    </ErrorBoundary>
   )
 }
