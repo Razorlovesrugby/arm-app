@@ -270,9 +270,20 @@
 | 14.3 | Match Event UX, Kicking Stats & Career Percentage — Purple dot fix, kicking made/attempted steppers, career % in PlayerOverlay | ✅ Done |
 | 14.4 | Club Settings Expansion & Critical Bug Fixes — Default squad size, position toggle, scroll fix, kicking % debug | ✅ Done |
 | 14.5 | Export UX, Career Stats & Lightweight Polish — Kicking % realignment, WhatsApp export, toast notifications, empty states | ✅ Done |
-| 14.6 | Error banners + Saved inline feedback | ⏳ Pending |
-| 14.7 | Touch target audit (44px minimum) | ⏳ Pending |
-| 14.8 | Lighthouse PWA score 90+ | ⏳ Pending |
+| 14.6 | Error banners + Saved inline feedback | ✅ Done |
+| 14.7 | Touch target audit (44px minimum) | ⏳ Pending (Skipped) |
+| 14.8 | Lighthouse PWA score 90+ | ⏳ Pending (Skipped) |
+
+**Note:** Phase 14.7-14.8 skipped to focus on Phase 15 features. Touch target audit and Lighthouse PWA score optimization deferred.
+
+---
+
+### Phase 15 ▶ — Training & Analytics
+| CP | Description | Status |
+|---|---|---|
+| 15.1 | Training Attendance Tracker & Availability Dashboard — Custom training days, attendance tracking, integrated availability view | ▶ Next |
+
+---
 
 ---
 
