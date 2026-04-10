@@ -2,7 +2,6 @@
 // CP7-A Rebuild — full dark theme, captain toggle, positions chips,
 // info grid, auto-save coach notes, conditional selection note
 // CP7-B — lastTeam / lastPlayed wired from playerHistory (replaces "—" placeholders)
-// Phase 14.5 — Kicking % removed from overlay (moved to Roster Form)
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
@@ -84,8 +83,6 @@ export default function PlayerOverlay({
     setCoachNotes(player.notes ?? '')
     setNotesSaveStatus('idle')
   }, [player.id, isCaptain, player.notes])
-
-  // Kicking % removed (moved to Roster Form)
 
   // Debounced save for coach notes
   const saveNotes = useCallback(async (value: string) => {
@@ -186,7 +183,6 @@ export default function PlayerOverlay({
             <InfoCell label="Last Team"   value={lastTeam   ?? '—'} />
             <InfoCell label="Last Played" value={lastPlayed ?? '—'} />
             <InfoCell label="Availability" value={avLabel} valueColor={avColor} />
-            <InfoCell label="Kicking %" value={kickingPct !== null ? `${kickingPct}%` : '—'} />
           </div>
 
           {/* Section 3 — Positions */}

@@ -928,15 +928,21 @@ export default function Weeks() {
         {openWeeks.length === 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', padding: '60px 24px',
-            textAlign: 'center', gap: '12px',
+            justifyContent: 'center', padding: '64px 16px', textAlign: 'center',
           }}>
-            <Calendar size={48} color="#E5E7EB" />
-            <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-              No weeks yet
-            </p>
-            <p style={{ margin: 0, fontSize: '14px', color: '#6B7280', maxWidth: '280px' }}>
-              Create your first week to start collecting availability from players.
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: '#F3F4F6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 24, marginBottom: 16,
+            }}>
+              📅
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: '0 0 4px' }}>
+              No weeks created yet
+            </h3>
+            <p style={{ fontSize: 14, color: '#6B7280', margin: 0 }}>
+              Tap + to start a new match week.
             </p>
           </div>
         )}

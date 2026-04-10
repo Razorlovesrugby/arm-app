@@ -701,6 +701,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
   const [teamMgmtOpen,  setTeamMgmtOpen]  = useState(false)
   const [weekPickerOpen, setWeekPickerOpen] = useState(false)
   const [overlayPlayerId, setOverlayPlayerId] = useState<string | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const sheetOpen = poolOpen || overlayPlayerId !== null || teamMgmtOpen || weekPickerOpen
 
@@ -781,6 +782,42 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     }
   }
 
+  // ── WhatsApp text export ───────────────────────────────────────────────────
+
+  const handleWhatsAppExport = () => {
+    if (!activeTeam || !activeWeek) return
+
+    const startersCount = activeTeam.weekTeam.starters_count ?? 15
+    const squadSize     = clubSettings?.default_squad_size ?? 23
+    const starters      = activeTeam.players.slice(0, startersCount)
+    const bench         = activeTeam.players.slice(startersCount, squadSize)
+    const weekLabel     = formatWeekDate(activeWeek.start_date)
+
+    const text =
+      `FIRST XV - SQUAD LIST\nWeek of ${weekLabel}\n\nSTARTERS\n` +
+      starters.map((p, i) => `${i + 1}. ${p ? p.name : 'Unfilled'}`).join('\n') +
+      `\n\nBENCH\n` +
+      bench.map((p, i) => `${startersCount + i + 1}. ${p ? p.name : 'Unfilled'}`).join('\n')
+
+    if (!navigator.clipboard) {
+      setToastMessage('Copying not supported in this browser')
+      setTimeout(() => setToastMessage(null), 2500)
+      console.warn('Clipboard API not available')
+      return
+    }
+
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        setToastMessage('Copied to clipboard')
+        setTimeout(() => setToastMessage(null), 2500)
+      })
+      .catch((err) => {
+        console.error('Clipboard error:', err)
+        setToastMessage('Failed to copy - try selecting text manually')
+        setTimeout(() => setToastMessage(null), 2500)
+      })
+  }
+
   // ── Week label for header ──────────────────────────────────────────────────
 
   const activeWeek = weeks.find(w => w.id === activeWeekId)
@@ -824,15 +861,41 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <SaveBadge status={saveStatus} onRetry={() => board.setSaveStatus('idle')} />
           {teams.length > 0 && (
-            <PDFDownloadButton
-              teams={selectionTeamsToPDF(teams, {
-                matchDate: activeWeek ? formatWeekDate(activeWeek.start_date) : undefined,
-              })}
-              brandColor={clubSettings?.primary_color ?? '#1e40af'}
-              clubName={clubSettings?.club_name}
-              fileName="team-sheet.pdf"
-              dark
-            />
+            <>
+              <PDFDownloadButton
+                teams={selectionTeamsToPDF(
+                  teams.map(t => ({
+                    ...t,
+                    players: t.players.slice(0, clubSettings?.default_squad_size ?? 23),
+                  })),
+                  {
+                    matchDate: activeWeek ? formatWeekDate(activeWeek.start_date) : undefined,
+                  }
+                )}
+                brandColor={clubSettings?.primary_color ?? '#1e40af'}
+                clubName={clubSettings?.club_name}
+                fileName="team-sheet.pdf"
+                dark
+              />
+              <button
+                onClick={handleWhatsAppExport}
+                style={{
+                  background: '#F3F4F6',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#374151',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                📋 Copy Text
+              </button>
+            </>
           )}
           <button
             onClick={() => gearTarget && setTeamMgmtOpen(true)}
@@ -984,6 +1047,26 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           }}
           onClose={() => setOverlayPlayerId(null)}
         />
+      )}
+
+      {/* ── Toast notification ─────────────────────────────────────────────── */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#111827',
+          color: '#fff',
+          padding: '8px 16px',
+          borderRadius: 20,
+          fontSize: 13,
+          fontWeight: 600,
+          zIndex: 100,
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        }}>
+          {toastMessage}
+        </div>
       )}
 
     </div>
