@@ -332,10 +332,14 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   async function upsertSelection(weekTeamId: string, patch: Partial<TeamSelection>) {
     if (!activeWeekId) return
+    if (!activeClubId) {
+      console.error('upsertSelection aborted: no active club ID found')
+      throw new Error('No active club')
+    }
     const { error } = await supabase
       .from('team_selections')
       .upsert(
-        { week_id: activeWeekId, week_team_id: weekTeamId, ...patch },
+        { week_id: activeWeekId, week_team_id: weekTeamId, club_id: activeClubId, ...patch },
         { onConflict: 'week_id,week_team_id' }
       )
     if (error) throw error
