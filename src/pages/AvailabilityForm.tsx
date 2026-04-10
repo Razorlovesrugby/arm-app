@@ -12,6 +12,8 @@ import { getContrastColor } from '../lib/colorUtils'
 interface FormState {
   name: string
   phone: string
+  email: string
+  birthday: string
   availability: Availability | ''
   primaryPosition: Position | ''
   secondaryPositions: Position[]
@@ -21,6 +23,8 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   name: '',
   phone: '',
+  email: '',
+  birthday: '',
   availability: '',
   primaryPosition: '',
   secondaryPositions: [],
@@ -77,6 +81,10 @@ export default function AvailabilityForm() {
   const [week, setWeek] = useState<Week | null>(null)
   const [tokenState, setTokenState] = useState<'loading' | 'invalid' | 'closed' | 'open'>('loading')
 
+  // Club settings flags — derived early so validate() and handleSubmit() can use them
+  const requireContactInfo = clubSettings?.require_contact_info ?? false
+  const requireBirthday = clubSettings?.require_birthday ?? false
+
   // Form state
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
@@ -130,6 +138,9 @@ export default function AvailabilityForm() {
     const errs: Partial<Record<keyof FormState, string>> = {}
     if (!form.name.trim())      errs.name = 'Please enter your name'
     if (!form.availability)     errs.availability = 'Please select your availability'
+    if (requireContactInfo && form.email && !(form.email.includes('@') && form.email.includes('.'))) {
+      errs.email = 'Please enter a valid email address'
+    }
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -147,6 +158,7 @@ export default function AvailabilityForm() {
     try {
       // 2a. Match player by name + phone (case-insensitive name)
       let playerId: string | null = null
+      let isNewPlayer = false
 
       if (normPhone) {
         const { data: byPhone } = await supabase
@@ -173,13 +185,14 @@ export default function AvailabilityForm() {
 
       // 2b. Auto-create player if unmatched
       if (!playerId) {
+        isNewPlayer = true
         const { data: newPlayer, error: insertErr } = await supabase
           .from('players')
           .insert({
             name: form.name.trim(),
             phone: normPhone || '',
-            email: '',                    // placeholder — coaches can update
-            date_of_birth: '2000-01-01', // placeholder — coaches can update
+            email: (requireContactInfo && form.email) ? form.email : '',
+            date_of_birth: (requireBirthday && form.birthday) ? form.birthday : '2000-01-01',
             primary_position: 'Unspecified', // PRD: auto-create always starts Unspecified
             secondary_positions: [],
             player_type: 'Open',
@@ -193,7 +206,17 @@ export default function AvailabilityForm() {
         playerId = newPlayer.id
       }
 
-      // 2c. Position sync — only on Available submissions
+      // 2c. Update existing player profile with collected contact/birthday data
+      if (!isNewPlayer) {
+        const profileUpdate: Record<string, unknown> = {}
+        if (requireContactInfo && form.email) profileUpdate.email = form.email
+        if (requireBirthday && form.birthday) profileUpdate.date_of_birth = form.birthday
+        if (Object.keys(profileUpdate).length > 0) {
+          await supabase.from('players').update(profileUpdate).eq('id', playerId)
+        }
+      }
+
+      // 2d. Position sync — only on Available submissions
       if (isAvailable && (form.primaryPosition || form.secondaryPositions.length > 0)) {
         const updatePayload: Record<string, unknown> = {}
         if (form.primaryPosition) updatePayload.primary_position = form.primaryPosition
@@ -201,7 +224,7 @@ export default function AvailabilityForm() {
         await supabase.from('players').update(updatePayload).eq('id', playerId)
       }
 
-      // 2d. Insert availability response
+      // 2e. Insert availability response
       const { error: respErr } = await supabase
         .from('availability_responses')
         .insert({
@@ -361,6 +384,20 @@ export default function AvailabilityForm() {
           />
         </FormField>
 
+        {/* ── Email (conditional) ── */}
+        {requireContactInfo && (
+          <FormField label="Email address" error={errors.email}>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={form.email}
+              onChange={e => setField('email', e.target.value)}
+              autoComplete="email"
+              style={inputStyle(!!errors.email)}
+            />
+          </FormField>
+        )}
+
         {/* ── Availability ── */}
         <FormField label="Are you available? *" error={errors.availability}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -459,6 +496,18 @@ export default function AvailabilityForm() {
               </div>
             </FormField>
           </>
+        )}
+
+        {/* ── Birthday (conditional) ── */}
+        {requireBirthday && (
+          <FormField label="Date of birth">
+            <input
+              type="date"
+              value={form.birthday}
+              onChange={e => setField('birthday', e.target.value)}
+              style={inputStyle(false)}
+            />
+          </FormField>
         )}
 
         {/* ── Availability note ── */}

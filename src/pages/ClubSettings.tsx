@@ -13,6 +13,8 @@ export default function ClubSettings() {
   const [defaultTeams, setDefaultTeams] = useState<string[]>(['1st XV', '2nd XV'])
   const [defaultSquadSize, setDefaultSquadSize] = useState(22)
   const [requirePositions, setRequirePositions] = useState(true)
+  const [requireContactInfo, setRequireContactInfo] = useState(false)
+  const [requireBirthday, setRequireBirthday] = useState(false)
   const [trainingDays, setTrainingDays] = useState<{ id: string; label: string }[]>([{ id: '1', label: 'Wednesday' }])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -38,6 +40,8 @@ export default function ClubSettings() {
     )
     setDefaultSquadSize(clubSettings.default_squad_size ?? 22)
     setRequirePositions(clubSettings.require_positions_in_form ?? true)
+    setRequireContactInfo(clubSettings.require_contact_info ?? false)
+    setRequireBirthday(clubSettings.require_birthday ?? false)
     const days = clubSettings.training_days
     setTrainingDays(
       days && days.length > 0 ? days : [{ id: '1', label: 'Wednesday' }]
@@ -92,6 +96,8 @@ export default function ClubSettings() {
       default_teams: trimmedTeams,
       default_squad_size: defaultSquadSize,
       require_positions_in_form: requirePositions,
+      require_contact_info: requireContactInfo,
+      require_birthday: requireBirthday,
       training_days: trimmedDays.length > 0 ? trimmedDays : [{ id: '1', label: 'Wednesday' }],
     })
 
@@ -315,24 +321,65 @@ export default function ClubSettings() {
           </p>
         </div>
 
-        {/* Position Form Requirement */}
+        {/* Availability Form */}
         <div>
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Ask for positions on Availability Form</label>
-              <p className="text-xs text-gray-500">Players will see primary/secondary position dropdowns</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Availability Form</h3>
+          <div className="space-y-4">
+
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Ask for positions</label>
+                <p className="text-xs text-gray-500">Players will see primary/secondary position dropdowns</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRequirePositions(v => !v)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requirePositions ? 'bg-purple-700' : 'bg-gray-200'}`}
+                role="switch"
+                aria-checked={requirePositions}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${requirePositions ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setRequirePositions(v => !v)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requirePositions ? 'bg-purple-700' : 'bg-gray-200'}`}
-              role="switch"
-              aria-checked={requirePositions}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${requirePositions ? 'translate-x-5' : 'translate-x-0'}`}
-              />
-            </button>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Ask for Email and Phone</label>
+                <p className="text-xs text-gray-500">Collect contact info to build out your roster database</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRequireContactInfo(v => !v)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requireContactInfo ? 'bg-purple-700' : 'bg-gray-200'}`}
+                role="switch"
+                aria-checked={requireContactInfo}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${requireContactInfo ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Ask for Birthday</label>
+                <p className="text-xs text-gray-500">Collect date of birth for player records</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRequireBirthday(v => !v)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requireBirthday ? 'bg-purple-700' : 'bg-gray-200'}`}
+                role="switch"
+                aria-checked={requireBirthday}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${requireBirthday ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
+
           </div>
         </div>
 

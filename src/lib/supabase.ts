@@ -140,6 +140,8 @@ export interface ClubSettings {
   default_teams: string[] | null
   default_squad_size?: number
   require_positions_in_form?: boolean
+  require_contact_info?: boolean
+  require_birthday?: boolean
   training_days?: { id: string; label: string }[] | null
   created_at: string
   updated_at: string
