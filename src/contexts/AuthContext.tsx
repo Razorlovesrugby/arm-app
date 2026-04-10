@@ -25,10 +25,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', userId)
       .single()
 
-    if (profile) {
+    if (profile?.club_id) {
       setActiveClubId(profile.club_id)
     } else {
-      console.warn('User has no linked profile')
+      console.error('fetchProfile: club_id is null or profile missing for user', userId)
       setActiveClubId(null)
     }
   }

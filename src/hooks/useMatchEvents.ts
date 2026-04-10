@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { MatchEvent, MatchEventType } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 export interface TeamStats {
   tries: number
@@ -25,20 +26,26 @@ export interface PlayerEventCounts {
 }
 
 export function useMatchEvents() {
+  const { activeClubId } = useAuth()
   const [events, setEvents]   = useState<MatchEvent[]>([])
   const [loading, setLoading] = useState(false)
   const [saving,  setSaving]  = useState(false)
 
   const fetchMatchEvents = useCallback(async (weekId: string, weekTeamId: string) => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch match events')
+      return
+    }
     setLoading(true)
     const { data } = await supabase
       .from('match_events')
       .select('*')
       .eq('week_id', weekId)
       .eq('week_team_id', weekTeamId)
+      .eq('club_id', activeClubId)
     setEvents((data ?? []) as MatchEvent[])
     setLoading(false)
-  }, [])
+  }, [activeClubId])
 
   // Save all player events for a team in a single batch (delete-then-insert)
   const saveMatchEvents = useCallback(async (
@@ -46,6 +53,10 @@ export function useMatchEvents() {
     weekTeamId: string,
     playerCounts: PlayerEventCounts[],
   ): Promise<void> => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot save match events')
+      return
+    }
     setSaving(true)
 
     const SCORING_POINTS: Record<string, number> = {
@@ -63,7 +74,7 @@ export function useMatchEvents() {
       .in('event_type', ['try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card', 'Conversion Miss', 'Penalty Miss'])
 
     // Build insert rows — one row per occurrence
-    const rows: Omit<MatchEvent, 'id' | 'created_at' | 'club_id'>[] = []
+    const rows: Omit<MatchEvent, 'id' | 'created_at'>[] = []
     for (const p of playerCounts) {
       const types: (keyof Omit<PlayerEventCounts, 'playerId'>)[] = [
         'try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card',
@@ -83,6 +94,7 @@ export function useMatchEvents() {
             player_id:    p.playerId,
             event_type:   eventType,
             points:       SCORING_POINTS[eventType] ?? 0,
+            club_id:      activeClubId,
           })
         }
       }
@@ -95,7 +107,7 @@ export function useMatchEvents() {
     // Refresh local state
     await fetchMatchEvents(weekId, weekTeamId)
     setSaving(false)
-  }, [fetchMatchEvents])
+  }, [fetchMatchEvents, activeClubId])
 
   // Save a single award (mvp_3, mvp_2, mvp_1, dotd) — unique per type per team
   const saveAward = useCallback(async (
@@ -104,6 +116,10 @@ export function useMatchEvents() {
     awardType: 'mvp_3' | 'mvp_2' | 'mvp_1' | 'dotd',
     playerId: string | null,
   ): Promise<void> => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot save award')
+      return
+    }
     // Remove old award of this type for this team
     await supabase
       .from('match_events')
@@ -119,11 +135,12 @@ export function useMatchEvents() {
         player_id:    playerId,
         event_type:   awardType,
         points:       0,
+        club_id:      activeClubId,
       })
     }
 
     await fetchMatchEvents(weekId, weekTeamId)
-  }, [fetchMatchEvents])
+  }, [fetchMatchEvents, activeClubId])
 
   // Derive team-level stats from loaded events
   function getTeamStats(): TeamStats {

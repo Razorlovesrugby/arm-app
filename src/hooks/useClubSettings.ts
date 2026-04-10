@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase, ClubSettings } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 interface UseClubSettingsResult {
   clubSettings: ClubSettings | null
@@ -10,18 +11,24 @@ interface UseClubSettingsResult {
 }
 
 export function useClubSettings(): UseClubSettingsResult {
+  const { activeClubId } = useAuth()
   const [clubSettings, setClubSettings] = useState<ClubSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchClubSettings = useCallback(async () => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch club settings')
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
-    
-    // There should only be one row in club_settings table
+
     const { data, error } = await supabase
       .from('club_settings')
       .select('*')
+      .eq('club_id', activeClubId)
       .limit(1)
       .single()
     
@@ -33,7 +40,7 @@ export function useClubSettings(): UseClubSettingsResult {
     }
     
     setLoading(false)
-  }, [])
+  }, [activeClubId])
 
   useEffect(() => {
     fetchClubSettings()

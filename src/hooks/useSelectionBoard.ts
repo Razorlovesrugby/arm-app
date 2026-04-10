@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Player, WeekTeam, TeamSelection, AvailabilityResponse, PDFTeam, PDFPlayer } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,7 @@ function formatLastPlayed(dateStr: string): string {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoardReturn {
+  const { activeClubId } = useAuth()
 
   const [activeWeekId, setActiveWeekIdState]   = useState<string | null>(initialWeekId)
   const [weekTeams,    setWeekTeams]            = useState<WeekTeam[]>([])       // visible only
@@ -123,16 +125,21 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     setActiveWeekIdState(id)
   }, [])
 
-  // ── Players fetch — week-agnostic, runs once on mount ────────────────────
+  // ── Players fetch — week-agnostic, runs when activeClubId is available ───
 
   useEffect(() => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch players')
+      return
+    }
     supabase
       .from('players')
       .select('*')
+      .eq('club_id', activeClubId)
       .neq('status', 'Archived')
       .order('name')
       .then(({ data }) => setAllPlayers(data ?? []))
-  }, [])
+  }, [activeClubId])
 
   // ── Week-scoped fetch — runs when activeWeekId changes ───────────────────
 
@@ -143,6 +150,12 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
       setSelections([])
       setAvailabilityMap({})
       setPlayerHistory({})
+      setLoading(false)
+      return
+    }
+
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch week data')
       setLoading(false)
       return
     }
@@ -163,6 +176,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
           .from('week_teams')
           .select('*')
           .eq('week_id', wid)
+          .eq('club_id', activeClubId)
           .eq('visible', true)
           .order('sort_order'),
 
@@ -171,17 +185,20 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
           .from('week_teams')
           .select('*')
           .eq('week_id', wid)
+          .eq('club_id', activeClubId)
           .order('sort_order'),
 
         supabase
           .from('team_selections')
           .select('*')
-          .eq('week_id', wid),
+          .eq('week_id', wid)
+          .eq('club_id', activeClubId),
 
         supabase
           .from('availability_responses')
           .select('*')
           .eq('week_id', wid)
+          .eq('club_id', activeClubId)
           .order('created_at', { ascending: false }),
 
         // RPC: last selection history per player, excluding current week
@@ -224,7 +241,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [activeClubId])
 
   useEffect(() => {
     fetchWeekData(activeWeekId)

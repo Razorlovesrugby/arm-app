@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase, Player, Position, POSITIONS } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 // One column per position — players in display order
 export interface PositionColumn {
@@ -50,17 +51,23 @@ function buildColumns(
 }
 
 export function useDepthChart(): UseDepthChartResult {
+  const { activeClubId } = useAuth()
   const [columns, setColumns] = useState<PositionColumn[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchAll = useCallback(async () => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch depth chart')
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
 
     const [playersRes, orderRes] = await Promise.all([
-      supabase.from('players').select('*').order('name', { ascending: true }),
-      supabase.from('depth_chart_order').select('*'),
+      supabase.from('players').select('*').eq('club_id', activeClubId).order('name', { ascending: true }),
+      supabase.from('depth_chart_order').select('*').eq('club_id', activeClubId),
     ])
 
     if (playersRes.error) {
@@ -77,7 +84,7 @@ export function useDepthChart(): UseDepthChartResult {
     const built = buildColumns(playersRes.data ?? [], orderRes.data ?? [])
     setColumns(built)
     setLoading(false)
-  }, [])
+  }, [activeClubId])
 
   useEffect(() => {
     fetchAll()

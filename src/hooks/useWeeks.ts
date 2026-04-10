@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase, Week, WeekTeam } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 export interface WeekWithTeams extends Week {
   week_teams: WeekTeam[]
@@ -43,12 +44,18 @@ export interface CreateWeekParams {
 }
 
 export function useWeeks(): UseWeeksResult {
+  const { activeClubId } = useAuth()
   const [weeks, setWeeks] = useState<WeekWithTeams[]>([])
   const [availabilityCounts, setAvailabilityCounts] = useState<Record<string, AvailabilityCounts>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchWeeks = useCallback(async () => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch weeks')
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -56,11 +63,14 @@ export function useWeeks(): UseWeeksResult {
       supabase
         .from('weeks')
         .select('*, week_teams(*)')
+        .eq('club_id', activeClubId)
         .order('start_date', { ascending: false }),
       supabase
         .from('availability_responses')
-        .select('week_id, availability'),
+        .select('week_id, availability')
+        .eq('club_id', activeClubId),
     ])
+
 
     if (weeksResult.error) {
       setError(weeksResult.error.message)
@@ -86,7 +96,7 @@ export function useWeeks(): UseWeeksResult {
     setAvailabilityCounts(counts)
 
     setLoading(false)
-  }, [])
+  }, [activeClubId])
 
   useEffect(() => {
     fetchWeeks()
@@ -94,6 +104,10 @@ export function useWeeks(): UseWeeksResult {
 
   const createWeek = useCallback(
     async ({ start_date, end_date, label, teamNames, notes }: CreateWeekParams) => {
+      if (!activeClubId) {
+        console.error('activeClubId is null - cannot create week')
+        return { data: null, error: 'No active club' }
+      }
       const token = crypto.randomUUID()
 
       const { data: weekData, error: weekError } = await supabase
@@ -104,6 +118,7 @@ export function useWeeks(): UseWeeksResult {
           label,
           status: 'Open',
           availability_link_token: token,
+          club_id: activeClubId,
           ...(notes ? { notes: notes.trim() } : {}),
         })
         .select()
@@ -132,7 +147,7 @@ export function useWeeks(): UseWeeksResult {
       await fetchWeeks()
       return { data: weekData, error: null }
     },
-    [fetchWeeks]
+    [fetchWeeks, activeClubId]
   )
 
   const updateWeek = useCallback(

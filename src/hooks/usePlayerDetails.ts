@@ -2,6 +2,7 @@
 import { useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { PlayerStatus } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 export interface PlayerStats {
   tries: number
@@ -21,11 +22,18 @@ export interface PlayerCRMPatch {
 }
 
 export function usePlayerDetails() {
+  const { activeClubId } = useAuth()
+
   const fetchPlayerStats = useCallback(async (playerId: string): Promise<PlayerStats> => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch player stats')
+      return { tries: 0, conversions: 0, penalties: 0, dropGoals: 0, yellowCards: 0, redCards: 0, dotd: 0, mvpPoints: 0 }
+    }
     const { data, error } = await supabase
       .from('match_events')
       .select('event_type, points')
       .eq('player_id', playerId)
+      .eq('club_id', activeClubId)
 
     if (error) throw new Error(error.message)
 
@@ -50,13 +58,18 @@ export function usePlayerDetails() {
     }
 
     return stats
-  }, [])
+  }, [activeClubId])
 
   const fetchKickingPercentage = useCallback(async (playerId: string): Promise<number | null> => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch kicking percentage')
+      return null
+    }
     const { data, error } = await supabase
       .from('match_events')
       .select('event_type')
       .eq('player_id', playerId)
+      .eq('club_id', activeClubId)
 
     if (error) throw new Error(error.message)
 
@@ -77,7 +90,7 @@ export function usePlayerDetails() {
     } else {
       return null
     }
-  }, [])
+  }, [activeClubId])
 
   // Invalidate usePlayers cache: caller must invoke refetch() on the parent after this resolves
   const updatePlayerCRM = useCallback(async (playerId: string, patch: PlayerCRMPatch): Promise<void> => {

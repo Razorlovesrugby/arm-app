@@ -198,6 +198,7 @@ export default function AvailabilityForm() {
             player_type: 'Open',
             status: 'Active',
             subscription_paid: false,
+            club_id: week.club_id,
           })
           .select('id')
           .single()
@@ -231,6 +232,7 @@ export default function AvailabilityForm() {
           week_id: week.id,
           player_id: playerId,
           availability: form.availability,
+          club_id: week.club_id,
           submitted_primary_position: form.primaryPosition || null,
           submitted_secondary_positions: form.secondaryPositions,
           availability_note: form.availabilityNote.trim() || null,

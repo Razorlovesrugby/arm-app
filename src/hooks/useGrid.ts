@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase, AvailabilityResponse, Availability } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 export interface GridPlayer {
   id: string
@@ -26,6 +27,7 @@ interface UseGridResult {
 }
 
 export function useGrid(): UseGridResult {
+  const { activeClubId } = useAuth()
   const [players, setPlayers] = useState<GridPlayer[]>([])
   const [weeks, setWeeks] = useState<GridWeek[]>([])
   const [responses, setResponses] = useState<AvailabilityResponse[]>([])
@@ -33,6 +35,11 @@ export function useGrid(): UseGridResult {
   const [error, setError] = useState<string | null>(null)
 
   const fetchAll = useCallback(async () => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot fetch grid')
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -42,11 +49,13 @@ export function useGrid(): UseGridResult {
       supabase
         .from('players')
         .select('id, name')
+        .eq('club_id', activeClubId)
         .eq('is_retired', false)
         .order('name', { ascending: true }),
       supabase
         .from('weeks')
         .select('id, label, start_date, end_date')
+        .eq('club_id', activeClubId)
         .gte('end_date', today)
         .eq('status', 'Open')
         .order('start_date', { ascending: true }),
@@ -92,7 +101,7 @@ export function useGrid(): UseGridResult {
 
     setResponses((respData ?? []) as AvailabilityResponse[])
     setLoading(false)
-  }, [])
+  }, [activeClubId])
 
   useEffect(() => {
     fetchAll()
