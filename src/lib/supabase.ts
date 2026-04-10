@@ -13,6 +13,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Type helpers matching the ARM data model
 // ============================================================
 
+// ============================================================
+// Phase 16.0: Multi-Tenant Types
+// ============================================================
+
+export interface Club {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface Profile {
+  id: string
+  club_id: string
+  role: string
+  created_at: string
+}
+
 export type Position =
   | 'Prop' | 'Hooker' | 'Lock' | 'Flanker' | 'Number 8'
   | 'Scrum-half' | 'Fly-half' | 'Centre' | 'Wing' | 'Fullback'
@@ -25,6 +42,7 @@ export type WeekStatus = 'Open' | 'Closed'
 
 export interface Player {
   id: string
+  club_id: string
   name: string
   email: string
   phone: string
@@ -46,6 +64,7 @@ export interface Player {
 
 export interface DepthChartOrder {
   id: string
+  club_id: string
   position: Position
   player_order: string[]
   updated_at: string
@@ -53,6 +72,7 @@ export interface DepthChartOrder {
 
 export interface Week {
   id: string
+  club_id: string
   start_date: string
   end_date: string
   label: string
@@ -64,6 +84,7 @@ export interface Week {
 
 export interface WeekTeam {
   id: string
+  club_id: string
   week_id: string
   team_name: string
   sort_order: number
@@ -78,6 +99,7 @@ export interface WeekTeam {
 
 export interface AvailabilityResponse {
   id: string
+  club_id: string
   week_id: string
   player_id: string
   availability: Availability
@@ -89,6 +111,7 @@ export interface AvailabilityResponse {
 
 export interface ArchiveGameNote {
   id: string
+  club_id: string
   week_team_id: string
   player_id: string | null
   player_name_snapshot: string
@@ -100,6 +123,7 @@ export interface ArchiveGameNote {
 
 export interface TeamSelection {
   id: string
+  club_id: string
   week_id: string
   week_team_id: string
   player_order: (string | null)[]
@@ -133,6 +157,7 @@ export type MatchEventType =
 
 export interface ClubSettings {
   id: string
+  club_id: string
   club_name: string
   primary_color: string
   secondary_color: string
@@ -149,6 +174,7 @@ export interface ClubSettings {
 
 export interface TrainingAttendance {
   id: string
+  club_id: string
   player_id: string
   week_id: string
   session_id: string
@@ -158,6 +184,7 @@ export interface TrainingAttendance {
 
 export interface MatchEvent {
   id: string
+  club_id: string
   week_id: string
   week_team_id: string
   player_id: string | null
