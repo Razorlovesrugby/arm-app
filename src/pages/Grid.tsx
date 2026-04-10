@@ -8,6 +8,7 @@ import type { Availability } from '../lib/supabase'
 interface AvPlayer {
   id: string
   name: string
+  status: string
 }
 
 interface AvWeek {
@@ -68,6 +69,7 @@ export default function Grid() {
   const [attendanceCounts, setAttendanceCounts] = useState<Record<string, number>>({})
   // availability: Record<`${playerId}:${weekId}`, Availability>
   const [availabilityMap, setAvailabilityMap] = useState<Record<string, Availability>>({})
+  const [showInactive, setShowInactive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -80,7 +82,7 @@ export default function Grid() {
     const [playersRes, weeksRes, settingsRes] = await Promise.all([
       supabase
         .from('players')
-        .select('id, name')
+        .select('id, name, status')
         .eq('is_retired', false)
         .in('status', ['Active', 'Injured', 'Unavailable'])
         .order('name', { ascending: true }),
@@ -158,10 +160,15 @@ export default function Grid() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  const visiblePlayers = useMemo(
+    () => showInactive ? players : players.filter(p => p.status === 'Active'),
+    [players, showInactive]
+  )
+
   const rows = useMemo<AvailabilityRow[]>(() => {
     const currentWeekId = weeks[0]?.id ?? null
     const nextWeekId = weeks[1]?.id ?? null
-    return players.map(p => ({
+    return visiblePlayers.map(p => ({
       playerId: p.id,
       playerName: p.name,
       trainingAttended: attendanceCounts[p.id] ?? 0,
@@ -169,7 +176,7 @@ export default function Grid() {
       currentAvailability: currentWeekId ? (availabilityMap[`${p.id}:${currentWeekId}`] ?? null) : null,
       nextAvailability: nextWeekId ? (availabilityMap[`${p.id}:${nextWeekId}`] ?? null) : null,
     }))
-  }, [players, weeks, attendanceCounts, availabilityMap, totalSessions])
+  }, [visiblePlayers, weeks, attendanceCounts, availabilityMap, totalSessions])
 
   const currentWeek = weeks[0] ?? null
   const nextWeek = weeks[1] ?? null
@@ -233,9 +240,21 @@ export default function Grid() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8F8F8' }}>
       {/* Page header */}
       <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '14px 16px', flexShrink: 0 }}>
-        <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>Availability</h1>
-        <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6B7280' }}>
-          {players.length} players · {currentWeek.label}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>Availability</h1>
+          <button
+            onClick={() => setShowInactive(v => !v)}
+            style={{
+              fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', border: 'none',
+              background: showInactive ? '#EDE9FE' : '#F3F4F6',
+              color: showInactive ? '#6B21A8' : '#6B7280',
+            }}
+          >
+            {showInactive ? 'Active + Inactive' : 'Active only'}
+          </button>
+        </div>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6B7280' }}>
+          {visiblePlayers.length} players · {currentWeek.label}
           {nextWeek ? ` + ${nextWeek.label}` : ''}
         </p>
       </div>

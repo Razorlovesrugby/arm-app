@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 interface AttendancePlayer {
   id: string
   name: string
+  status: string
 }
 
 interface AttendanceWeek {
@@ -35,6 +36,7 @@ export default function Attendance() {
   const [weeks, setWeeks] = useState<AttendanceWeek[]>([])
   const [trainingDays, setTrainingDays] = useState<TrainingDay[]>([])
   const [attendanceMap, setAttendanceMap] = useState<AttendanceMap>({})
+  const [showInactive, setShowInactive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toastError, setToastError] = useState<string | null>(null)
@@ -48,7 +50,7 @@ export default function Attendance() {
     const [playersRes, weeksRes, settingsRes] = await Promise.all([
       supabase
         .from('players')
-        .select('id, name')
+        .select('id, name, status')
         .eq('is_retired', false)
         .in('status', ['Active', 'Injured', 'Unavailable'])
         .order('name', { ascending: true }),
@@ -177,6 +179,8 @@ export default function Attendance() {
     )
   }
 
+  const visiblePlayers = showInactive ? players : players.filter(p => p.status === 'Active')
+
   // Build column list: [{weekId, weekLabel, weekDate, sessionId, sessionLabel}]
   const columns = weeks.flatMap(week =>
     trainingDays.map(day => ({
@@ -192,9 +196,21 @@ export default function Attendance() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#F8F8F8' }}>
       {/* Page header */}
       <div style={{ background: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '14px 16px', flexShrink: 0 }}>
-        <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>Attendance</h1>
-        <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6B7280' }}>
-          {players.length} players · {weeks.length} week{weeks.length !== 1 ? 's' : ''} · {trainingDays.length} session{trainingDays.length !== 1 ? 's' : ''} per week
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>Attendance</h1>
+          <button
+            onClick={() => setShowInactive(v => !v)}
+            style={{
+              fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', border: 'none',
+              background: showInactive ? '#EDE9FE' : '#F3F4F6',
+              color: showInactive ? '#6B21A8' : '#6B7280',
+            }}
+          >
+            {showInactive ? 'Active + Inactive' : 'Active only'}
+          </button>
+        </div>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6B7280' }}>
+          {visiblePlayers.length} players · {weeks.length} week{weeks.length !== 1 ? 's' : ''} · {trainingDays.length} session{trainingDays.length !== 1 ? 's' : ''} per week
         </p>
       </div>
 
@@ -277,7 +293,7 @@ export default function Attendance() {
           </thead>
 
           <tbody>
-            {players.map((player, idx) => {
+            {visiblePlayers.map((player, idx) => {
               const isOdd = idx % 2 === 1
               return (
                 <tr key={player.id} style={{ background: isOdd ? '#F9FAFB' : '#FFFFFF' }}>
@@ -328,7 +344,7 @@ export default function Attendance() {
           </tbody>
         </table>
 
-        {players.length === 0 && (
+        {visiblePlayers.length === 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 24px', gap: 12, textAlign: 'center' }}>
             <span style={{ fontSize: 36 }}>🏉</span>
             <p style={{ fontSize: 15, fontWeight: 600, color: '#111827', margin: 0 }}>No active players</p>
