@@ -140,8 +140,18 @@ export interface ClubSettings {
   default_teams: string[] | null
   default_squad_size?: number
   require_positions_in_form?: boolean
+  training_days?: { id: string; label: string }[] | null
   created_at: string
   updated_at: string
+}
+
+export interface TrainingAttendance {
+  id: string
+  player_id: string
+  week_id: string
+  session_id: string
+  attended: boolean
+  created_at: string
 }
 
 export interface MatchEvent {

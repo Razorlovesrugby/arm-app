@@ -15,7 +15,8 @@ const navigation = [
   { path: '/roster',        label: 'Roster' },
   { path: '/depth',         label: 'Depth Chart' },
   { path: '/weeks',         label: 'Weeks' },
-  { path: '/grid',          label: 'Master Grid' },
+  { path: '/grid',          label: 'Availability' },
+  { path: '/attendance',    label: 'Attendance' },
   { path: '/results',       label: 'Results' },
   { path: '/club-settings', label: 'Club Settings' },
 ]

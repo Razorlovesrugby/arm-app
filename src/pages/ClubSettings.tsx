@@ -13,6 +13,7 @@ export default function ClubSettings() {
   const [defaultTeams, setDefaultTeams] = useState<string[]>(['1st XV', '2nd XV'])
   const [defaultSquadSize, setDefaultSquadSize] = useState(22)
   const [requirePositions, setRequirePositions] = useState(true)
+  const [trainingDays, setTrainingDays] = useState<{ id: string; label: string }[]>([{ id: '1', label: 'Wednesday' }])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -37,6 +38,10 @@ export default function ClubSettings() {
     )
     setDefaultSquadSize(clubSettings.default_squad_size ?? 22)
     setRequirePositions(clubSettings.require_positions_in_form ?? true)
+    const days = clubSettings.training_days
+    setTrainingDays(
+      days && days.length > 0 ? days : [{ id: '1', label: 'Wednesday' }]
+    )
   }, [clubSettings])
 
   // Cleanup on unmount
@@ -78,6 +83,7 @@ export default function ClubSettings() {
     setSaveSuccess(false)
 
     const trimmedTeams = defaultTeams.map(t => t.trim()).filter(Boolean)
+    const trimmedDays = trainingDays.map(d => ({ id: d.id, label: d.label.trim() })).filter(d => d.label)
 
     const { error } = await updateClubSettings({
       club_name: clubName.trim(),
@@ -86,6 +92,7 @@ export default function ClubSettings() {
       default_teams: trimmedTeams,
       default_squad_size: defaultSquadSize,
       require_positions_in_form: requirePositions,
+      training_days: trimmedDays.length > 0 ? trimmedDays : [{ id: '1', label: 'Wednesday' }],
     })
 
     setSaving(false)
@@ -200,6 +207,42 @@ export default function ClubSettings() {
               />
             </div>
           )}
+        </div>
+
+        {/* Training Schedule */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Training Schedule</label>
+          <p className="text-xs text-gray-500 mb-3">Days used for tracking attendance each week</p>
+
+          <div className="space-y-3">
+            {trainingDays.map((day, idx) => (
+              <div key={day.id} className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={day.label}
+                  onChange={e => setTrainingDays(prev => prev.map((d, i) => i === idx ? { ...d, label: e.target.value } : d))}
+                  placeholder="e.g. Wednesday"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-gray-900"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTrainingDays(prev => prev.filter((_, i) => i !== idx))}
+                  disabled={trainingDays.length <= 1}
+                  className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setTrainingDays(prev => [...prev, { id: String(Date.now()), label: '' }])}
+              className="w-full rounded-lg bg-purple-100 px-4 py-3 text-sm font-medium text-purple-700"
+            >
+              + Add Training Day
+            </button>
+          </div>
         </div>
 
         {/* Default Teams */}

@@ -71,6 +71,10 @@ export default function PlayerOverlay({
   const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Training attendance for the active week
+  const [trainingAttended, setTrainingAttended] = useState<number | null>(null)
+  const [trainingTotal, setTrainingTotal] = useState<number | null>(null)
+
   // Lock body scroll while overlay is open
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -83,6 +87,53 @@ export default function PlayerOverlay({
     setCoachNotes(player.notes ?? '')
     setNotesSaveStatus('idle')
   }, [player.id, isCaptain, player.notes])
+
+  // Fetch training attendance for active week
+  useEffect(() => {
+    let cancelled = false
+    setTrainingAttended(null)
+    setTrainingTotal(null)
+
+    async function fetchTraining() {
+      const today = new Date().toISOString().split('T')[0]
+      const { data: weekData } = await supabase
+        .from('weeks')
+        .select('id')
+        .gte('end_date', today)
+        .eq('status', 'Open')
+        .order('start_date', { ascending: true })
+        .limit(1)
+        .single()
+
+      if (!weekData || cancelled) return
+
+      const [attRes, settingsRes] = await Promise.all([
+        supabase
+          .from('training_attendance')
+          .select('attended')
+          .eq('player_id', player.id)
+          .eq('week_id', weekData.id),
+        supabase
+          .from('club_settings')
+          .select('training_days')
+          .limit(1)
+          .single(),
+      ])
+
+      if (cancelled) return
+
+      if (!attRes.error && attRes.data) {
+        setTrainingAttended(attRes.data.filter((r: { attended: boolean }) => r.attended).length)
+      }
+      if (!settingsRes.error && settingsRes.data?.training_days) {
+        const days = settingsRes.data.training_days as { id: string }[]
+        setTrainingTotal(days.length)
+      }
+    }
+
+    fetchTraining()
+    return () => { cancelled = true }
+  }, [player.id])
 
   // Debounced save for coach notes
   const saveNotes = useCallback(async (value: string) => {
@@ -178,11 +229,17 @@ export default function PlayerOverlay({
             <CaptainToggle on={captainState} onToggle={handleCaptainToggle} />
           </div>
 
-          {/* Section 2 — Info grid (2x2) */}
+          {/* Section 2 — Info grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <InfoCell label="Last Team"   value={lastTeam   ?? '—'} />
             <InfoCell label="Last Played" value={lastPlayed ?? '—'} />
             <InfoCell label="Availability" value={avLabel} valueColor={avColor} />
+            <InfoCell
+              label="Training"
+              value={trainingAttended !== null && trainingTotal !== null
+                ? `${trainingAttended} / ${trainingTotal}`
+                : '—'}
+            />
           </div>
 
           {/* Section 3 — Positions */}
