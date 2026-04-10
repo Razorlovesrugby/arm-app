@@ -64,6 +64,8 @@
 - **default_teams**: TEXT[] (Optional, for pre-filling new weeks)
 - **default_squad_size**: INTEGER (Default: 22, total players in squad)
 - **require_positions_in_form**: BOOLEAN (Default: true, whether availability form asks for positions)
+- **require_contact_info**: BOOLEAN (Default: false, whether availability form asks for email and phone)
+- **require_birthday**: BOOLEAN (Default: false, whether availability form asks for birthday)
 - **training_days**: JSONB (Default: '[{"id": "1", "label": "Wednesday"}]'::jsonb, array of {id, label} objects)
 - **created_at**: TIMESTAMPTZ (Default: now())
 - **updated_at**: TIMESTAMPTZ (Default: now())
@@ -121,6 +123,7 @@
 13. **014_phase_14.sql** - Phase 14.3 — Kicking Miss Events
 14. **015_phase_14_4.sql** - Phase 14.4 — Club Settings Expansion (default_squad_size, require_positions_in_form)
 15. **016_phase_15_1.sql** - Phase 15.1 — Training Attendance Tracker (training_attendance table, club_settings.training_days column)
+16. **017_phase_15_2.sql** - Phase 15.2 — Availability Form Data Collection Mode (require_contact_info, require_birthday columns in club_settings)
 
 ### Migration Notes
 - All migrations are idempotent (safe to run multiple times)

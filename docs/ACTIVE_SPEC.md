@@ -1,187 +1,345 @@
-# ACTIVE SPEC: Phase 12.6 Implementation — UI Polish, Grid Foundation & Bug Fixes
+# ACTIVE SPEC: Phase 16.0 — Multi-Tenant Database Architecture & Data Backfill
 
 **Status:** Ready for Implementation  
-**Target:** Implement all Phase 12.6 features from completed specification  
-**Priority:** High — Critical UX improvements and new coach view  
-**Context-Free:** ✅ All decisions made in completed spec  
+**Target:** Transform ARM15 Lite into scalable multi-tenant SaaS with zero frontend impact  
+**Priority:** Critical — Foundation for multi-club support  
+**Context-Free:** ✅ All decisions locked below  
 **Preserves All Features:** ✅ No existing functionality removed or broken
-**Implementation Start:** 2026-04-08
-**Reference Spec:** `/docs/phase-specs/12.6_COMPLETED_SPEC.md`
+**Implementation Start:** 2026-04-10
 
 ---
 
-## 🎯 Implementation Overview
-
-Phase 12.6 implementation includes four major components:
-
-1. **Filter Consistency:** "Show Retired Players" toggle needs to match existing filter UX
-2. **Overlay Scroll Fixes:** Fix "horizontal jiggle" and "scroll chaining" in modals
-3. **Master Availability Grid:** Bird's-eye view of availability across all upcoming weeks
-4. **Branding Features:** Club name, colors, logo customization, default teams, game notes
+## 🎯 Why
+To transition ARM15 Lite into a scalable, multi-tenant SaaS application. This phase acts as the "open-heart surgery" on the backend. We are establishing the Database Schema for multi-tenancy, backfilling all legacy data into a default "ARM15 Lite Master" club, and locking down the database with Row Level Security (RLS). 
+**CRITICAL:** From a Frontend perspective, there must be ZERO visual or functional impact. This is purely a backend data restructuring phase.
 
 ---
 
-## 📋 Implementation Tasks
-
-### Task 1: Database Migration
-- **File:** `supabase/migrations/013_phase_12_6.sql`
-- **Content:** From completed spec (lines 143-171)
-- **Action:** Create and apply migration
-- **Verify:** Check constraints exist after migration
-
-### Task 2: Color Utilities
-- **File:** `src/lib/colorUtils.ts` — NEW
-- **Content:** From completed spec (lines 173-196)
-- **Functions:** `getContrastColor()`, `isValidHexColor()`
-
-### Task 3: Master Grid Data Hook
-- **File:** `src/hooks/useGrid.ts` — NEW
-- **Functionality:** Fetch active players, open/future weeks, availability responses
-- **Transform:** Map into efficient 2D dictionary using `useMemo`
-- **Performance:** No virtualization needed for 60×10 matrix
-
-### Task 4: Master Grid UI
-- **File:** `src/pages/Grid.tsx` — NEW
-- **Layout:** Sticky left column (players), sticky top row (weeks)
-- **CSS:** Three-layer z-index system for iOS Safari compatibility
-- **Cells:** Color-coded availability badges
-- **Routing:** Add `/grid` route to `App.tsx` and `Sidebar.tsx`
-
-### Task 5: Club Settings Page
-- **File:** `src/pages/ClubSettings.tsx` — COMPLETE REWRITE
-- **Current:** Placeholder "Coming Soon" page
-- **New:** Full branding UI with:
-  - Brand color picker with contrast validation
-  - Logo URL input with "Try to Load" validation
-  - Default teams array input (add/remove, max 10)
-  - Save/validation logic
-
-### Task 6: Filter Consistency
-- **Files:** `src/pages/Roster.tsx`, `src/pages/DepthChart.tsx`
-- **Goal:** Ensure "Retired" handled consistently across all filter implementations
-- **Action:** Audit filter implementations, integrate "Show Retired Players" toggle if separate exists
-
-### Task 7: Overlay Scroll Fixes
-- **Files:** `PlayerOverlay.tsx`, `SelectionBoard.tsx`, `PlayerFormSheet.tsx`, `DeletePlayerDialog.tsx`, modal overlays
-- **Fix 1:** Add `overscroll-behavior: contain` to overlay containers
-- **Fix 2:** Lock body scroll when modals open
-- **Fix 3:** Use `100%` instead of `100vw` for viewport calculations
-
-### Task 8: Integration Updates
-- **File:** `src/hooks/useClubSettings.ts` — Add `default_teams` to interface
-- **File:** `src/hooks/useWeeks.ts` — Update `CreateWeekParams` with `teamNames` and `notes`
-- **File:** `src/pages/Weeks.tsx` — Add game notes, pre-populate teams from defaults
-- **File:** `src/pages/AvailabilityForm.tsx` — Display club branding and week notes
-- **File:** `src/pages/ResultDetail.tsx` — Add opponent input per team
-- **File:** `src/lib/supabase.ts` — Add new column types
-- **File:** `src/App.tsx` — Inject CSS variable for `--primary`
+## 🧠 Context Gathering (COMPLETED)
+Based on analysis of existing migrations, the following core tables require `club_id`:
+1. `players` - Main player roster
+2. `depth_chart_order` - Position ordering
+3. `weeks` - Weekly scheduling
+4. `week_teams` - Teams within weeks
+5. `availability_responses` - Availability submissions
+6. `team_selections` - Selected players
+7. `club_settings` - Club configuration (will have one row per club)
+8. `match_events` - Match performance tracking
+9. `training_attendance` - Training records
+10. `archive_game_notes` - Archived game notes
 
 ---
 
-## 🏗️ Critical Implementation Details
+## 🏗️ Architecture Decisions (Locked)
 
-### Database Schema (Already in Spec)
-- `club_settings.default_teams`: `TEXT[]` (nullable)
-- `weeks.notes`: `TEXT` (nullable, max 1000 chars)
-- `week_teams.opponent`: `TEXT` (nullable, max 100 chars)
+### Zero Frontend UI Impact
+- Do NOT touch or modify any UI components, pages, or frontend Supabase query hooks (e.g., `usePlayers`, `useWeeks`). The frontend must remain completely unaffected during this phase.
 
-### CSS & Layout (Critical for iOS)
-- **Sticky Headers:** Three-layer z-index system
-- **Intersection Cell:** First `<th>` in `<thead>` with highest z-index
-- **Background Colors Mandatory:** Prevents bleed-through on mobile WebKit
-- **Test on iOS Safari:** Mandatory acceptance criteria
+### Authentication Scope
+- This is strictly a "Coaching App." Players do NOT log in. 
 
-### Performance Optimizations
-- **`useMemo` for Matrix:** Memoize 2D availability dictionary
-- **`React.memo` for Rows:** Prevent unnecessary re-renders
-- **No Virtualization:** 60 players × 10 weeks = 600 DOM nodes → standard React sufficient
+### The Auth Bridge
+- A `profiles` table will link a logged-in Supabase `auth.users.id` to a specific `club_id`. Role defaults to `'coach'`. One email = one club.
 
-### Fallbacks & Edge Cases
-- **Empty `default_teams`:** Fallback to `["1st XV", "2nd XV"]`
-- **Invalid Brand Color:** Show error, prevent save, suggest accessible alternatives
-- **Network Failures:** Preserve form data, show retry toast
-- **PWA Updates:** Update `theme_color` meta tag with brand color
+### Legacy Data Backfill
+- ALL existing data currently in the database (every player, week, event, setting, etc.) MUST be associated with a newly generated master club named `"ARM15 Lite Master"`. This ensures no existing data is orphaned or broken.
 
----
+### Public Availability Link
+- Players join/update their data via the public availability link. The backend will derive the correct `club_id` by looking up the `week_id` in the URL parameters (Frontend logic for this comes in Phase 16.2).
 
-## ✅ Acceptance Criteria (From Completed Spec)
+### Club Settings
+- Each club will have its own `club_settings` row. All clubs start with identical default settings but can toggle custom settings independently.
 
-### Filter Consistency
-- [ ] "Retired" handled consistently across all filter implementations
-- [ ] No separate full-width toggle for retired players
-- [ ] Matches existing roster UX patterns exactly
-
-### Overlay Scroll Fixes  
-- [ ] No "horizontal jiggle" when scrolling overlays
-- [ ] Background locked when modals open (`document.body.style.overflow = 'hidden'`)
-- [ ] Smooth scrolling on iOS Safari and Chrome Android
-- [ ] `overscroll-behavior: contain` implemented in overlay containers
-
-### Master Availability Grid
-- [ ] `useGrid.ts` efficiently fetches and transforms data (players, weeks, responses)
-- [ ] Grid renders players vertically, weeks horizontally
-- [ ] Sticky left column and top row work correctly on iOS Safari
-- [ ] Top-left cell intersection overlaps correctly with highest `z-index`
-- [ ] Cells show correct availability status with brand colors
-- [ ] `/grid` route added to `App.tsx` and `Sidebar.tsx`
-
-### Branding Features
-- [ ] `club_settings.default_teams` column exists as `TEXT[]` (nullable)
-- [ ] `weeks.notes` column exists as `TEXT` (nullable, max 1000 chars)
-- [ ] `week_teams.opponent` column exists as `TEXT` (nullable, max 100 chars)
-- [ ] Club settings page with brand color picker, logo URL, default teams
-- [ ] Create week form pre-populates teams from `club_settings.default_teams` (COPY)
-- [ ] Week cards display and allow editing of game notes
-- [ ] Availability form displays club branding and week notes
-- [ ] Result detail page has opponent input per team
-- [ ] Dynamic contrast-aware text colors based on brand color luminance
-- [ ] `theme_color` meta tag updates with brand color for PWA
-
-### Database Constraints
-- [ ] `CHECK (array_length(default_teams, 1) <= 10)` constraint exists
-- [ ] `CHECK (length(notes) <= 1000)` constraint exists  
-- [ ] `CHECK (length(opponent) <= 100)` constraint exists
+### Anonymous User Creation
+- If a player's name or phone doesn't match existing records when submitting via an availability link, they will be auto-created as a new player for the club whose availability link was used.
 
 ---
 
-## 📁 Implementation Order (Recommended)
+## 📁 Files to Touch (Exact Paths)
 
-1. **Database Migration** (Task 1) — Foundation for all features
-2. **Color Utilities** (Task 2) — Required for branding
-3. **Club Settings Page** (Task 5) — Core branding feature
-4. **Integration Updates** (Task 8) — Connect branding to existing features
-5. **Master Grid** (Tasks 3-4) — New feature
-6. **Filter Consistency** (Task 6) — UX polish
-7. **Overlay Scroll Fixes** (Task 7) — Mobile UX improvement
-8. **Testing** — All features on iOS Safari
+1. **`supabase/migrations/018_phase_16_0.sql`** — NEW
+   - Complete multi-tenant database migration
+   - Creates `clubs` and `profiles` tables
+   - Adds `club_id` to 10 core tables
+   - Implements RLS with club-based security
+
+2. **`src/lib/supabase.ts`** — UPDATE
+   - Add `Club` and `Profile` TypeScript interfaces
+   - Update all existing entity interfaces to include `club_id: string`
+   - Maintain backward compatibility
+
+3. **`src/contexts/AuthContext.tsx`** — UPDATE
+   - Add `activeClubId` to context state
+   - Query `profiles` table after auth session resolves
+   - Expose club ID via context
+   - Add console warning for users without profiles
 
 ---
 
-## 🚀 Quick Start Commands
+## 🎨 Database Implementation
 
-```bash
-# Create migration file
-touch supabase/migrations/013_phase_12_6.sql
+### Migration 018: Phase 16.0 SQL
+```sql
+-- Phase 16.0: Multi-Tenant Database Architecture & Data Backfill
+-- CRITICAL: Backup database before running this migration
 
-# Apply migration (in Supabase SQL editor)
-# Copy content from phase-specs/12.6_COMPLETED_SPEC.md lines 143-171
+-- Step 1: Create clubs table
+CREATE TABLE clubs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-# Create new files
-touch src/lib/colorUtils.ts
-touch src/hooks/useGrid.ts
-touch src/pages/Grid.tsx
+-- Step 2: Insert master club and store its ID
+DO $$ 
+DECLARE 
+  master_club_id UUID;
+BEGIN
+  INSERT INTO clubs (name) VALUES ('ARM15 Lite Master') 
+  RETURNING id INTO master_club_id;
+  
+  -- Step 3: Create profiles table
+  CREATE TABLE profiles (
+    id UUID REFERENCES auth.users(id) PRIMARY KEY,
+    club_id UUID REFERENCES clubs(id) NOT NULL,
+    role TEXT DEFAULT 'coach',
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+  
+  -- Step 4: Add club_id to all core tables
+  ALTER TABLE players ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE depth_chart_order ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE weeks ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE week_teams ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE availability_responses ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE team_selections ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE club_settings ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE match_events ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE training_attendance ADD COLUMN club_id UUID REFERENCES clubs(id);
+  ALTER TABLE archive_game_notes ADD COLUMN club_id UUID REFERENCES clubs(id);
+  
+  -- Step 5: Backfill all existing data with master club ID
+  UPDATE players SET club_id = master_club_id;
+  UPDATE depth_chart_order SET club_id = master_club_id;
+  UPDATE weeks SET club_id = master_club_id;
+  UPDATE week_teams SET club_id = master_club_id;
+  UPDATE availability_responses SET club_id = master_club_id;
+  UPDATE team_selections SET club_id = master_club_id;
+  UPDATE club_settings SET club_id = master_club_id;
+  UPDATE match_events SET club_id = master_club_id;
+  UPDATE training_attendance SET club_id = master_club_id;
+  UPDATE archive_game_notes SET club_id = master_club_id;
+  
+  -- Step 6: Make club_id NOT NULL
+  ALTER TABLE players ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE depth_chart_order ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE weeks ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE week_teams ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE availability_responses ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE team_selections ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE club_settings ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE match_events ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE training_attendance ALTER COLUMN club_id SET NOT NULL;
+  ALTER TABLE archive_game_notes ALTER COLUMN club_id SET NOT NULL;
+  
+  -- Step 7: Enable RLS (already enabled, but confirm)
+  ALTER TABLE clubs ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+  
+  -- Step 8: Create RLS policies with club-based security
+  -- Clubs: authenticated users can read all clubs
+  CREATE POLICY "Authenticated users can read clubs"
+    ON clubs FOR SELECT TO authenticated USING (true);
+    
+  -- Profiles: users can only read their own profile
+  CREATE POLICY "Users can read own profile"
+    ON profiles FOR SELECT TO authenticated
+    USING (auth.uid() = id);
+    
+  -- Core tables: users can only access rows from their club
+  CREATE POLICY "Club-based access for players"
+    ON players FOR ALL TO authenticated
+    USING (club_id = (SELECT club_id FROM profiles WHERE id = auth.uid()));
+    
+  -- Repeat similar policies for all other core tables...
+  
+  -- Step 9: Preserve anonymous access for public availability forms
+  CREATE POLICY "Anonymous can insert players with club from week"
+    ON players FOR INSERT TO anon
+    WITH CHECK (true); -- Club_id derived from week lookup in application logic
+    
+  CREATE POLICY "Anonymous can insert availability responses"
+    ON availability_responses FOR INSERT TO anon
+    WITH CHECK (true); -- Club_id derived from week lookup
+    
+  CREATE POLICY "Anonymous can read weeks for token lookup"
+    ON weeks FOR SELECT TO anon USING (true);
+END $$;
+```
 
-# Update existing files
-# See Task 8 for list of files to update
+### AuthContext Updates
+```typescript
+// Add to AuthContext interface
+interface AuthContextValue {
+  session: Session | null;
+  user: User | null;
+  loading: boolean;
+  activeClubId: string | null; // NEW
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
+}
+
+// In AuthProvider useEffect after session is set:
+if (data.session?.user) {
+  supabase
+    .from('profiles')
+    .select('club_id')
+    .eq('id', data.session.user.id)
+    .single()
+    .then(({ data: profile }) => {
+      if (profile) {
+        setActiveClubId(profile.club_id);
+      } else {
+        console.warn('User has no linked profile');
+        setActiveClubId(null);
+      }
+    });
+}
+```
+
+### Database Types Update
+```typescript
+// Add new interfaces
+export interface Club {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  club_id: string;
+  role: string;
+  created_at: string;
+}
+
+// Update existing interfaces to include club_id
+export interface Player {
+  id: string;
+  club_id: string; // NEW
+  name: string;
+  email: string;
+  // ... existing fields
+}
+
+// Repeat for all other entity interfaces...
 ```
 
 ---
 
-## 📝 Notes
+## ✅ Acceptance Criteria (Binary Pass/Fail)
 
-- **Reference:** Full implementation details in `/docs/phase-specs/12.6_COMPLETED_SPEC.md`
-- **Testing:** Mandatory iOS Safari testing for overlay scroll fixes and sticky grid
-- **Backward Compatibility:** All existing functionality must be preserved
-- **Performance:** Client-side data transformation only (no RPC needed)
+### Database Migration
+- [ ] Database backup created before migration execution
+- [ ] Migration 018 executes perfectly without dropping any legacy data
+- [ ] The "ARM15 Lite Master" club is created and all existing data is mapped to it
+- [ ] Each club gets its own `club_settings` row with default values
+- [ ] All 10 core tables have `club_id` column as NOT NULL
 
-**Deliverable:** Fully implemented Phase 12.6 with all features working on iOS Safari.
+### Authentication & Security
+- [ ] `AuthContext` successfully fetches and stores the `activeClubId`
+- [ ] RLS policies enforce club-based access for authenticated users
+- [ ] Anonymous users can still submit availability forms with auto-creation of new players for the correct club
+
+### Zero Frontend Impact
+- [ ] ZERO frontend query hooks (`src/hooks/*`) were touched
+- [ ] ZERO UI components or pages were modified
+- [ ] All existing functionality continues working without changes
+
+### Type Safety
+- [ ] All TypeScript interfaces updated to include `club_id: string`
+- [ ] New `Club` and `Profile` interfaces added to `supabase.ts`
+- [ ] TypeScript compilation passes without errors
+
+---
+
+## ⚠️ Edge Cases (Already Handled)
+
+### Constraint Order
+- Execute the `UPDATE` step to backfill the `club_id` BEFORE applying the `NOT NULL` constraints, otherwise the migration will instantly fail.
+
+### Club Settings Migration
+- Existing single `club_settings` row needs to be duplicated for the master club with `club_id` added.
+
+### Anonymous Access
+- RLS policies must allow `anon` users to insert into `players` and `availability_responses` with proper `club_id` derived from week lookup.
+
+### Data Integrity
+- All foreign key relationships preserved when adding `club_id`
+- No orphaned data after migration
+
+---
+
+## 🚀 Implementation Order
+
+1. **Create Database Backup** — Safety first
+   - Use Supabase CLI or pg_dump to backup current state
+
+2. **Write Migration File** — Core database changes
+   - Create `018_phase_16_0.sql` with all SQL operations
+
+3. **Update TypeScript Types** — Frontend type safety
+   - Modify `src/lib/supabase.ts` to include new interfaces and `club_id` fields
+
+4. **Enhance AuthContext** — Club awareness
+   - Update `src/contexts/AuthContext.tsx` to fetch and expose `activeClubId`
+
+5. **Test Migration** — Controlled execution
+   - Execute migration in a controlled manner
+   - Verify all data properly backfilled
+
+6. **Verify Data Integrity** — Quality assurance
+   - Confirm RLS policies work correctly
+   - Test anonymous access for availability forms
+
+---
+
+## 📝 Quick Start Commands
+
+```bash
+# Create migration file
+touch supabase/migrations/018_phase_16_0.sql
+
+# Backup database (example - adjust for your Supabase setup)
+supabase db dump --data-only -f backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Apply migration in Supabase SQL editor
+# Copy content from migration file
+
+# Update TypeScript files
+# 1. Update src/lib/supabase.ts
+# 2. Update src/contexts/AuthContext.tsx
+```
+
+---
+
+## 🔧 Technical Details
+
+### Backup Strategy
+- Use `pg_dump` or Supabase backup tool
+- Store backup file securely before migration
+
+### RLS Policy Pattern
+```sql
+USING (club_id = (SELECT club_id FROM profiles WHERE id = auth.uid()))
+```
+
+### Anonymous Policy Logic
+- Derive `club_id` from `week_id` lookup in application logic
+- Auto-create players with correct club association
+
+### Performance Considerations
+- Add indexes on `club_id` columns for large tables
+- Consider composite indexes for frequent query patterns
+
+**Deliverable:** Fully implemented multi-tenant database architecture with zero frontend impact, ready for Phase 16.1 club management UI.

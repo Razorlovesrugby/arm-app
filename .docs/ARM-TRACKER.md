@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-10 13:47**
-**Current position: Phase 15.1 Complete — Training Attendance Tracker & Availability Dashboard implemented.**
+**Last updated: 2026-04-10 14:30**
+**Current position: Phase 15.2 Complete — Availability Form Data Collection Mode implemented.**
 
 ---
 
@@ -282,6 +282,7 @@
 | CP | Description | Status |
 |---|---|---|
 | 15.1 | Training Attendance Tracker & Availability Dashboard — Custom training days, attendance tracking, integrated availability view | ✅ Done (2026-04-10) |
+| 15.2 | Availability Form Data Collection Mode — Email/birthday collection toggles, conditional fields in availability form, player profile updates | ✅ Done (2026-04-10) |
 
 ---
 

@@ -1,0 +1,36 @@
+# ACTIVE SPEC: Phase 15.1 — Training & Availability Bridge
+**Context:** Supabase + React (Tailwind). Use optimistic updates for toggles.
+
+## 💾 Database (Migration 016)
+- `club_settings`: Add `training_days` (JSONB, default: `[{"id":"1","label":"Wednesday"}]`)
+- `training_attendance`: `id`, `player_id`, `week_id`, `session_id`, `attended` (bool). 
+- `UNIQUE(player_id, week_id, session_id)`. Enable RLS.
+
+## 📂 Files & Logic
+
+### 1. Types (`src/lib/supabase.ts`)
+Update `ClubSettings` and add `TrainingAttendance` interfaces.
+
+### 2. Navigation (`App.tsx`, `Sidebar.tsx`)
+- Add `/attendance` (Label: "Attendance").
+- Rename `/grid` to "Availability".
+
+### 3. Training Config (`ClubSettings.tsx`)
+UI to CRUD the `training_days` JSON array. simple list + "Add" button.
+
+### 4. Attendance Matrix (`Attendance.tsx`) — NEW
+- **Layout:** Sticky left column (Player Names) | Horizontal scroll weeks/sessions.
+- **Logic:** Matrix of 48px cells. Toggle `attended` on click (Upsert). 
+- **Style:** Green + checkmark (true) / Gray + dash (false).
+
+### 5. Availability Dashboard (`Grid.tsx` Refactor)
+- Header: "Availability". 
+- Data: Merge Match Availability with current week Training Ratio (`attended_count/total_sessions`).
+
+### 6. Player Context (`PlayerOverlay.tsx`)
+Fetch and display `Training: X/Y` in the info grid for the active week.
+
+## ✅ Critical Constraints
+- **iOS Safari:** Ensure `sticky` CSS works for the player name column.
+- **Data Integrity:** If a session is deleted from settings, ignore its ID in the UI but preserve DB record.
+- **Efficiency:** Use shared Supabase hooks. Minimize re-renders on matrix toggles.

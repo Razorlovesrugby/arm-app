@@ -2,6 +2,24 @@ ARM Session Log
 
 ---
 
+## [2026-04-10 14:15] Session Summary
+- **Primary Objective:** Availability Form Data Collection Mode
+- **Tasks Completed:**
+  - [x] Migration 017: require_contact_info and require_birthday columns added to club_settings
+  - [x] Club Settings UI updated with "Availability Form" section and three toggles
+  - [x] Availability Form conditional email field (when require_contact_info is true)
+  - [x] Availability Form date picker for birthday (when require_birthday is true)
+  - [x] Submission logic updates to save email/birthday to player profiles
+- **Architecture / Database Decisions Locked:**
+  - require_contact_info: BOOLEAN DEFAULT false in club_settings
+  - require_birthday: BOOLEAN DEFAULT false in club_settings  
+  - Email validation: basic format check (@ and .)
+  - Birthday format: YYYY-MM-DD (native date picker)
+  - Player profile updates: email and date_of_birth fields updated when provided
+- **Next Up:** Next priority from tracker (check ARM-TRACKER.md)
+
+---
+
 ## [2026-04-10 13:44] Session Summary
 - **Primary Objective:** Training Attendance Tracker & Availability Dashboard
 - **Tasks Completed:**
