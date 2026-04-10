@@ -52,6 +52,33 @@ export function usePlayerDetails() {
     return stats
   }, [])
 
+  const fetchKickingPercentage = useCallback(async (playerId: string): Promise<number | null> => {
+    const { data, error } = await supabase
+      .from('match_events')
+      .select('event_type')
+      .eq('player_id', playerId)
+
+    if (error) throw new Error(error.message)
+
+    let makes = 0
+    let total = 0
+
+    for (const event of (data ?? [])) {
+      if (event.event_type === 'conversion' || event.event_type === 'penalty') {
+        makes++
+        total++
+      } else if (event.event_type === 'Conversion Miss' || event.event_type === 'Penalty Miss') {
+        total++
+      }
+    }
+
+    if (total > 0) {
+      return Math.round((makes / total) * 100)
+    } else {
+      return null
+    }
+  }, [])
+
   // Invalidate usePlayers cache: caller must invoke refetch() on the parent after this resolves
   const updatePlayerCRM = useCallback(async (playerId: string, patch: PlayerCRMPatch): Promise<void> => {
     const { error } = await supabase
@@ -62,5 +89,5 @@ export function usePlayerDetails() {
     if (error) throw new Error(error.message)
   }, [])
 
-  return { fetchPlayerStats, updatePlayerCRM }
+  return { fetchPlayerStats, fetchKickingPercentage, updatePlayerCRM }
 }

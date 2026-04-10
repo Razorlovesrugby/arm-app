@@ -2,6 +2,7 @@
 // CP7-A Rebuild — full dark theme, captain toggle, positions chips,
 // info grid, auto-save coach notes, conditional selection note
 // CP7-B — lastTeam / lastPlayed wired from playerHistory (replaces "—" placeholders)
+// Phase 14.5 — Kicking % removed from overlay (moved to Roster Form)
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
@@ -69,7 +70,6 @@ export default function PlayerOverlay({
   const [captainState, setCaptainState] = useState(isCaptain)
   const [coachNotes, setCoachNotes] = useState(player.notes ?? '')
   const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
-  const [kickingPct, setKickingPct] = useState<number | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Lock body scroll while overlay is open
@@ -85,37 +85,7 @@ export default function PlayerOverlay({
     setNotesSaveStatus('idle')
   }, [player.id, isCaptain, player.notes])
 
-  // Fetch career kicking stats
-  useEffect(() => {
-    async function fetchKickingStats() {
-      const { data } = await supabase
-        .from('match_events')
-        .select('event_type')
-        .eq('player_id', player.id)
-
-      if (data) {
-        let makes = 0
-        let total = 0
-
-        data.forEach(event => {
-          if (event.event_type === 'conversion' || event.event_type === 'penalty') {
-            makes++
-            total++
-          } else if (event.event_type === 'Conversion Miss' || event.event_type === 'Penalty Miss') {
-            total++
-          }
-        })
-
-        if (total > 0) {
-          setKickingPct(Math.round((makes / total) * 100))
-        } else {
-          setKickingPct(null)
-        }
-      }
-    }
-
-    fetchKickingStats()
-  }, [player.id])
+  // Kicking % removed (moved to Roster Form)
 
   // Debounced save for coach notes
   const saveNotes = useCallback(async (value: string) => {

@@ -61,6 +61,9 @@
 - **primary_color**: TEXT (Default: '#1e40af' - blue)
 - **secondary_color**: TEXT (Default: '#dc2626' - red)
 - **logo_url**: TEXT (Optional)
+- **default_teams**: TEXT[] (Optional, for pre-filling new weeks)
+- **default_squad_size**: INTEGER (Default: 22, total players in squad)
+- **require_positions_in_form**: BOOLEAN (Default: true, whether availability form asks for positions)
 - **created_at**: TIMESTAMPTZ (Default: now())
 - **updated_at**: TIMESTAMPTZ (Default: now())
 
@@ -102,6 +105,9 @@
 9. **010_cp8_close_week_rpc.sql** - Close week RPC function
 10. **011_v2_pivot.sql** - ARM 2.0 pivot: club_settings, match_events
 11. **012_match_cards.sql** - Match cards functionality
+12. **013_phase_12_6.sql** - Phase 12.6 schema updates
+13. **014_phase_14.sql** - Phase 14.3 — Kicking Miss Events
+14. **015_phase_14_4.sql** - Phase 14.4 — Club Settings Expansion (default_squad_size, require_positions_in_form)
 
 ### Migration Notes
 - All migrations are idempotent (safe to run multiple times)

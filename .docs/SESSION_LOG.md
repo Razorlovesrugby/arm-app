@@ -2,6 +2,37 @@ ARM Session Log
 
 ---
 
+## [2026-04-10 11:04] Session Summary
+- **Primary Objective:** Export UX, Career Stats & Lightweight Polish
+- **Tasks Completed:**
+  - [x] Kicking % moved from Match Overlay to Roster Form (career stats realignment)
+  - [x] WhatsApp text export with clean clipboard formatting
+  - [x] Toast notification system for copy feedback
+  - [x] Enhanced empty states for Roster and Weeks pages
+  - [x] PDF export respects custom squad sizes from club settings
+- **Architecture / Database Decisions Locked:**
+  - Kicking % logic centralized in `usePlayerDetails.ts` hook for reuse
+  - Toast UI uses pure React state (no external libraries)
+  - WhatsApp export format: `Number. Full Name` (no positions, no emojis)
+  - Empty states follow consistent design pattern with icons and CTAs
+- **Next Up:** Phase 14.6 — Error banners, Saved inline feedback, and touch target audit
+
+---
+
+## [2026-04-10 09:18] Session Summary
+- **Primary Objective:** Club Settings Expansion & Critical Bug Fixes
+- **Tasks Completed:**
+  - [x] Added default_squad_size and require_positions_in_form to club_settings
+  - [x] Fixed Availability Form scroll lock bug with overflowY: auto and WebkitOverflowScrolling: touch
+  - [x] Implemented dynamic squad size in Selection Board (benchCount = Math.max(0, defaultSquadSize - startersCount))
+  - [x] Debugged PlayerOverlay Kicking % calculation (fetch-all + JavaScript filtering)
+- **Architecture / Database Decisions Locked:**
+  - Migration 015: default_squad_size (INTEGER DEFAULT 22), require_positions_in_form (BOOLEAN DEFAULT true) added to club_settings table
+  - Scroll fix: overflowY: 'auto' + WebkitOverflowScrolling: 'touch' on AvailabilityForm Shell component
+  - Kicking % calculation: replaced .in() filter with fetch-all + JS filtering for robustness
+- **Next Up:** Phase 14.5 — Empty states for all screens
+
+
 ## Session Summary — Phase 2 Close-out + Phase 3 Complete — 2026-03-27
 
 ### Phase 1 — Completed (prior session)
