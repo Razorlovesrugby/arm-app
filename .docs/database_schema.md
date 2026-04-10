@@ -104,6 +104,31 @@
 - **created_at**: TIMESTAMPTZ (Default: now())
 - **UNIQUE(player_id, week_id, session_id)** - One attendance record per player per session per week
 
+### Migration 018 Tables (Phase 16.0 — Multi-Tenant Architecture)
+
+#### `clubs` (Added in Migration 018)
+- **id**: UUID (Primary Key, auto-generated)
+- **name**: TEXT (Required)
+- **created_at**: TIMESTAMPTZ (Default: now())
+
+#### `profiles` (Added in Migration 018)
+- **id**: UUID (References auth.users(id) PRIMARY KEY)
+- **club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **role**: TEXT (Default: 'coach')
+- **created_at**: TIMESTAMPTZ (Default: now())
+
+#### Multi-Tenant Columns (Added in Migration 018)
+- **players.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **depth_chart_order.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **weeks.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **week_teams.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **availability_responses.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **team_selections.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **club_settings.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **match_events.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **training_attendance.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+- **archive_game_notes.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
+
 ## Migrations Tracker
 
 ### Migration Files (Chronological Order)
@@ -124,6 +149,7 @@
 14. **015_phase_14_4.sql** - Phase 14.4 — Club Settings Expansion (default_squad_size, require_positions_in_form)
 15. **016_phase_15_1.sql** - Phase 15.1 — Training Attendance Tracker (training_attendance table, club_settings.training_days column)
 16. **017_phase_15_2.sql** - Phase 15.2 — Availability Form Data Collection Mode (require_contact_info, require_birthday columns in club_settings)
+17. **018_phase_16_0.sql** - Phase 16.0 — Multi-Tenant Database Architecture (clubs, profiles tables, club_id columns, RLS policies)
 
 ### Migration Notes
 - All migrations are idempotent (safe to run multiple times)

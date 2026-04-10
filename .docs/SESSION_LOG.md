@@ -2,6 +2,23 @@ ARM Session Log
 
 ---
 
+## [2026-04-10 14:45] Session Summary
+- **Primary Objective:** Phase 16.0 — Multi-Tenant Database Architecture & Data Backfill Specification
+- **Tasks Completed:**
+  - [x] Created comprehensive ACTIVE_SPEC.md for Phase 16.0 multi-tenant architecture
+  - [x] Defined database migration strategy for clubs and profiles tables
+  - [x] Specified RLS policies with club-based security
+  - [x] Planned zero frontend impact approach
+- **Architecture / Database Decisions Locked:**
+  - Multi-tenant architecture with clubs and profiles tables
+  - All existing data to be backfilled to "ARM15 Lite Master" club
+  - Club-based RLS policies for authenticated users
+  - Anonymous access preserved for availability forms
+  - Zero frontend UI impact during backend migration
+- **Next Up:** Implementation of Phase 16.0 migration and code changes
+
+---
+
 ## [2026-04-10 14:15] Session Summary
 - **Primary Objective:** Availability Form Data Collection Mode
 - **Tasks Completed:**
