@@ -68,6 +68,16 @@
 - **useMatchEvents.ts**: Match event tracking
 - **useGrid.ts**: Master availability grid data (Phase 12.6+)
 
+## Data Architecture
+
+### Multi-Tenant Data Isolation (Phase 16+)
+- **Club-Based Data Separation**: All data is filtered by `club_id` using the logged-in user's active club from `AuthContext`
+- **Auth Integration**: User profiles link to clubs via `profiles.club_id` reference
+- **Frontend Patterns**: All data hooks include `.eq('club_id', activeClubId)` filters for read operations and include `club_id: activeClubId` in write payloads
+- **Anonymous Submissions**: Public availability forms fetch week's `club_id` from database to maintain data isolation
+- **Defensive Checks**: Hooks block operations with console.error when `activeClubId` is null
+- **Database Structure**: All tables include `club_id` column with foreign key to `clubs` table
+
 ## UI/UX Guidelines
 
 ### Design Tokens (CSS Custom Properties)

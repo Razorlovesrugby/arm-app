@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-10 14:45**
-**Current position: Phase 16.0 Specification Complete — Multi-tenant database architecture spec ready for implementation.**
+**Last updated: 2026-04-10 22:44**
+**Current position: Phase 16.2 Complete — Multi-tenant frontend sweep implemented. All hooks filter by club_id, AvailabilityForm uses week.club_id for anonymous submissions.**
 
 ---
 
@@ -31,6 +31,8 @@
 | 12 | UI Pivot — Sidebar Navigation, Results Mode toggle, Scoring/MVP entry, Player Overlay upgrade | ✅ Done |
 | 13 | Exports — jsPDF PDF + plain text, native OS share sheet | ✅ Done |
 | 14 | Polish & Performance — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
+| 15 | Training & Analytics — Training attendance, availability dashboard, data collection mode | ✅ Done |
+| 16 | Multi-Tenant Architecture — Club-based data isolation, frontend sweep, database lockdown | 🏃 In Progress |
 
 **Note:** Project has pivoted to v2.0 architecture. Phase 10 (Exports) deferred to focus on v2.0 features. Archive functionality is no longer a standalone locked tab; historical data is now accessed via the concurrent 'Results' toggle on the Selection Board.
 
@@ -286,6 +288,34 @@
 
 ---
 
+### Phase 16 🏃 — Multi-Tenant Architecture
+| CP | Description | Status |
+|---|---|---|
+| 16.0 | **Specification:** Multi-tenant database architecture with clubs, profiles tables, club_id columns, RLS policies, data backfill strategy | ✅ Done (2026-04-10) |
+| 16.1 | **Database Expansion & Safe Backfill:** Migration 018 + 019 applied, club_id columns added to all tables, existing data backfilled to master club | ✅ Done (2026-04-10) |
+| 16.2 | **Frontend Sweep:** All 8 data hooks updated with activeClubId checks and club filtering, AuthContext polished, AvailabilityForm uses week.club_id for anonymous submissions | ✅ Done (2026-04-10) |
+| 16.3 | **Database Lockdown:** NOT NULL constraints + RLS enforcement for club_id columns, UI airlock for null activeClubId | ▶ Next |
+
+**Phase 16.2 Implementation Details:**
+- **Scope:** Frontend data hooks sweep to inject activeClubId into all queries and mutations
+- **Files Updated:**
+  - `src/contexts/AuthContext.tsx` — Null-check guards for activeClubId
+  - `src/hooks/usePlayers.ts` — `.eq('club_id', activeClubId)` + null checks
+  - `src/hooks/useWeeks.ts` — Club filtering for weeks and availability_responses, club_id in insert payloads
+  - `src/hooks/useSelectionBoard.ts` — Club filtering for players, week_teams, team_selections, availability_responses
+  - `src/hooks/useClubSettings.ts` — `.eq('club_id', activeClubId)` for club_settings queries
+  - `src/hooks/useMatchEvents.ts` — Club filtering for match_events, club_id in insert payloads
+  - `src/hooks/useDepthChart.ts` — Club filtering for players and depth_chart_order
+  - `src/hooks/useGrid.ts` — Club filtering for players and weeks
+  - `src/hooks/usePlayerDetails.ts` — Club filtering for player stats and kicking percentage
+  - `src/pages/AvailabilityForm.tsx` — Fetch week's club_id from database, use for player creation and availability responses
+- **Key Patterns:**
+  - Standard Read Pattern: `.eq('club_id', activeClubId)` on all SELECT queries
+  - Standard Write Pattern: Include `club_id: activeClubId` in all INSERT payloads
+  - Anonymous Availability Pattern: Fetch week.club_id from database for public form submissions
+  - Defensive Null Checks: Hooks block operations with console.error when activeClubId is null
+- **Status:** ✅ Complete — Ready for Phase 16.3 database lockdown
+
 ---
 
 ## Corrections Queue
@@ -309,7 +339,8 @@
 - GitHub: https://github.com/Razorlovesrugby/arm-app.git
 - Vercel: https://arm-app-black.vercel.app
 - Git identity: raysairaijimckenzie@gmail.com / Razorlovesrugby
-- Supabase migrations applied: 001–010 (all migrations complete)
-- **Migration 011_v2_pivot.sql** created and ready to apply for ARM 2.0 pivot
+- Supabase migrations applied: 001–019 (all migrations complete)
+- **Migration 018_phase_16_0.sql** — Multi-tenant architecture (clubs, profiles tables, club_id columns)
+- **Migration 019_phase_16_1_expand.sql** — Database expansion and data backfill
 - **v2.0 Baseline:** Migration 011 applied. All v1.9 'Close Week' and 'Archive' logic is deprecated.
 - **Multi-agent "Agency" workflow activated:** Project transitions from single-agent development to specialized agents for QA, documentation, deployment, and maintenance.

@@ -150,6 +150,7 @@
 15. **016_phase_15_1.sql** - Phase 15.1 — Training Attendance Tracker (training_attendance table, club_settings.training_days column)
 16. **017_phase_15_2.sql** - Phase 15.2 — Availability Form Data Collection Mode (require_contact_info, require_birthday columns in club_settings)
 17. **018_phase_16_0.sql** - Phase 16.0 — Multi-Tenant Database Architecture (clubs, profiles tables, club_id columns, RLS policies)
+18. **019_phase_16_1_expand.sql** - Phase 16.1 — Database Expansion & Safe Backfill (club_id column population, data backfill to master club)
 
 ### Migration Notes
 - All migrations are idempotent (safe to run multiple times)

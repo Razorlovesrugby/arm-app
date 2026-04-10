@@ -1,158 +1,95 @@
-# ACTIVE_SPEC: 16.2 Multi-Tenant Frontend Sweep
-
-**Status:** 🏃 In Progress  
-**Priority:** Critical — Enables database lockdown  
-**Frontend Impact:** High — All data hooks require updates  
-**Database Impact:** None — Schema already expanded in 16.1  
-
----
+# ACTIVE_SPEC: 16.3 Database Lockdown, Resilience & Edge Case Sweep
 
 ### 🎯 Why
-The database has been soft-expanded to support `club_id` (Phase 16.1). Now, we must sweep the frontend data hooks to actively inject the logged-in coach's `activeClubId` into all database queries and mutations. This prepares the app for the final database lockdown (Phase 16.3) where `club_id` NOT NULL constraints and RLS will be enforced.
+Final "Contract" phase of multi-tenant migration. Frontend now passes `club_id` payloads. Must lock database with NOT NULL constraints and RLS, deploy frontend resilience, and sweep edge cases for 100% tenant isolation and zero crashes.
 
-### 🏗️ Architecture Decisions (LOCKED)
-- **The Auth Bridge:** `AuthContext.tsx` already fetches `club_id` from `profiles` table and exposes `activeClubId` via `useAuth()`.
-- **Context Injection:** Every data hook must utilize `useAuth()` to grab the `activeClubId`.
-- **Read Operations:** All `supabase.from('...').select()` calls accessed by the coach MUST append `.eq('club_id', activeClubId)`.
-- **Write Operations:** All `insert()` and `update()` payloads MUST have `club_id: activeClubId` appended.
-- **Anonymous Availability:** The public `AvailabilityForm.tsx` must fetch the week's `club_id` from the database and use it for player creation (not from auth).
-- **Error Handling:** If `activeClubId` is null, hooks should block data operations at the hook level (console.error and abort). UI airlock comes in Phase 16.3.
-- **Migration Strategy:** All hooks updated at once — database is "soft" (no NOT NULL, no RLS) from Phase 16.1.
-- **Testing:** Feature parity only — verify Admin can still see their players and new Weeks save with `club_id` attached.
+### 🏗️ Architecture Decisions
+- **Database Lockdown**: Alter 10 core tables to make `club_id NOT NULL`. Enable RLS on all tables.
+- **Coach RLS Policies**: Authenticated users get CRUD access ONLY to rows matching their `profiles.club_id`.
+- **Public Link RLS Policies**: Specific anonymous SELECT/INSERT/UPDATE policies for AvailabilityForm.
+- **Global Error Boundary**: Wrap App.tsx in React Error Boundary for graceful render failure handling.
+- **Auth Airlock**: Block rendering of protected routes if authenticated user lacks `club_id`.
+- **Defensive Hooks**: Convert `.single()` to `.maybeSingle()` where missing rows are valid.
+- **Race Condition Defense**: Hooks must guard with `if (!activeClubId) return` to prevent null fetches.
+- **Multi-Tab Sync**: Add window focus listener to refresh on auth state changes.
+- **Data Integrity**: Include pre-flight orphan check in migration.
+- **Performance**: Index all `club_id` columns.
+- **Super Admin**: Add service_role bypass in RLS policies.
 
 ### 📁 Files to Touch
+1. `supabase/migrations/020_phase_16_3_lockdown.sql` — Create new migration
+2. `src/components/ErrorBoundary.tsx` — Create new component
+3. `src/App.tsx` — Wrap routes in ErrorBoundary
+4. `src/contexts/AuthContext.tsx` — Add Airlock UI, Public Route bypass, and multi-tab sync
+5. `src/hooks/useClubSettings.ts` — Convert `.single()` to `.maybeSingle()`, add activeClubId guard
+6. `src/hooks/useWeeks.ts` — Convert `.single()` to `.maybeSingle()`, add activeClubId guard
+7. All other data hooks — Add `if (!activeClubId) return` guard at top of fetch functions
 
-#### 1. `src/contexts/AuthContext.tsx` (Minor)
-- Add null-check guard for `activeClubId` in fetchProfile
-- Add loading state clarity for `activeClubId`
+### 🎨 UI Implementation
 
-#### 2. `src/hooks/` (Sweep ALL 8 hooks)
-- `usePlayers.ts` — Add `.eq('club_id', activeClubId)` to player queries
-- `useWeeks.ts` — Add `.eq('club_id', activeClubId)` to week queries and `club_id: activeClubId` to insert payloads
-- `useSelectionBoard.ts` — Add club filtering to: players fetch, week_teams fetch, team_selections fetch, availability_responses fetch
-- `useClubSettings.ts` — Add `.eq('club_id', activeClubId)` to club_settings queries
-- `useMatchEvents.ts` — Add `.eq('club_id', activeClubId)` to match_events queries and `club_id: activeClubId` to insert payloads
-- `useDepthChart.ts` — Add `.eq('club_id', activeClubId)` to depth_chart_order queries
-- `useGrid.ts` — Add `.eq('club_id', activeClubId)` to grid queries
-- `usePlayerDetails.ts` — Add `.eq('club_id', activeClubId)` to player detail queries
-
-#### 3. `src/pages/AvailabilityForm.tsx`
-- **CRITICAL:** Fetch week's `club_id` via `SELECT club_id FROM weeks WHERE id = week_id`
-- Store `club_id` in component state
-- When creating new players, add `club_id: weekClubId` to insert payload
-- When inserting availability responses, add `club_id: weekClubId` to insert payload
-
-#### 4. `src/pages/ClubSettings.tsx`
-- Ensure `useClubSettings` hook filters by `activeClubId` (already covered in hook updates)
-
-### 🎨 Implementation Patterns
-
-#### Standard Read Pattern (All Hooks):
-```typescript
-const { activeClubId } = useAuth();
-
-// DEFENSIVE: Block if activeClubId is null
-if (!activeClubId) {
-  console.error('activeClubId is null - cannot fetch data');
-  return; // or set error state
-}
-
-const { data } = await supabase
-  .from('table_name')
-  .select('*')
-  .eq('club_id', activeClubId); // ← CRITICAL
+**ErrorBoundary.tsx (Branded Fallback UI):**
+```tsx
+<div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50">
+  <div className="w-16 h-16 mb-4 text-yellow-500">
+    <WarningIcon />
+  </div>
+  <h1 className="text-2xl font-bold text-gray-900 mb-2">Oops, something went wrong</h1>
+  <p className="text-gray-600 mb-6 text-center">The app encountered an unexpected error.</p>
+  <button 
+    onClick={() => window.location.reload()}
+    className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition"
+  >
+    Reload App
+  </button>
+</div>
 ```
 
-#### Standard Write Pattern (All Hooks):
-```typescript
-const { activeClubId } = useAuth();
-
-// DEFENSIVE: Block if activeClubId is null
-if (!activeClubId) {
-  console.error('activeClubId is null - cannot write data');
-  return { error: 'No active club' };
-}
-
-const { error } = await supabase
-  .from('table_name')
-  .insert([{ 
-    ...payload, 
-    club_id: activeClubId // ← CRITICAL
-  }]);
+**Auth Airlock UI (Account Not Linked):**
+```tsx
+<div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50">
+  <div className="w-16 h-16 mb-4 text-red-500">
+    <AlertIcon />
+  </div>
+  <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Not Linked</h1>
+  <p className="text-gray-600 mb-4 text-center">Your account is not associated with any club.</p>
+  <p className="text-gray-500 text-sm mb-6 text-center">Please contact your administrator.</p>
+  <button 
+    onClick={() => supabase.auth.signOut()}
+    className="px-6 py-3 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition"
+  >
+    Sign Out
+  </button>
+</div>
 ```
 
-#### Anonymous Availability Pattern (AvailabilityForm.tsx):
-```typescript
-// Step 1: Fetch week with club_id
-const { data: week } = await supabase
-  .from('weeks')
-  .select('club_id')
-  .eq('id', weekId)
-  .single();
-
-// Step 2: Use week.club_id for player creation
-const { error } = await supabase
-  .from('players')
-  .insert([{
-    name: form.name,
-    phone: normalisePhone(form.phone),
-    email: form.email || null,
-    date_of_birth: form.birthday || null,
-    club_id: week.club_id, // ← FROM WEEK RECORD
-    subscription_paid: false,
-  }]);
-
-// Step 3: Also add club_id to availability response
-const { error: respErr } = await supabase
-  .from('availability_responses')
-  .insert({
-    week_id: week.id,
-    player_id: playerId,
-    availability: form.availability,
-    club_id: week.club_id, // ← FROM WEEK RECORD
-    submitted_primary_position: form.primaryPosition || null,
-    submitted_secondary_positions: form.secondaryPositions,
-    availability_note: form.availabilityNote.trim() || null,
-  });
-```
-
-### ✅ Acceptance Criteria (Binary Pass/Fail)
-- [ ] `usePlayers` hook filters players by `club_id` and blocks if `activeClubId` is null
-- [ ] `useWeeks` hook filters weeks by `club_id`, includes `club_id` in insert payloads, blocks if null
-- [ ] `useSelectionBoard` hook filters all data by `club_id` and blocks if null
-- [ ] `useClubSettings` hook filters club_settings by `club_id` and blocks if null
-- [ ] `useMatchEvents` hook filters match_events by `club_id`, includes `club_id` in inserts, blocks if null
-- [ ] `useDepthChart` hook filters depth_chart_order by `club_id` and blocks if null
-- [ ] `useGrid` hook filters grid data by `club_id` and blocks if null
-- [ ] `usePlayerDetails` hook filters player details by `club_id` and blocks if null
-- [ ] `AvailabilityForm` fetches week's `club_id`, uses it for player creation and availability responses
-- [ ] `AuthContext` has null-check guards for `activeClubId`
-- [ ] All existing functionality works identically for the master club (ARM15 Lite Master)
-- [ ] No console errors during normal operation (except legitimate null `activeClubId` cases)
+### ✅ Acceptance Criteria
+- [ ] Database applies NOT NULL constraints to all 10 core tables
+- [ ] RLS policies enforce tenant isolation without Postgres recursion errors
+- [ ] Public availability link works (Anon policies for weeks, club_settings, players, availability_responses)
+- [ ] Error Boundary UI triggers on forced errors
+- [ ] Auth airlock blocks users without club_id from protected routes
+- [ ] `.single()` calls converted to `.maybeSingle()` with null checks
+- [ ] All hooks guard with `if (!activeClubId) return` to prevent race condition
+- [ ] Multi-tab sync implemented via window focus listener
+- [ ] Migration includes pre-flight orphan check
+- [ ] All `club_id` columns indexed for RLS performance
+- [ ] Service_role bypass included in RLS policies
 
 ### ⚠️ Edge Cases (Already Handled)
-1. **Null activeClubId:** Hooks block operations, console.error, return early (UI airlock in Phase 16.3)
-2. **Anonymous users:** AvailabilityForm fetches week.club_id from database (allowed while RLS is off)
-3. **Existing master club data:** All data already backfilled with master club ID in Phase 16.1
-4. **Cross-club contamination:** With club filtering, coaches only see their own club's data
-5. **Week without club_id:** Should not happen (backfilled in 16.1) but handle gracefully
+- **Infinite Recursion**: Profiles RLS uses `auth.uid() = id`, not `(SELECT club_id FROM profiles...)`
+- **Public Form**: AvailabilityForm needs club_settings SELECT access (Anon policy included)
+- **Stale Cache**: Developer must hard refresh after migration
+- **Race Condition**: Hooks guard against null activeClubId during login
+- **Multi-Tab Desync**: Window focus listener refreshes on auth changes
+- **Orphan Data**: Migration includes pre-flight check for NULL club_id rows
+- **RLS Performance**: All club_id columns indexed
+- **Super Admin**: Service_role bypass in RLS policies for support access
+- **Foreign Key Integrity**: club_id is immutable after creation
+- **Realtime**: No realtime channels found in codebase
 
 ### 🚀 Implementation Order
-1. **AuthContext polish** — Add null-check guards (5 minutes)
-2. **Core hooks sweep** — `usePlayers`, `useWeeks`, `useSelectionBoard` (most critical, 30 minutes)
-3. **Secondary hooks sweep** — `useClubSettings`, `useMatchEvents`, `useDepthChart`, `useGrid`, `usePlayerDetails` (20 minutes)
-4. **Anonymous form update** — Update `AvailabilityForm.tsx` to fetch and use week.club_id (15 minutes)
-5. **Testing** — Verify feature parity: login, roster, weeks, selection board, availability form (10 minutes)
-
-### 📋 Notes for Developer
-- **DO NOT** modify database schema or RLS — that's Phase 16.3
-- **DO NOT** update tracker files or documentation — Tech Lead handles that
-- **DO** implement defensive null checks in ALL hooks
-- **DO** test thoroughly: login, roster, weeks, selection board, availability form
-- **DO** ensure zero regression for existing master club functionality
-- **Reference:** Phase 16.1 completed spec shows all tables now have `club_id` column
-- **Time estimate:** 80 minutes total
-
----
-
-**Ready for Developer execution. When complete, say: "Code implementation complete. Handing back to Tech Lead."**
+1. Execute `020_phase_16_3_lockdown.sql` migration (with orphan check, indexes, service_role bypass)
+2. Create `ErrorBoundary.tsx` and wrap App.tsx routes
+3. Implement Auth Airlock in `AuthContext.tsx` (bypass for public routes, add multi-tab sync)
+4. Convert `.single()` to `.maybeSingle()` in hooks
+5. Add `if (!activeClubId) return` guard to all data hook fetch functions

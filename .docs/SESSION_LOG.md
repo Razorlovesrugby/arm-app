@@ -2,6 +2,22 @@ ARM Session Log
 
 ---
 
+## [2026-04-10 22:44] Session Summary
+- **Primary Objective:** Phase 16.2 — Multi-Tenant Frontend Sweep
+- **Tasks Completed:**
+  - [x] AuthContext polished with null-check guards for activeClubId
+  - [x] All 8 data hooks updated with activeClubId checks and club filtering: usePlayers, useWeeks, useSelectionBoard, useClubSettings, useMatchEvents, useDepthChart, useGrid, usePlayerDetails
+  - [x] AvailabilityForm updated to fetch week's club_id from database for anonymous submissions
+  - [x] Defensive null checks implemented in all hooks to block operations when activeClubId is null
+- **Architecture / Database Decisions Locked:**
+  - Frontend now filters all data queries by club_id using activeClubId from AuthContext
+  - Anonymous availability forms fetch week.club_id from database (not from auth)
+  - All write operations include club_id: activeClubId in payloads
+  - Hooks block operations with console.error when activeClubId is null (UI airlock deferred to Phase 16.3)
+- **Next Up:** Phase 16.3 — Database Lockdown (NOT NULL constraints + RLS enforcement for club_id columns)
+
+---
+
 ## [2026-04-10 14:45] Session Summary
 - **Primary Objective:** Phase 16.0 — Multi-Tenant Database Architecture & Data Backfill Specification
 - **Tasks Completed:**
@@ -259,7 +275,7 @@ src/components/DeletePlayerDialog.tsx
 - Decisions pending: None — PRD v1.8 §Selection Board locked
 
 ### Paste this at the start of next session
-"Continuing ARM Phase 7 from CP-7.1. Phases 1–6 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder), Weeks tab (create, UUID token, share), and a fully working public Availability Form (/availability/:token — token lookup, player match/auto-create, position sync, availability_note, success screen). Live at https://arm-app-black.vercel.app. Phase 7 builds the Selection Board: mobile (available players list + team dropdown assign + swipe between teams + drag-to-reorder within team) and tablet/desktop (full multi-column drag-drop). Player overlay shows Coach Notes (editable) + Availability Note for the current week (read-only)."
+"Continuing ARM Phase 7 from CP-7.1. Phases 1–6 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder, persisted), Weeks tab (create, UUID token, share), and a fully working public Availability Form (/availability/:token — token lookup, player match/auto-create, position sync, availability_note, success screen). Live at https://arm-app-black.vercel.app. Phase 7 builds the Selection Board: mobile (available players list + team dropdown assign + swipe between teams + drag-to-reorder within team) and tablet/desktop (full multi-column drag-drop). Player overlay shows Coach Notes (editable) + Availability Note for the current week (read-only)."
 
 ---
 
