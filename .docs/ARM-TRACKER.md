@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-09**
-**Current position: Phase 13.1 Complete. Ready for Phase 14 (Polish & Performance).**
+**Last updated: 2026-04-10**
+**Current position: Phase 14.3 Complete — Kicking Stats & Career Percentage implemented.**
 
 ---
 
@@ -265,10 +265,13 @@
 ### Phase 14 ⏳ — Polish & Performance
 | CP | Description | Status |
 |---|---|---|
-| 14.1 | Empty states — all screens | ⏳ Pending |
-| 14.2 | Error banners + Saved inline feedback | ⏳ Pending |
-| 14.3 | Touch target audit (44px minimum) | ⏳ Pending |
-| 14.4 | Lighthouse PWA score 90+ | ⏳ Pending |
+| 14.1 | Native App Shell Layout — Responsive sidebar, safe area support, iOS notch/dynamic island handling | ✅ Done |
+| 14.2 | Depth Chart UX, Selection Board Light Mode & Bulk Add — Vertical layout, light mode colors, text wrapping | ✅ Done |
+| 14.3 | Match Event UX, Kicking Stats & Career Percentage — Purple dot fix, kicking made/attempted steppers, career % in PlayerOverlay | ✅ Done |
+| 14.4 | Empty states — all screens | ⏳ Pending |
+| 14.5 | Error banners + Saved inline feedback | ⏳ Pending |
+| 14.6 | Touch target audit (44px minimum) | ⏳ Pending |
+| 14.7 | Lighthouse PWA score 90+ | ⏳ Pending |
 
 ---
 

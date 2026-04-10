@@ -220,8 +220,29 @@ ARM Session Log
 - GitHub commit: `e802bd4` — "14.2, dep th chart vertical"
 - All changes pushed to GitHub and deployed to Vercel.
 
+---
+
+## Session Summary — Phase 14.3 Complete — 2026-04-10
+
+### ACTIVE SPEC version confirmed
+- ACTIVE_SPEC_14.3.md read in full. Used as source of truth for Phase 14.3.
+
+### Phase 14.3 — Match Event UX, Kicking Stats & Career Percentage — Completed
+
+- **Database Migration**: Created and applied `supabase/migrations/014_phase_14.sql` with idempotent pattern to add `'Conversion Miss'` and `'Penalty Miss'` to the `match_events_event_type_check` constraint.
+- **Type Definitions Updated**: Updated `MatchEventType` type and `MATCH_EVENT_TYPES` array in `src/lib/supabase.ts` to include new miss types.
+- **useMatchEvents Hook Enhancement**: Updated `PlayerEventCounts` interface to include `conversionMisses` and `penaltyMisses`, and updated `getTeamStats()`, `getPlayerCounts()`, and `saveMatchEvents()` to handle miss events with `points: 0`.
+- **ResultDetail Purple Dot Fix**: Removed "events" text, leaving only `●` indicator for players with match events.
+- **Kicking Steppers UI**: Implemented horizontal split layout for "Made" and "Attempted" for both Conversions and Penalties in `ResultDetail.tsx`. "Attempted" number automatically equals Made + Missed.
+- **PlayerOverlay Career Stats**: Added `kickingPct` state and `useEffect` to fetch ALL historic match events for player's career, calculating kicking percentage: `Math.round((makes / total) * 100)`. Empty grid cell replaced with "Kicking %" InfoCell showing percentage or `—` when no data.
+- **Edge Case Handling**: Missed kicks correctly have `points: 0` in database, UI handles divide-by-zero scenarios, backward compatibility maintained.
+
+### Infrastructure note
+- GitHub commit: `f27b050` — "14.3, kicking stats, career %, purple dot fix"
+- All changes pushed to GitHub and deployed to Vercel.
+
 ### Next session starts at
-- **Phase 12** — Polish: empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+
+- **Phase 14.4** — Further polish and performance optimizations as needed
 
 ### Paste this at the start of next session
-"Continuing ARM Phase 12 from CP-12.1. Phases 1–14.2 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder, vertical layout), Weeks tab (create, UUID token, share), Availability Form, Selection Board (Light Mode, bulk add, text wrapping), Native App Shell Layout, and Depth Chart UX improvements. Live at https://arm-app-black.vercel.app. Phase 12 focuses on polish: empty states across all screens, error banners + Saved inline feedback, touch target audit (44px minimum), Lighthouse PWA score 90+."
+"Continuing ARM Phase 14 from CP-14.4. Phases 1–14.3 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder, vertical layout), Weeks tab (create, UUID token, share), Availability Form, Selection Board (Light Mode, bulk add, text wrapping), Native App Shell Layout, Depth Chart UX improvements, and now advanced Kicking Stats with career percentage tracking and match event UX refinements. Live at https://arm-app-black.vercel.app. Phase 14.4 focuses on further polish and performance optimizations."
