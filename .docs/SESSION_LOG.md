@@ -2,6 +2,23 @@ ARM Session Log
 
 ---
 
+## [2026-04-10 13:44] Session Summary
+- **Primary Objective:** Training Attendance Tracker & Availability Dashboard
+- **Tasks Completed:**
+  - [x] Migration 016: training_attendance table + club_settings.training_days
+  - [x] Attendance matrix page with sticky columns
+  - [x] Availability Dashboard combining training + match availability
+  - [x] Club Settings training schedule builder
+  - [x] PlayerOverlay training stats integration
+- **Architecture / Database Decisions Locked:**
+  - training_days: JSONB array of {id, label} objects with default `[{"id": "1", "label": "Wednesday"}]`
+  - training_attendance: unique constraint on (player_id, week_id, session_id)
+  - Attendance matrix uses optimistic updates with rollback on failure
+  - Combined Availability Dashboard shows training ratio + match availability status
+- **Next Up:** Phase 15.2 or next priority from tracker
+
+---
+
 ## [2026-04-10 11:04] Session Summary
 - **Primary Objective:** Export UX, Career Stats & Lightweight Polish
 - **Tasks Completed:**
@@ -77,7 +94,7 @@ ARM Session Log
 - src/pages/Roster.tsx (replaced stub)
 - src/components/PlayerCard.tsx
 - src/components/PlayerFormSheet.tsx
-- src/components/DeletePlayerDialog.tsx
+src/components/DeletePlayerDialog.tsx
 
 ### Current state
 - Last clean checkpoint: CP-3.8
@@ -136,11 +153,6 @@ ARM Session Log
 
 ### PRD version confirmed
 - PRD v1.7 (Final) read in full. Used as source of truth.
-- Key v1.7 additions noted and implemented:
-  - Multiple open weeks allowed (no limit)
-  - Two link buttons: Copy Link + Share (native OS share sheet, pre-formatted message)
-  - `submitted_primary_position` + `submitted_secondary_positions` columns in `availability_responses` (migration 004 added)
-  - Availability form field order confirmed: Name → Phone → Availability → Positions → Note (Phase 6)
 
 ### Phase 5 — Weeks Tab — Completed
 

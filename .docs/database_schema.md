@@ -64,6 +64,7 @@
 - **default_teams**: TEXT[] (Optional, for pre-filling new weeks)
 - **default_squad_size**: INTEGER (Default: 22, total players in squad)
 - **require_positions_in_form**: BOOLEAN (Default: true, whether availability form asks for positions)
+- **training_days**: JSONB (Default: '[{"id": "1", "label": "Wednesday"}]'::jsonb, array of {id, label} objects)
 - **created_at**: TIMESTAMPTZ (Default: now())
 - **updated_at**: TIMESTAMPTZ (Default: now())
 
@@ -90,6 +91,17 @@
 - **created_at**: TIMESTAMPTZ (Default: now())
 - **updated_at**: TIMESTAMPTZ (Default: now())
 
+### Migration 016 Tables (Phase 15.1 — Training Attendance)
+
+#### `training_attendance` (Added in Migration 016)
+- **id**: UUID (Primary Key, auto-generated)
+- **player_id**: UUID (Foreign Key to players.id, CASCADE delete)
+- **week_id**: UUID (Foreign Key to weeks.id, CASCADE delete)
+- **session_id**: TEXT (Required, references training day ID from club_settings.training_days)
+- **attended**: BOOLEAN (Default: false)
+- **created_at**: TIMESTAMPTZ (Default: now())
+- **UNIQUE(player_id, week_id, session_id)** - One attendance record per player per session per week
+
 ## Migrations Tracker
 
 ### Migration Files (Chronological Order)
@@ -108,6 +120,7 @@
 12. **013_phase_12_6.sql** - Phase 12.6 schema updates
 13. **014_phase_14.sql** - Phase 14.3 — Kicking Miss Events
 14. **015_phase_14_4.sql** - Phase 14.4 — Club Settings Expansion (default_squad_size, require_positions_in_form)
+15. **016_phase_15_1.sql** - Phase 15.1 — Training Attendance Tracker (training_attendance table, club_settings.training_days column)
 
 ### Migration Notes
 - All migrations are idempotent (safe to run multiple times)

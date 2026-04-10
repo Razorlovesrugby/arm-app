@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-10**
-**Current position: Phase 14.5 Complete — Export UX, Career Stats & Lightweight Polish implemented.**
+**Last updated: 2026-04-10 13:47**
+**Current position: Phase 15.1 Complete — Training Attendance Tracker & Availability Dashboard implemented.**
 
 ---
 
@@ -278,10 +278,10 @@
 
 ---
 
-### Phase 15 ▶ — Training & Analytics
+### Phase 15 ✅ — Training & Analytics
 | CP | Description | Status |
 |---|---|---|
-| 15.1 | Training Attendance Tracker & Availability Dashboard — Custom training days, attendance tracking, integrated availability view | ▶ Next |
+| 15.1 | Training Attendance Tracker & Availability Dashboard — Custom training days, attendance tracking, integrated availability view | ✅ Done (2026-04-10) |
 
 ---
 

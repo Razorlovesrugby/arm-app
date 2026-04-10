@@ -56,6 +56,8 @@
 - **Results.tsx**: Match results tracking
 - **DepthChart.tsx**: Player depth visualization
 - **ClubSettings.tsx**: Branding configuration
+- **Attendance.tsx**: Training attendance matrix with sticky columns
+- **Grid.tsx**: Availability Dashboard combining training + match availability data
 
 ### Hooks
 - **usePlayers.ts**: Player data management
@@ -64,6 +66,7 @@
 - **useSelectionBoard.ts**: Selection board state
 - **useDepthChart.ts**: Depth chart visualization
 - **useMatchEvents.ts**: Match event tracking
+- **useGrid.ts**: Master availability grid data (Phase 12.6+)
 
 ## UI/UX Guidelines
 
