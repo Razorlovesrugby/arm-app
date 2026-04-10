@@ -53,7 +53,8 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsError, setStatsError] = useState<string | null>(null)
   const [kickingPercentage, setKickingPercentage] = useState<number | null>(null)
-  const [kickingLoading, setKickingLoading] = useState(false)
+  const [totalPoints, setTotalPoints] = useState<number | null>(null)
+  const [extrasLoading, setExtrasLoading] = useState(false)
 
   // Lock body scroll while sheet is open
   useEffect(() => {
@@ -87,45 +88,61 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
         .catch((e: unknown) => setStatsError(e instanceof Error ? e.message : 'Failed to load stats'))
         .finally(() => setStatsLoading(false))
 
-      // Load career kicking stats
-      setKickingPercentage(null)
-      setKickingLoading(true)
-      const playerId = player.id
-      async function fetchKickingStats() {
-        try {
-          const { data } = await supabase
-            .from('match_events')
-            .select('event_type')
-            .eq('player_id', playerId)
-            .in('event_type', ['Conversion', 'Penalty', 'Conversion Miss', 'Penalty Miss'])
-
-          if (data) {
-            let makes = 0
-            let total = 0
-            data.forEach(event => {
-              if (event.event_type === 'Conversion' || event.event_type === 'Penalty') {
-                makes++
-                total++
-              } else if (event.event_type === 'Conversion Miss' || event.event_type === 'Penalty Miss') {
-                total++
-              }
-            })
-            setKickingPercentage(total > 0 ? Math.round((makes / total) * 100) : null)
-          }
-        } catch (error) {
-          console.error('Failed to fetch kicking stats:', error)
-          setKickingPercentage(null)
-        } finally {
-          setKickingLoading(false)
-        }
-      }
-      fetchKickingStats()
     } else {
       setForm(EMPTY)
       setStats(null)
-      setKickingPercentage(null)
     }
   }, [player, fetchPlayerStats])
+
+  // Career extras — kicking % + total points (separate effect, reruns on player switch)
+  useEffect(() => {
+    if (!player) {
+      setKickingPercentage(null)
+      setTotalPoints(null)
+      return
+    }
+
+    const playerId = player.id
+    setKickingPercentage(null)
+    setTotalPoints(null)
+    setExtrasLoading(true)
+
+    async function fetchCareerExtras() {
+      try {
+        const { data } = await supabase
+          .from('match_events')
+          .select('event_type')
+          .eq('player_id', playerId)
+          .in('event_type', ['Try', 'Conversion', 'Penalty', 'Drop Goal', 'Conversion Miss', 'Penalty Miss'])
+
+        if (data) {
+          let tries = 0, conversions = 0, penalties = 0, dropGoals = 0
+          let kickMakes = 0, kickTotal = 0
+
+          data.forEach(event => {
+            switch (event.event_type) {
+              case 'Try':              tries++;                            break
+              case 'Conversion':       conversions++; kickMakes++; kickTotal++; break
+              case 'Penalty':          penalties++;   kickMakes++; kickTotal++; break
+              case 'Drop Goal':        dropGoals++;                       break
+              case 'Conversion Miss':  kickTotal++;                       break
+              case 'Penalty Miss':     kickTotal++;                       break
+            }
+          })
+
+          const pts = (tries * 5) + (conversions * 2) + (penalties * 3) + (dropGoals * 3)
+          setTotalPoints(pts > 0 ? pts : null)
+          setKickingPercentage(kickTotal > 0 ? Math.round((kickMakes / kickTotal) * 100) : null)
+        }
+      } catch (error) {
+        console.error('Failed to fetch career extras:', error)
+      } finally {
+        setExtrasLoading(false)
+      }
+    }
+
+    fetchCareerExtras()
+  }, [player?.id])
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm(f => ({ ...f, [key]: value }))
@@ -401,7 +418,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
                 Career Stats
               </p>
 
-              {statsLoading && (
+              {(statsLoading || extrasLoading) && (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
                   <div style={{
                     width: 24, height: 24,
@@ -420,35 +437,31 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
                 </p>
               )}
 
-              {!statsLoading && !statsError && stats && Object.values(stats).every(v => v === 0) && (
-                <p style={{ fontSize: '13px', fontStyle: 'italic', color: '#9CA3AF', textAlign: 'center', padding: '12px 0 20px', margin: 0 }}>
-                  No match events recorded
-                </p>
+              {!statsLoading && !extrasLoading && !statsError && (
+                (() => {
+                  const hasStats = stats && !Object.values(stats).every(v => v === 0)
+                  const hasExtras = totalPoints !== null || kickingPercentage !== null
+                  if (!hasStats && !hasExtras) return (
+                    <p style={{ fontSize: '13px', fontStyle: 'italic', color: '#9CA3AF', textAlign: 'center', padding: '12px 0 20px', margin: 0 }}>
+                      No match events recorded
+                    </p>
+                  )
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '20px' }}>
+                      {totalPoints !== null       && <StatCard value={totalPoints}            label="Total Points" />}
+                      {stats && stats.tries > 0       && <StatCard value={stats.tries}       label="Tries" />}
+                      {stats && stats.conversions > 0 && <StatCard value={stats.conversions} label="Conversions" />}
+                      {stats && stats.penalties > 0   && <StatCard value={stats.penalties}   label="Penalties" />}
+                      {stats && stats.dropGoals > 0   && <StatCard value={stats.dropGoals}   label="Drop Goals" />}
+                      {kickingPercentage !== null  && <StatCard value={`${kickingPercentage}%`} label="Kicking %" />}
+                      {stats && stats.yellowCards > 0 && <StatCard value={stats.yellowCards} label="Yellow Cards" />}
+                      {stats && stats.redCards > 0    && <StatCard value={stats.redCards}    label="Red Cards" />}
+                      {stats && stats.dotd > 0        && <StatCard value={stats.dotd}        label="DOTD" />}
+                      {stats && stats.mvpPoints > 0   && <StatCard value={stats.mvpPoints}   label="MVP Points" />}
+                    </div>
+                  )
+                })()
               )}
-
-              {!statsLoading && !statsError && stats && !Object.values(stats).every(v => v === 0) && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '8px' }}>
-                  {stats.tries > 0       && <StatCard value={stats.tries}       label="Tries" />}
-                  {stats.conversions > 0 && <StatCard value={stats.conversions} label="Conversions" />}
-                  {stats.penalties > 0   && <StatCard value={stats.penalties}   label="Penalties" />}
-                  {stats.dropGoals > 0   && <StatCard value={stats.dropGoals}   label="Drop Goals" />}
-                  {stats.yellowCards > 0 && <StatCard value={stats.yellowCards} label="Yellow Cards" />}
-                  {stats.redCards > 0    && <StatCard value={stats.redCards}    label="Red Cards" />}
-                  {stats.dotd > 0        && <StatCard value={stats.dotd}        label="DOTD" />}
-                  {stats.mvpPoints > 0   && <StatCard value={stats.mvpPoints}   label="MVP Points" />}
-                </div>
-              )}
-
-              {/* Kicking % */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '20px' }}>
-                {kickingLoading ? (
-                  <StatCard value="Loading…" label="Kicking %" />
-                ) : kickingPercentage !== null ? (
-                  <StatCard value={`${kickingPercentage}%`} label="Kicking %" />
-                ) : (
-                  <StatCard value="—" label="Kicking %" />
-                )}
-              </div>
 
               {/* Total Caps */}
               <Field label="Total Caps">
