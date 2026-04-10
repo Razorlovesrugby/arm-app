@@ -63,7 +63,7 @@ export function useMatchEvents() {
       .in('event_type', ['try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card', 'Conversion Miss', 'Penalty Miss'])
 
     // Build insert rows — one row per occurrence
-    const rows: Omit<MatchEvent, 'id' | 'created_at'>[] = []
+    const rows: Omit<MatchEvent, 'id' | 'created_at' | 'club_id'>[] = []
     for (const p of playerCounts) {
       const types: (keyof Omit<PlayerEventCounts, 'playerId'>)[] = [
         'try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card',
