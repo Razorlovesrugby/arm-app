@@ -1,95 +1,79 @@
-# ACTIVE_SPEC: 16.3 Database Lockdown, Resilience & Edge Case Sweep
+# ACTIVE_SPEC: 16.4HOTFIX - Exhaustive Mutation Sweep & Settings Patch
 
 ### 🎯 Why
-Final "Contract" phase of multi-tenant migration. Frontend now passes `club_id` payloads. Must lock database with NOT NULL constraints and RLS, deploy frontend resilience, and sweep edge cases for 100% tenant isolation and zero crashes.
+The database's `NOT NULL` constraints on `club_id` are successfully blocking incomplete queries, but the frontend is throwing "Save failed" errors on certain pages (e.g., Club Settings). This indicates the previous frontend sweep missed injecting the `club_id` payload into several specific `insert`, `update`, or `upsert` calls. We must perform an exhaustive codebase search to audit and patch every single database mutation, completely eliminating these errors.
+
+### 🧠 Context Gathering (MANDATORY FIRST STEP)
+Before writing any code, you MUST perform a global search across `src/hooks/`, `src/components/`, and `src/pages/` for the following Supabase methods:
+1. `.insert(`
+2. `.update(`
+3. `.upsert(`
+
+Cross-reference these results with the 10 core tables: `players`, `depth_chart_order`, `weeks`, `week_teams`, `availability_responses`, `team_selections`, `club_settings`, `match_events`, `training_attendance`, `archive_game_notes`.
 
 ### 🏗️ Architecture Decisions
-- **Database Lockdown**: Alter 10 core tables to make `club_id NOT NULL`. Enable RLS on all tables.
-- **Coach RLS Policies**: Authenticated users get CRUD access ONLY to rows matching their `profiles.club_id`.
-- **Public Link RLS Policies**: Specific anonymous SELECT/INSERT/UPDATE policies for AvailabilityForm.
-- **Global Error Boundary**: Wrap App.tsx in React Error Boundary for graceful render failure handling.
-- **Auth Airlock**: Block rendering of protected routes if authenticated user lacks `club_id`.
-- **Defensive Hooks**: Convert `.single()` to `.maybeSingle()` where missing rows are valid.
-- **Race Condition Defense**: Hooks must guard with `if (!activeClubId) return` to prevent null fetches.
-- **Multi-Tab Sync**: Add window focus listener to refresh on auth state changes.
-- **Data Integrity**: Include pre-flight orphan check in migration.
-- **Performance**: Index all `club_id` columns.
-- **Super Admin**: Add service_role bypass in RLS policies.
+- **The Golden Rule for Writes:** EVERY mutation writing to a core table (except anonymous public forms) MUST include `club_id: activeClubId` in its data payload.
+- **Null Blocking:** Every mutation function must gracefully abort (e.g., `if (!activeClubId) return;`) before calling Supabase to prevent raw database errors.
+- **Settings Upsert Pattern:** `club_settings` (and any similar 1-to-1 club configuration tables) MUST use `.upsert()` rather than `.update()` to ensure they work for newly onboarded tenants that don't have existing rows.
 
 ### 📁 Files to Touch
-1. `supabase/migrations/020_phase_16_3_lockdown.sql` — Create new migration
-2. `src/components/ErrorBoundary.tsx` — Create new component
-3. `src/App.tsx` — Wrap routes in ErrorBoundary
-4. `src/contexts/AuthContext.tsx` — Add Airlock UI, Public Route bypass, and multi-tab sync
-5. `src/hooks/useClubSettings.ts` — Convert `.single()` to `.maybeSingle()`, add activeClubId guard
-6. `src/hooks/useWeeks.ts` — Convert `.single()` to `.maybeSingle()`, add activeClubId guard
-7. All other data hooks — Add `if (!activeClubId) return` guard at top of fetch functions
+1. `src/hooks/useClubSettings.ts` (or relevant settings component)
+2. ANY file discovered in Context Gathering that executes a Supabase mutation without explicitly including `club_id`.
 
-### 🎨 UI Implementation
+### 🎨 Logic Implementation
 
-**ErrorBoundary.tsx (Branded Fallback UI):**
-```tsx
-<div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50">
-  <div className="w-16 h-16 mb-4 text-yellow-500">
-    <WarningIcon />
-  </div>
-  <h1 className="text-2xl font-bold text-gray-900 mb-2">Oops, something went wrong</h1>
-  <p className="text-gray-600 mb-6 text-center">The app encountered an unexpected error.</p>
-  <button 
-    onClick={() => window.location.reload()}
-    className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition"
-  >
-    Reload App
-  </button>
-</div>
+**1. The Club Settings Fix (Priority)**
+Locate the `club_settings` save function. Ensure it uses the Upsert pattern:
+```typescript
+const { error } = await supabase
+  .from('club_settings')
+  .upsert({
+    ...newSettings,
+    club_id: activeClubId, // <-- MANDATORY
+    id: newSettings.id || undefined 
+  }, { 
+    onConflict: 'club_id' // Explicit conflict resolution
+  });
 ```
 
-**Auth Airlock UI (Account Not Linked):**
-```tsx
-<div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50">
-  <div className="w-16 h-16 mb-4 text-red-500">
-    <AlertIcon />
-  </div>
-  <h1 className="text-2xl font-bold text-gray-900 mb-2">Account Not Linked</h1>
-  <p className="text-gray-600 mb-4 text-center">Your account is not associated with any club.</p>
-  <p className="text-gray-500 text-sm mb-6 text-center">Please contact your administrator.</p>
-  <button 
-    onClick={() => supabase.auth.signOut()}
-    className="px-6 py-3 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition"
-  >
-    Sign Out
-  </button>
-</div>
-```
+**2. The Exhaustive Codebase Audit**
+Review every `.insert()`, `.update()`, and `.upsert()` call found during Context Gathering.
+
+If the payload lacks `club_id`, inject it: `club_id: activeClubId`.
+
+Exception: If the mutation belongs to the public availability form, ensure it continues to securely derive the `club_id` from the fetched `week_id` rather than using `activeClubId` from auth.
 
 ### ✅ Acceptance Criteria
-- [ ] Database applies NOT NULL constraints to all 10 core tables
-- [ ] RLS policies enforce tenant isolation without Postgres recursion errors
-- [ ] Public availability link works (Anon policies for weeks, club_settings, players, availability_responses)
-- [ ] Error Boundary UI triggers on forced errors
-- [ ] Auth airlock blocks users without club_id from protected routes
-- [ ] `.single()` calls converted to `.maybeSingle()` with null checks
-- [ ] All hooks guard with `if (!activeClubId) return` to prevent race condition
-- [ ] Multi-tab sync implemented via window focus listener
-- [ ] Migration includes pre-flight orphan check
-- [ ] All `club_id` columns indexed for RLS performance
-- [ ] Service_role bypass included in RLS policies
 
-### ⚠️ Edge Cases (Already Handled)
-- **Infinite Recursion**: Profiles RLS uses `auth.uid() = id`, not `(SELECT club_id FROM profiles...)`
-- **Public Form**: AvailabilityForm needs club_settings SELECT access (Anon policy included)
-- **Stale Cache**: Developer must hard refresh after migration
-- **Race Condition**: Hooks guard against null activeClubId during login
-- **Multi-Tab Desync**: Window focus listener refreshes on auth changes
-- **Orphan Data**: Migration includes pre-flight check for NULL club_id rows
-- **RLS Performance**: All club_id columns indexed
-- **Super Admin**: Service_role bypass in RLS policies for support access
-- **Foreign Key Integrity**: club_id is immutable after creation
-- **Realtime**: No realtime channels found in codebase
+- [ ] AI Developer successfully performed a regex/global search for all Supabase mutation methods.
+- [ ] The Club Settings save logic explicitly uses `.upsert()` and passes `club_id`.
+- [ ] Every other `insert`, `update`, and `upsert` across the app has been audited and patched to include `club_id`.
+- [ ] Super Admin can successfully onboard a new club, save settings, and edit all data without constraint errors.
 
 ### 🚀 Implementation Order
-1. Execute `020_phase_16_3_lockdown.sql` migration (with orphan check, indexes, service_role bypass)
-2. Create `ErrorBoundary.tsx` and wrap App.tsx routes
-3. Implement Auth Airlock in `AuthContext.tsx` (bypass for public routes, add multi-tab sync)
-4. Convert `.single()` to `.maybeSingle()` in hooks
-5. Add `if (!activeClubId) return` guard to all data hook fetch functions
+
+1. **Context Gathering**: Perform exhaustive search for all mutation calls
+2. **Club Settings Priority Fix**: Convert `.update()` to `.upsert()` with `club_id` injection
+3. **Mutation Audit**: Review each found mutation and add missing `club_id` payloads
+4. **Null Checks**: Add `if (!activeClubId) return` guards before all mutations
+5. **Testing**: Verify all core functionality works without constraint errors
+
+### 📋 Files Requiring Updates (Based on Initial Audit)
+
+1. `src/hooks/useClubSettings.ts` - Convert to upsert, add club_id
+2. `src/hooks/useWeeks.ts` - Add club_id to week_teams inserts/updates
+3. `src/hooks/useSelectionBoard.ts` - Add club_id to team_selections upserts
+4. `src/pages/Attendance.tsx` - Add club_id to training_attendance upsert
+5. `src/pages/ResultDetail.tsx` - Add club_id to club_settings update
+6. `src/hooks/useMatchEvents.ts` - Add club_id to match_events insert
+7. `src/hooks/useDepthChart.ts` - Add club_id to depth_chart_order update
+8. `src/pages/Archive.tsx` - Add club_id to archive_game_notes update
+9. `src/components/PlayerFormSheet.tsx` - Add club_id to player insert/update
+10. `src/components/PlayerOverlay.tsx` - Add club_id to player update
+
+### ⚠️ Edge Cases & Special Handling
+
+- **Public Availability Form**: Must continue using `week.club_id` derived from token, not `activeClubId`
+- **New Club Onboarding**: `club_settings` upsert pattern ensures first-time settings save works
+- **Race Conditions**: Null checks prevent mutations during auth state transitions
+- **Multi-Tenant Isolation**: All mutations must respect the authenticated user's club context
