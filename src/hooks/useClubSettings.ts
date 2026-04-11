@@ -66,23 +66,42 @@ export function useClubSettings(): UseClubSettingsResult {
       }
     }
 
-    // Strip id from incoming patch — upsert resolves conflict on club_id, not id.
-    // Including a null/undefined id would otherwise force a new insert path.
+    // Strip id from incoming patch — we resolve update vs insert ourselves.
     const patch: Partial<ClubSettings> = { ...settings }
     delete patch.id
 
-    const { error } = await supabase
+    // Re-check for an existing row at save time (avoids races vs the cached state)
+    // and decide whether to UPDATE the existing row or INSERT a new one. This
+    // sidesteps the need for a UNIQUE constraint on club_settings.club_id.
+    const { data: existing, error: lookupError } = await supabase
       .from('club_settings')
-      .upsert(
-        {
-          ...patch,
-          club_id: activeClubId,
-        },
-        { onConflict: 'club_id' }
-      )
+      .select('id')
+      .eq('club_id', activeClubId)
+      .limit(1)
+      .maybeSingle()
 
-    if (error) {
-      return { error: error.message }
+    if (lookupError) {
+      return { error: lookupError.message }
+    }
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from('club_settings')
+        .update({ ...patch, club_id: activeClubId })
+        .eq('id', existing.id)
+        .eq('club_id', activeClubId)
+
+      if (error) {
+        return { error: error.message }
+      }
+    } else {
+      const { error } = await supabase
+        .from('club_settings')
+        .insert({ ...patch, club_id: activeClubId })
+
+      if (error) {
+        return { error: error.message }
+      }
     }
 
     await fetchClubSettings()
