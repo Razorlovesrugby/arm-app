@@ -52,9 +52,8 @@ export function useClubSettings(): UseClubSettingsResult {
   const updateClubSettings = useCallback(async (
     settings: Partial<ClubSettings>
   ): Promise<{ error: string | null }> => {
-    const currentSettings = clubSettings
-    if (!currentSettings) {
-      return { error: 'No club settings found' }
+    if (!activeClubId) {
+      return { error: 'No active club' }
     }
 
     // Validate default_teams
@@ -67,10 +66,20 @@ export function useClubSettings(): UseClubSettingsResult {
       }
     }
 
+    // Strip id from incoming patch — upsert resolves conflict on club_id, not id.
+    // Including a null/undefined id would otherwise force a new insert path.
+    const patch: Partial<ClubSettings> = { ...settings }
+    delete patch.id
+
     const { error } = await supabase
       .from('club_settings')
-      .update(settings)
-      .eq('id', currentSettings.id)
+      .upsert(
+        {
+          ...patch,
+          club_id: activeClubId,
+        },
+        { onConflict: 'club_id' }
+      )
 
     if (error) {
       return { error: error.message }
@@ -78,7 +87,7 @@ export function useClubSettings(): UseClubSettingsResult {
 
     await fetchClubSettings()
     return { error: null }
-  }, [clubSettings, fetchClubSettings])
+  }, [activeClubId, fetchClubSettings])
 
   return { 
     clubSettings, 

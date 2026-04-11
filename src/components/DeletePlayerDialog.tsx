@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, Player } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 interface Props {
   player: Player
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function DeletePlayerDialog({ player, onCancel, onDeleted }: Props) {
+  const { activeClubId } = useAuth()
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,9 +19,17 @@ export default function DeletePlayerDialog({ player, onCancel, onDeleted }: Prop
   }, [])
 
   async function handleDelete() {
+    if (!activeClubId) {
+      setError('No active club')
+      return
+    }
     setDeleting(true)
     setError(null)
-    const { error } = await supabase.from('players').delete().eq('id', player.id)
+    const { error } = await supabase
+      .from('players')
+      .delete()
+      .eq('id', player.id)
+      .eq('club_id', activeClubId)
     setDeleting(false)
     if (error) {
       setError(error.message)

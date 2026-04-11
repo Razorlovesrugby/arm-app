@@ -93,6 +93,11 @@ export function useDepthChart(): UseDepthChartResult {
   // Optimistic update + Supabase upsert
   const updateOrder = useCallback(
     async (position: Position, orderedPlayerIds: string[]) => {
+      if (!activeClubId) {
+        console.error('updateOrder aborted: no active club ID')
+        return
+      }
+
       // Optimistic: update local state immediately
       setColumns((prev) =>
         prev.map((col) => {
@@ -111,8 +116,13 @@ export function useDepthChart(): UseDepthChartResult {
 
       const { error } = await supabase
         .from('depth_chart_order')
-        .update({ player_order: orderedPlayerIds, updated_at: new Date().toISOString() })
+        .update({
+          player_order: orderedPlayerIds,
+          updated_at: new Date().toISOString(),
+          club_id: activeClubId,
+        })
         .eq('id', col.orderRowId)
+        .eq('club_id', activeClubId)
 
       if (error) {
         // Roll back on failure
@@ -120,7 +130,7 @@ export function useDepthChart(): UseDepthChartResult {
         fetchAll()
       }
     },
-    [columns, fetchAll]
+    [columns, fetchAll, activeClubId]
   )
 
   return { columns, loading, error, updateOrder, refetch: fetchAll }

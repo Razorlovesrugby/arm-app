@@ -94,13 +94,17 @@ export function usePlayerDetails() {
 
   // Invalidate usePlayers cache: caller must invoke refetch() on the parent after this resolves
   const updatePlayerCRM = useCallback(async (playerId: string, patch: PlayerCRMPatch): Promise<void> => {
+    if (!activeClubId) {
+      throw new Error('No active club')
+    }
     const { error } = await supabase
       .from('players')
-      .update(patch)
+      .update({ ...patch, club_id: activeClubId })
       .eq('id', playerId)
+      .eq('club_id', activeClubId)
 
     if (error) throw new Error(error.message)
-  }, [])
+  }, [activeClubId])
 
   return { fetchPlayerStats, fetchKickingPercentage, updatePlayerCRM }
 }

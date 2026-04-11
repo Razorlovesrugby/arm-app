@@ -133,6 +133,7 @@ export function useWeeks(): UseWeeksResult {
         team_name: name,
         sort_order: i + 1,
         starters_count: 15,
+        club_id: activeClubId,
       }))
 
       const { error: teamsError } = await supabase
@@ -152,16 +153,21 @@ export function useWeeks(): UseWeeksResult {
 
   const updateWeek = useCallback(
     async (weekId: string, label: string, notes?: string): Promise<{ error: string | null }> => {
-      const updateData: Record<string, string | null> = { label }
+      if (!activeClubId) {
+        console.error('activeClubId is null - cannot update week')
+        return { error: 'No active club' }
+      }
+      const updateData: Record<string, string | null> = { label, club_id: activeClubId }
       if (notes !== undefined) updateData.notes = notes.trim() || null
       const { error } = await supabase
         .from('weeks')
         .update(updateData)
         .eq('id', weekId)
+        .eq('club_id', activeClubId)
       if (!error) await fetchWeeks()
       return { error: error?.message ?? null }
     },
-    [fetchWeeks]
+    [fetchWeeks, activeClubId]
   )
 
   const closeWeek = useCallback(
@@ -205,18 +211,28 @@ export function useWeeks(): UseWeeksResult {
     score_for: number | null,
     score_against: number | null,
   ) => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot update match score')
+      return
+    }
     await supabase
       .from('week_teams')
-      .update({ score_for, score_against })
+      .update({ score_for, score_against, club_id: activeClubId })
       .eq('id', weekTeamId)
+      .eq('club_id', activeClubId)
     await fetchWeeks()
   }
 
   const updateMatchReport = async (weekTeamId: string, match_report: string | null) => {
+    if (!activeClubId) {
+      console.error('activeClubId is null - cannot update match report')
+      return
+    }
     await supabase
       .from('week_teams')
-      .update({ match_report })
+      .update({ match_report, club_id: activeClubId })
       .eq('id', weekTeamId)
+      .eq('club_id', activeClubId)
     await fetchWeeks()
   }
 

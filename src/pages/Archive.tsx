@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import type { WeekTeam, ArchiveGameNote } from '../lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -472,6 +473,7 @@ function SearchTab({ initialQuery, onNavigateToPlayer }: SearchTabProps) {
 // ─── Main Archive Page ────────────────────────────────────────────────────────
 
 export default function Archive() {
+  const { activeClubId } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
 
@@ -573,10 +575,15 @@ export default function Archive() {
   // ── Save game note ─────────────────────────────────────────────────────────
 
   async function handleSaveNote(noteId: string, text: string) {
+    if (!activeClubId) {
+      console.error('handleSaveNote aborted: no active club ID')
+      return
+    }
     await supabase
       .from('archive_game_notes')
-      .update({ game_notes: text || null })
+      .update({ game_notes: text || null, club_id: activeClubId })
       .eq('id', noteId)
+      .eq('club_id', activeClubId)
     setAllNotes(prev =>
       prev.map(n => n.id === noteId ? { ...n, game_notes: text || null } : n)
     )

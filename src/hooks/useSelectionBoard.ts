@@ -469,6 +469,11 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   const setCaptain = useCallback(async (teamId: string, playerId: string | null) => {
     if (!activeWeekId) return
+    if (!activeClubId) {
+      console.error('setCaptain aborted: no active club ID')
+      flashError()
+      return
+    }
 
     const prevSelections = [...selections]
     setSelections(prev => prev.map(s =>
@@ -478,9 +483,10 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     try {
       const { error } = await supabase
         .from('team_selections')
-        .update({ captain_id: playerId })
+        .update({ captain_id: playerId, club_id: activeClubId })
         .eq('week_id', activeWeekId)
         .eq('week_team_id', teamId)
+        .eq('club_id', activeClubId)
       if (error) throw error
       flashSaved()
     } catch (err) {
@@ -500,6 +506,13 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     teamId: string,
     patch: Partial<Pick<WeekTeam, 'team_name' | 'starters_count' | 'visible' | 'is_active'>>
   ): Promise<boolean> => {
+    if (!activeClubId) {
+      console.error('saveTeamSettings aborted: no active club ID')
+      flashError()
+      setError('Save failed')
+      return false
+    }
+
     const prevWeekTeams    = [...weekTeams]
     const prevAllWeekTeams = [...allWeekTeams]
 
@@ -510,8 +523,9 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     try {
       const { error } = await supabase
         .from('week_teams')
-        .update(patch)
+        .update({ ...patch, club_id: activeClubId })
         .eq('id', teamId)
+        .eq('club_id', activeClubId)
       if (error) throw error
       flashSaved()
       return true
@@ -524,7 +538,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
       return false
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekTeams, allWeekTeams])
+  }, [weekTeams, allWeekTeams, activeClubId])
 
   // ── Return ────────────────────────────────────────────────────────────────
 

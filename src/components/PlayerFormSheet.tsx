@@ -5,6 +5,7 @@ import {
   POSITIONS, PLAYER_TYPES, PLAYER_STATUSES, normalisePhone,
 } from '../lib/supabase'
 import { usePlayerDetails, PlayerStats } from '../hooks/usePlayerDetails'
+import { useAuth } from '../contexts/AuthContext'
 
 interface Props {
   player: Player | null   // null = add mode
@@ -43,6 +44,7 @@ const EMPTY: FormState = {
 }
 
 export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
+  const { activeClubId } = useAuth()
   const isEdit = player !== null
   const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -175,6 +177,10 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!validate()) return
+    if (!activeClubId) {
+      setErrors({ name: 'No active club — please re-login' })
+      return
+    }
     setSaving(true)
 
     const payload = {
@@ -190,11 +196,16 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
       notes:               form.notes.trim() || null,
       historical_caps:     form.historical_caps,
       court_fines:         form.court_fines.trim() || null,
+      club_id:             activeClubId,
     }
 
     let err
     if (isEdit && player) {
-      const res = await supabase.from('players').update(payload).eq('id', player.id)
+      const res = await supabase
+        .from('players')
+        .update(payload)
+        .eq('id', player.id)
+        .eq('club_id', activeClubId)
       err = res.error
     } else {
       const res = await supabase.from('players').insert(payload)

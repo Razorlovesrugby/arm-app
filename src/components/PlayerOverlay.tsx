@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import type { Player, AvailabilityResponse } from '../lib/supabase'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ function CaptainToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) 
 export default function PlayerOverlay({
   player, slot, isCaptain, availabilityResponse, lastTeam, lastPlayed, weekLabel, onSetCaptain, onClose,
 }: PlayerOverlayProps) {
+  const { activeClubId } = useAuth()
   const [captainState, setCaptainState] = useState(isCaptain)
   const [coachNotes, setCoachNotes] = useState(player.notes ?? '')
   const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
@@ -137,10 +139,16 @@ export default function PlayerOverlay({
 
   // Debounced save for coach notes
   const saveNotes = useCallback(async (value: string) => {
+    if (!activeClubId) {
+      console.error('saveNotes aborted: no active club ID')
+      setNotesSaveStatus('error')
+      return
+    }
     const { error } = await supabase
       .from('players')
-      .update({ notes: value.trim() || null })
+      .update({ notes: value.trim() || null, club_id: activeClubId })
       .eq('id', player.id)
+      .eq('club_id', activeClubId)
 
     if (!error) {
       setNotesSaveStatus('saved')
@@ -148,7 +156,7 @@ export default function PlayerOverlay({
     } else {
       setNotesSaveStatus('error')
     }
-  }, [player.id])
+  }, [player.id, activeClubId])
 
   function handleNotesInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const val = e.target.value

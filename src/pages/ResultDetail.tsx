@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { useWeeks } from '../hooks/useWeeks'
 import { useMatchEvents, type PlayerEventCounts } from '../hooks/useMatchEvents'
 import { useClubSettings } from '../hooks/useClubSettings'
@@ -221,11 +222,16 @@ interface OpponentInputProps {
 }
 
 function OpponentInput({ team, weekTeamId }: OpponentInputProps) {
+  const { activeClubId } = useAuth()
   const [localOpponent, setLocalOpponent] = useState(team.opponent || '')
   const [isSaving, setIsSaving] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const handleSave = useCallback(async () => {
+    if (!activeClubId) {
+      console.error('OpponentInput save aborted: no active club ID')
+      return
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
@@ -235,8 +241,9 @@ function OpponentInput({ team, weekTeamId }: OpponentInputProps) {
     try {
       const { error } = await supabase
         .from('week_teams')
-        .update({ opponent: localOpponent.trim() || null })
+        .update({ opponent: localOpponent.trim() || null, club_id: activeClubId })
         .eq('id', weekTeamId)
+        .eq('club_id', activeClubId)
 
       if (abortControllerRef.current.signal.aborted) return
 
@@ -252,7 +259,7 @@ function OpponentInput({ team, weekTeamId }: OpponentInputProps) {
         setIsSaving(false)
       }
     }
-  }, [weekTeamId, localOpponent])
+  }, [weekTeamId, localOpponent, activeClubId])
 
   // Cleanup on unmount
   useEffect(() => {

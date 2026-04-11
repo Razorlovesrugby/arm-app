@@ -208,12 +208,17 @@ export default function AvailabilityForm() {
       }
 
       // 2c. Update existing player profile with collected contact/birthday data
+      // NOTE: club_id derived from the token-fetched week, not auth (public form)
       if (!isNewPlayer) {
         const profileUpdate: Record<string, unknown> = {}
         if (requireContactInfo && form.email) profileUpdate.email = form.email
         if (requireBirthday && form.birthday) profileUpdate.date_of_birth = form.birthday
         if (Object.keys(profileUpdate).length > 0) {
-          await supabase.from('players').update(profileUpdate).eq('id', playerId)
+          await supabase
+            .from('players')
+            .update({ ...profileUpdate, club_id: week.club_id })
+            .eq('id', playerId)
+            .eq('club_id', week.club_id)
         }
       }
 
@@ -222,7 +227,11 @@ export default function AvailabilityForm() {
         const updatePayload: Record<string, unknown> = {}
         if (form.primaryPosition) updatePayload.primary_position = form.primaryPosition
         if (form.secondaryPositions.length > 0) updatePayload.secondary_positions = form.secondaryPositions
-        await supabase.from('players').update(updatePayload).eq('id', playerId)
+        await supabase
+          .from('players')
+          .update({ ...updatePayload, club_id: week.club_id })
+          .eq('id', playerId)
+          .eq('club_id', week.club_id)
       }
 
       // 2e. Insert availability response

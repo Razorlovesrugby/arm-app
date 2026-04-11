@@ -71,6 +71,7 @@ export function useMatchEvents() {
       .delete()
       .eq('week_id', weekId)
       .eq('week_team_id', weekTeamId)
+      .eq('club_id', activeClubId)
       .in('event_type', ['try', 'conversion', 'penalty', 'drop_goal', 'yellow_card', 'red_card', 'Conversion Miss', 'Penalty Miss'])
 
     // Build insert rows — one row per occurrence
@@ -126,6 +127,7 @@ export function useMatchEvents() {
       .delete()
       .eq('week_id', weekId)
       .eq('week_team_id', weekTeamId)
+      .eq('club_id', activeClubId)
       .eq('event_type', awardType)
 
     if (playerId) {

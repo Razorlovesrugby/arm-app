@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 interface AttendancePlayer {
   id: string
@@ -32,6 +33,7 @@ function formatWeekDate(dateStr: string): string {
 }
 
 export default function Attendance() {
+  const { activeClubId } = useAuth()
   const [players, setPlayers] = useState<AttendancePlayer[]>([])
   const [weeks, setWeeks] = useState<AttendanceWeek[]>([])
   const [trainingDays, setTrainingDays] = useState<TrainingDay[]>([])
@@ -106,6 +108,13 @@ export default function Attendance() {
   useEffect(() => { fetchAll() }, [fetchAll])
 
   async function toggleAttendance(playerId: string, weekId: string, sessionId: string) {
+    if (!activeClubId) {
+      console.error('toggleAttendance aborted: no active club ID')
+      setToastError('Failed to save attendance')
+      setTimeout(() => setToastError(null), 3000)
+      return
+    }
+
     const key = `${playerId}:${weekId}:${sessionId}`
     const current = attendanceMap[key] ?? false
     const next = !current
@@ -116,7 +125,13 @@ export default function Attendance() {
     const { error: upsertError } = await supabase
       .from('training_attendance')
       .upsert(
-        { player_id: playerId, week_id: weekId, session_id: sessionId, attended: next },
+        {
+          player_id: playerId,
+          week_id: weekId,
+          session_id: sessionId,
+          attended: next,
+          club_id: activeClubId,
+        },
         { onConflict: 'player_id,week_id,session_id' }
       )
 
