@@ -66,7 +66,7 @@ export function useDepthChart(): UseDepthChartResult {
     setError(null)
 
     const [playersRes, orderRes] = await Promise.all([
-      supabase.from('players').select('*').eq('club_id', activeClubId).order('name', { ascending: true }),
+      supabase.from('players').select('*').eq('club_id', activeClubId).neq('status', 'Retired').neq('status', 'Archived').order('name', { ascending: true }),
       supabase.from('depth_chart_order').select('*').eq('club_id', activeClubId),
     ])
 
