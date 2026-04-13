@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-10 22:44**
-**Current position: Phase 16.2 Complete — Multi-tenant frontend sweep implemented. All hooks filter by club_id, AvailabilityForm uses week.club_id for anonymous submissions.**
+**Last updated: 2026-04-13 10:50**
+**Current position: Phase 16.3.1 Complete — Selection Board Save Patch implemented. All mutation payloads include club_id, defensive null checks added. Multi-tenant migration fully complete with frontend resilience.**
 
 ---
 
@@ -32,7 +32,7 @@
 | 13 | Exports — jsPDF PDF + plain text, native OS share sheet | ✅ Done |
 | 14 | Polish & Performance — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
 | 15 | Training & Analytics — Training attendance, availability dashboard, data collection mode | ✅ Done |
-| 16 | Multi-Tenant Architecture — Club-based data isolation, frontend sweep, database lockdown | 🏃 In Progress |
+| 16 | Multi-Tenant Architecture — Club-based data isolation, frontend sweep, database lockdown | ✅ Done |
 
 **Note:** Project has pivoted to v2.0 architecture. Phase 10 (Exports) deferred to focus on v2.0 features. Archive functionality is no longer a standalone locked tab; historical data is now accessed via the concurrent 'Results' toggle on the Selection Board.
 
@@ -288,13 +288,14 @@
 
 ---
 
-### Phase 16 🏃 — Multi-Tenant Architecture
+### Phase 16 ✅ — Multi-Tenant Architecture
 | CP | Description | Status |
 |---|---|---|
 | 16.0 | **Specification:** Multi-tenant database architecture with clubs, profiles tables, club_id columns, RLS policies, data backfill strategy | ✅ Done (2026-04-10) |
 | 16.1 | **Database Expansion & Safe Backfill:** Migration 018 + 019 applied, club_id columns added to all tables, existing data backfilled to master club | ✅ Done (2026-04-10) |
 | 16.2 | **Frontend Sweep:** All 8 data hooks updated with activeClubId checks and club filtering, AuthContext polished, AvailabilityForm uses week.club_id for anonymous submissions | ✅ Done (2026-04-10) |
-| 16.3 | **Database Lockdown:** NOT NULL constraints + RLS enforcement for club_id columns, UI airlock for null activeClubId | ▶ Next |
+| 16.3 | **Database Lockdown:** NOT NULL constraints + RLS enforcement for club_id columns, Error Boundary, Auth Airlock, defensive hooks with .maybeSingle() and activeClubId guards | ✅ Done (2026-04-10) |
+| 16.3.1 | **Selection Board Save Patch:** Hotfix ensuring all mutation payloads include club_id, defensive null checks added to prevent "Save failed" errors | ✅ Done (2026-04-13) |
 
 **Phase 16.2 Implementation Details:**
 - **Scope:** Frontend data hooks sweep to inject activeClubId into all queries and mutations
@@ -315,6 +316,35 @@
   - Anonymous Availability Pattern: Fetch week.club_id from database for public form submissions
   - Defensive Null Checks: Hooks block operations with console.error when activeClubId is null
 - **Status:** ✅ Complete — Ready for Phase 16.3 database lockdown
+
+**Phase 16.3 Implementation Details:**
+- **Scope:** Database lockdown with NOT NULL constraints, RLS enforcement, and frontend resilience patterns
+- **Database Migration (020_phase_16_3_lockdown.sql):**
+  - Pre-flight orphan check to abort if any core-table row has NULL club_id
+  - NOT NULL constraints added to club_id on all 10 core tables
+  - Indexes created on all club_id columns for RLS performance
+  - RLS enabled on all tenant-scoped tables
+  - Coach RLS policies scoped to profiles.club_id (prevents infinite recursion)
+  - Anonymous policies for public availability form (SELECT/INSERT/UPDATE)
+  - Service_role bypass for support tooling
+- **Frontend Components:**
+  - `ErrorBoundary.tsx` created with branded fallback UI (matches spec)
+  - `App.tsx` wrapped in ErrorBoundary for graceful render failure handling
+  - `AuthContext.tsx` enhanced with Auth Airlock UI for users without club_id
+  - Multi-tab sync via window focus listener to refresh auth state changes
+  - Public route bypass for login and availability form
+- **Hook Updates:**
+  - All `.single()` calls converted to `.maybeSingle()` with null checks
+  - All data hooks add `if (!activeClubId) return` guard at top of fetch functions
+  - Race condition defense with activeClubId null checks during login transitions
+- **Key Patterns:**
+  - Database Contract: NOT NULL constraints enforce data integrity
+  - RLS Tenant Isolation: Policies prevent cross-club data access
+  - UI Resilience: Error Boundary catches render failures
+  - Auth Airlock: Blocks protected routes for users without club_id
+  - Defensive Programming: Hooks guard against null activeClubId
+  - Multi-Tab Consistency: Window focus listener syncs auth state
+- **Status:** ✅ Complete — Multi-tenant migration contract phase finished
 
 ---
 

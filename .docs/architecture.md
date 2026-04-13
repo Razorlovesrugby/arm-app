@@ -47,6 +47,7 @@
 - **SelectionBoard.tsx**: Drag-and-drop team selection interface
 - **PlayerCard.tsx**: Individual player display component
 - **ProtectedRoute.tsx**: Authentication wrapper
+- **ErrorBoundary.tsx**: Global error boundary for graceful render failure handling (Phase 16.3)
 
 ### Pages
 - **Login.tsx**: Authentication page
@@ -77,6 +78,16 @@
 - **Anonymous Submissions**: Public availability forms fetch week's `club_id` from database to maintain data isolation
 - **Defensive Checks**: Hooks block operations with console.error when `activeClubId` is null
 - **Database Structure**: All tables include `club_id` column with foreign key to `clubs` table
+- **Database Contract**: NOT NULL constraints enforce data integrity (Phase 16.3)
+- **RLS Enforcement**: Row Level Security policies prevent cross-club data access with service_role bypass
+
+### Resilience Patterns (Phase 16.3)
+- **Error Boundary**: Global React Error Boundary catches render failures with branded fallback UI
+- **Auth Airlock**: Blocks protected routes for authenticated users without club_id association
+- **Multi-Tab Sync**: Window focus listener refreshes auth state across browser tabs
+- **Public Route Bypass**: Login and availability form routes bypass Auth Airlock
+- **Defensive Hooks**: All `.single()` calls converted to `.maybeSingle()` with null checks
+- **Race Condition Defense**: Hooks guard against null activeClubId during login transitions
 
 ## UI/UX Guidelines
 

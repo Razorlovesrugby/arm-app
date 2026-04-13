@@ -2,6 +2,44 @@ ARM Session Log
 
 ---
 
+## [2026-04-13 10:45] Session Summary
+- **Primary Objective:** Phase 16.3.1 HOTFIX — Selection Board Save Patch
+- **Tasks Completed:**
+  - [x] Verified `useSelectionBoard.ts` hook includes `club_id: activeClubId` in all mutation payloads
+  - [x] Confirmed defensive null checks are present in all save functions
+  - [x] Validated `upsertSelection`, `setCaptain`, and `saveTeamSettings` functions include club_id
+  - [x] Documentation updated according to clinerules specifications
+- **Architecture / Database Decisions Locked:**
+  - Selection Board save logic now fully compliant with multi-tenant database constraints
+  - All mutation payloads explicitly include `club_id: activeClubId` as required by NOT NULL constraints
+  - Defensive programming prevents save attempts when `activeClubId` is null
+  - Hotfix addresses edge case missed in Phase 16.2 frontend sweep
+- **Next Up:** Continue with next priority from tracker (Phase 16.5 Logo Consistency)
+
+---
+
+## [2026-04-10 23:30] Session Summary
+- **Primary Objective:** Phase 16.3 — Database Lockdown, Resilience & Edge Case Sweep
+- **Tasks Completed:**
+  - [x] Migration 020_phase_16_3_lockdown.sql applied with NOT NULL constraints on all 10 core tables' club_id columns
+  - [x] ErrorBoundary.tsx component created with branded fallback UI
+  - [x] App.tsx wrapped in ErrorBoundary for graceful render failure handling
+  - [x] AuthContext enhanced with Auth Airlock UI for users without club_id
+  - [x] Multi-tab sync implemented via window focus listener
+  - [x] All `.single()` calls converted to `.maybeSingle()` with null checks
+  - [x] All data hooks add `if (!activeClubId) return` guard at top of fetch functions
+- **Architecture / Database Decisions Locked:**
+  - Database contract phase complete: NOT NULL constraints enforce data integrity
+  - RLS policies prevent cross-club data access with service_role bypass
+  - Error Boundary catches render failures with branded UI
+  - Auth Airlock blocks protected routes for users without club_id
+  - Public routes (login, availability form) bypass airlock
+  - Multi-tab consistency via window focus listener
+  - Defensive programming patterns in all data hooks
+- **Next Up:** Next priority from tracker (check ARM-TRACKER.md)
+
+---
+
 ## [2026-04-10 22:44] Session Summary
 - **Primary Objective:** Phase 16.2 — Multi-Tenant Frontend Sweep
 - **Tasks Completed:**
