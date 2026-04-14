@@ -35,7 +35,23 @@ export type Position =
   | 'Scrum-half' | 'Fly-half' | 'Centre' | 'Wing' | 'Fullback'
   | 'Unspecified'
 
+export const RUGBY_POSITION_ORDER: Position[] = [
+  'Prop',
+  'Hooker',
+  'Lock',
+  'Flanker',
+  'Number 8',
+  'Scrum-half',
+  'Fly-half',
+  'Centre',
+  'Wing',
+  'Fullback',
+  'Unspecified',
+]
+
 export type PlayerType = 'Performance' | 'Open' | "Women's"
+
+export const PLAYER_TYPE_ORDER: PlayerType[] = ['Performance', 'Open', "Women's"]
 export type PlayerStatus = 'Active' | 'Injured' | 'Unavailable' | 'Retired' | 'Archived'
 export type Availability = 'Available' | 'TBC' | 'Unavailable'
 export type WeekStatus = 'Open' | 'Closed'

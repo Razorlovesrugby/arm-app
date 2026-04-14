@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Player, WeekTeam, TeamSelection, AvailabilityResponse, PDFTeam, PDFPlayer } from '../lib/supabase'
+import { RUGBY_POSITION_ORDER, PLAYER_TYPE_ORDER } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -286,14 +287,19 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
         return av === 'Available' || av === 'TBC'
       })
       .sort((a, b) => {
-        const order = (p: Player) => {
-          const av = availabilityMap[p.id]?.availability
-          if (av === 'Available') return 0
-          if (av === 'TBC')       return 1
-          return 2
-        }
-        const diff = order(a) - order(b)
-        if (diff !== 0) return diff
+        // 1. Sort by Player Type (Performance → Open → Women's)
+        const typeIndexA = PLAYER_TYPE_ORDER.indexOf(a.player_type)
+        const typeIndexB = PLAYER_TYPE_ORDER.indexOf(b.player_type)
+        if (typeIndexA !== typeIndexB) return typeIndexA - typeIndexB
+
+        // 2. Sort by Rugby Position
+        const posA = a.primary_position ?? 'Unspecified'
+        const posB = b.primary_position ?? 'Unspecified'
+        const posIndexA = RUGBY_POSITION_ORDER.indexOf(posA)
+        const posIndexB = RUGBY_POSITION_ORDER.indexOf(posB)
+        if (posIndexA !== posIndexB) return posIndexA - posIndexB
+
+        // 3. Alphabetical fallback
         return a.name.localeCompare(b.name)
       })
   }, [allPlayers, selections, availabilityMap])
