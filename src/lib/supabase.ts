@@ -26,7 +26,13 @@ export interface Club {
 export interface Profile {
   id: string
   club_id?: string // Optional during expansion phase
-  role: string
+  role: 'coach' | 'rdo'
+  created_at: string
+}
+
+export interface RdoClubAccess {
+  user_id: string
+  club_id: string
   created_at: string
 }
 
