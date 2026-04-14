@@ -9,6 +9,7 @@ interface AuthContextValue {
   loading: boolean
   activeClubId: string | null
   role: 'coach' | 'rdo' | null
+  switching: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   switchTenant: (clubId: string | null) => void
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [activeClubId, setActiveClubId] = useState<string | null>(null)
   const [role, setRole] = useState<'coach' | 'rdo' | null>(null)
+  const [switching, setSwitching] = useState(false)
   // Tracks whether we've finished the initial profile lookup for the current
   // session. Needed so the airlock only renders AFTER the profile fetch
   // settles, never during the in-flight gap.
@@ -104,7 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const switchTenant = useCallback((clubId: string | null) => {
+    setSwitching(true)
     setActiveClubId(clubId)
+    // 100ms allows the React tree keyed on activeClubId to unmount/remount
+    setTimeout(() => setSwitching(false), 100)
   }, [])
 
   useEffect(() => {
@@ -198,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, loading, activeClubId, role, signIn, signOut, switchTenant }}
+      value={{ session, user: session?.user ?? null, loading, activeClubId, role, switching, signIn, signOut, switchTenant }}
     >
       {airlockActive ? <AirlockScreen /> : children}
     </AuthContext.Provider>

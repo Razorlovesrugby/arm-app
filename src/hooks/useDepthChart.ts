@@ -56,9 +56,9 @@ export function useDepthChart(): UseDepthChartResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (sig?: { cancelled: boolean }) => {
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch depth chart')
+      setColumns([])
       setLoading(false)
       return
     }
@@ -70,6 +70,7 @@ export function useDepthChart(): UseDepthChartResult {
       supabase.from('depth_chart_order').select('*').eq('club_id', activeClubId),
     ])
 
+    if (sig?.cancelled) return
     if (playersRes.error) {
       setError(playersRes.error.message)
       setLoading(false)
@@ -87,7 +88,9 @@ export function useDepthChart(): UseDepthChartResult {
   }, [activeClubId])
 
   useEffect(() => {
-    fetchAll()
+    const sig = { cancelled: false }
+    fetchAll(sig)
+    return () => { sig.cancelled = true }
   }, [fetchAll])
 
   // Optimistic update + Supabase upsert

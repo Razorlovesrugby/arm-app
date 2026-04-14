@@ -34,9 +34,11 @@ export function useGrid(): UseGridResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (sig?: { cancelled: boolean }) => {
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch grid')
+      setPlayers([])
+      setWeeks([])
+      setResponses([])
       setLoading(false)
       return
     }
@@ -61,6 +63,7 @@ export function useGrid(): UseGridResult {
         .order('start_date', { ascending: true }),
     ])
 
+    if (sig?.cancelled) return
     if (playersRes.error) {
       setError(playersRes.error.message)
       setLoading(false)
@@ -93,6 +96,7 @@ export function useGrid(): UseGridResult {
       .in('player_id', playerIds)
       .in('week_id', weekIds)
 
+    if (sig?.cancelled) return
     if (respError) {
       setError(respError.message)
       setLoading(false)
@@ -104,7 +108,9 @@ export function useGrid(): UseGridResult {
   }, [activeClubId])
 
   useEffect(() => {
-    fetchAll()
+    const sig = { cancelled: false }
+    fetchAll(sig)
+    return () => { sig.cancelled = true }
   }, [fetchAll])
 
   // Build 2D dictionary: matrix[playerId][weekId] = Availability | null

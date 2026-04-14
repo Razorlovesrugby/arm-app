@@ -130,21 +130,23 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   useEffect(() => {
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch players')
+      setAllPlayers([])
       return
     }
+    let ignore = false
     supabase
       .from('players')
       .select('*')
       .eq('club_id', activeClubId)
       .neq('status', 'Archived')
       .order('name')
-      .then(({ data }) => setAllPlayers(data ?? []))
+      .then(({ data }) => { if (!ignore) setAllPlayers(data ?? []) })
+    return () => { ignore = true }
   }, [activeClubId])
 
   // ── Week-scoped fetch — runs when activeWeekId changes ───────────────────
 
-  const fetchWeekData = useCallback(async (wid: string | null) => {
+  const fetchWeekData = useCallback(async (wid: string | null, sig?: { cancelled: boolean }) => {
     if (!wid) {
       setWeekTeams([])
       setAllWeekTeams([])
@@ -156,7 +158,6 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     }
 
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch week data')
       setLoading(false)
       return
     }
@@ -206,6 +207,8 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
         supabase.rpc('get_player_last_selections', { p_week_id: wid }),
       ])
 
+      if (sig?.cancelled) return
+
       if (visibleTeamsRes.error) throw visibleTeamsRes.error
       if (allTeamsRes.error)     throw allTeamsRes.error
       if (selectionsRes.error)   throw selectionsRes.error
@@ -237,15 +240,18 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
       setPlayerHistory(histMap)
 
     } catch (err: unknown) {
+      if (sig?.cancelled) return
       console.error('useSelectionBoard fetchWeekData error:', err)
       setError(err instanceof Error ? err.message : 'Failed to load board')
     } finally {
-      setLoading(false)
+      if (!sig?.cancelled) setLoading(false)
     }
   }, [activeClubId])
 
   useEffect(() => {
-    fetchWeekData(activeWeekId)
+    const sig = { cancelled: false }
+    fetchWeekData(activeWeekId, sig)
+    return () => { sig.cancelled = true }
   }, [activeWeekId, fetchWeekData])
 
   // ── Derived: teams (visible only) — memoised for stable reference ─────────

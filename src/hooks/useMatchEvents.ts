@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { MatchEvent, MatchEventType } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -30,6 +30,11 @@ export function useMatchEvents() {
   const [events, setEvents]   = useState<MatchEvent[]>([])
   const [loading, setLoading] = useState(false)
   const [saving,  setSaving]  = useState(false)
+
+  // Clear stale events when the active club changes
+  useEffect(() => {
+    setEvents([])
+  }, [activeClubId])
 
   const fetchMatchEvents = useCallback(async (weekId: string, weekTeamId: string) => {
     if (!activeClubId) {

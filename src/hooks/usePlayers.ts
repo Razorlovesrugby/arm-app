@@ -21,9 +21,9 @@ export function usePlayers(options?: UsePlayersOptions): UsePlayersResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPlayers = useCallback(async () => {
+  const fetchPlayers = useCallback(async (sig?: { cancelled: boolean }) => {
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch players')
+      setPlayers([])
       setLoading(false)
       return
     }
@@ -45,6 +45,7 @@ export function usePlayers(options?: UsePlayersOptions): UsePlayersResult {
 
     const { data, error } = await query.order('name', { ascending: true })
 
+    if (sig?.cancelled) return
     if (error) {
       setError(error.message)
     } else {
@@ -54,7 +55,9 @@ export function usePlayers(options?: UsePlayersOptions): UsePlayersResult {
   }, [excludeRetired, excludeArchived, activeClubId])
 
   useEffect(() => {
-    fetchPlayers()
+    const sig = { cancelled: false }
+    fetchPlayers(sig)
+    return () => { sig.cancelled = true }
   }, [fetchPlayers])
 
   return { players, loading, error, refetch: fetchPlayers }

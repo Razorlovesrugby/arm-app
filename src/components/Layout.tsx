@@ -12,7 +12,7 @@ import { Menu, ShieldAlert } from 'lucide-react'
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { clubSettings } = useClubSettings()
-  const { role, activeClubId, switchTenant } = useAuth()
+  const { role, activeClubId, switchTenant, switching } = useAuth()
 
   const isGodMode = role === 'rdo' && activeClubId !== null
 
@@ -34,9 +34,10 @@ export default function Layout() {
             </div>
             <button
               onClick={() => switchTenant(null)}
-              className="text-sm font-semibold underline hover:no-underline transition-all whitespace-nowrap flex-shrink-0"
+              disabled={switching}
+              className={`text-sm font-semibold underline hover:no-underline transition-all whitespace-nowrap flex-shrink-0 ${switching ? 'opacity-50 cursor-wait' : ''}`}
             >
-              Exit to Command Center
+              {switching ? 'Exiting...' : 'Exit to Command Center'}
             </button>
           </div>
         )}
