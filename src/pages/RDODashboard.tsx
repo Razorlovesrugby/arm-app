@@ -100,7 +100,7 @@ export default function RDODashboard() {
       return
     }
 
-    setClubs((data as ClubWithLogo[]) ?? [])
+    setClubs((data as unknown as ClubWithLogo[]) ?? [])
     setLoading(false)
   }, [user])
 

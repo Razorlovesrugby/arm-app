@@ -1,13 +1,13 @@
 // src/components/RDOLayout.tsx
 // Phase 17.2 — RDO-specific layout with sidebar navigation rail
 
-import { type ReactNode, type ComponentType } from 'react'
-import { Home, Calendar, Users, LogOut } from 'lucide-react'
+import { type ReactNode } from 'react'
+import { Home, Calendar, Users, LogOut, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 interface NavItem {
   label: string
-  icon: ComponentType<{ size?: number; className?: string }>
+  icon: LucideIcon
   active?: boolean
   disabled?: boolean
 }
