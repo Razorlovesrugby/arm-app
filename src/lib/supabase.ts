@@ -36,6 +36,16 @@ export interface RdoClubAccess {
   created_at: string
 }
 
+// Joined result from rdo_club_access → clubs → club_settings
+export interface ClubWithLogo {
+  club_id: string
+  clubs: {
+    id: string
+    name: string
+    club_settings: Array<{ logo_url: string | null }>
+  } | null
+}
+
 export type Position =
   | 'Prop' | 'Hooker' | 'Lock' | 'Flanker' | 'Number 8'
   | 'Scrum-half' | 'Fly-half' | 'Centre' | 'Wing' | 'Fullback'
