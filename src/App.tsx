@@ -10,6 +10,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import RDOLayout from './components/RDOLayout'
 import RDODashboard from './pages/RDODashboard'
+import RfcPlayerPool from './pages/RfcPlayerPool'
 import Login from './pages/Login'
 import Roster from './pages/Roster'
 import DepthChart from './pages/DepthChart'
@@ -46,13 +47,16 @@ function BrandInjector() {
 
 // Decides which layout shell to render based on role and activeClubId.
 //
-// RDO with no active club  → RDOLayout + RDODashboard (no Outlet — intercepts
-//   all URLs and keeps the user in the Command Center regardless of path).
-//   A side-effect navigates to /rdo-dashboard to keep the URL canonical.
+// RDO with no active club  → RDOLayout with the correct RDO page.
+//   Allowed RDO paths: /rdo-dashboard, /rdo-dashboard/player-pool.
+//   Anything else redirects to /rdo-dashboard.
 //
 // Coach or RDO impersonating a club → standard Layout with Outlet.
 //   key={activeClubId} forces React to fully remount the coach tree when
 //   the tenant changes, ensuring stale hook state is cleared.
+
+const RDO_PATHS = ['/rdo-dashboard', '/rdo-dashboard/player-pool']
+
 function ProtectedShell() {
   const { role, activeClubId } = useAuth()
   const navigate = useNavigate()
@@ -60,17 +64,24 @@ function ProtectedShell() {
 
   const isRdoCommandCenter = role === 'rdo' && activeClubId === null
 
-  // Keep URL canonical at /rdo-dashboard while in Command Center mode
+  // Redirect unknown RDO paths to the Command Center
   useEffect(() => {
-    if (isRdoCommandCenter && location.pathname !== '/rdo-dashboard') {
+    if (isRdoCommandCenter && !RDO_PATHS.includes(location.pathname)) {
       navigate('/rdo-dashboard', { replace: true })
     }
   }, [isRdoCommandCenter, location.pathname, navigate])
 
   if (isRdoCommandCenter) {
+    const page = location.pathname === '/rdo-dashboard/player-pool'
+      ? <RfcPlayerPool />
+      : <RDODashboard />
+
     return (
-      <RDOLayout>
-        <RDODashboard />
+      <RDOLayout
+        activePath={location.pathname}
+        onNavigate={(path) => navigate(path)}
+      >
+        {page}
       </RDOLayout>
     )
   }

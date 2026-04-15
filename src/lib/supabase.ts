@@ -251,6 +251,30 @@ export interface ClubReadiness {
 }
 
 // ============================================================
+// Phase 17.5: RFC Player Pool RPC Types
+// ============================================================
+
+export interface PlayerPoolRow {
+  player_id: string
+  first_name: string
+  last_name: string
+  position_primary: string
+  player_type: string
+  status: string
+  team_name: string
+  club_id: string
+  current_availability: string
+}
+
+export interface PlayerPoolFilters {
+  team?: string
+  playerType?: string
+  status?: string
+  position?: string
+  availability?: string
+}
+
+// ============================================================
 // PDF Types (Phase 13)
 // ============================================================
 
