@@ -235,6 +235,22 @@ export const MATCH_EVENT_TYPES: MatchEventType[] = [
 ]
 
 // ============================================================
+// Phase 17.4: RDO Readiness Types
+// ============================================================
+
+export type SelectionStatus = 'missing' | 'draft' | 'locked'
+
+export interface ClubReadiness {
+  clubId: string
+  clubName: string
+  logoUrl: string | null
+  rosterSize: number
+  availabilityPercent: number
+  selectionStatus: SelectionStatus
+  currentWeekId: string | null
+}
+
+// ============================================================
 // PDF Types (Phase 13)
 // ============================================================
 

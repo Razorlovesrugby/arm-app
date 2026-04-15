@@ -1,10 +1,12 @@
 // src/pages/RDODashboard.tsx
-// Phase 17.2 — RDO Command Center: Launchpad with club cards and tenant switching
+// Phase 17.4 — RDO Command Center: Launchpad + Weekly Readiness Matrix
 
 import { useEffect, useState, useCallback } from 'react'
 import { Building2, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react'
 import { supabase, type ClubWithLogo } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useRDOReadiness } from '../hooks/useRDOReadiness'
+import ReadinessMatrix from '../components/ReadinessMatrix'
 
 // ── Club Card ─────────────────────────────────────────────────────────────────
 
@@ -72,13 +74,15 @@ function ClubCardSkeleton() {
 export default function RDODashboard() {
   const { user, switchTenant } = useAuth()
   const [clubs, setClubs] = useState<ClubWithLogo[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [clubsLoading, setClubsLoading] = useState(true)
+  const [clubsError, setClubsError] = useState<string | null>(null)
+
+  const { data: readinessData, loading: readinessLoading, error: readinessError } = useRDOReadiness()
 
   const fetchClubs = useCallback(async () => {
     if (!user) return
-    setLoading(true)
-    setError(null)
+    setClubsLoading(true)
+    setClubsError(null)
 
     const { data, error: fetchError } = await supabase
       .from('rdo_club_access')
@@ -95,13 +99,13 @@ export default function RDODashboard() {
       .eq('user_id', user.id)
 
     if (fetchError) {
-      setError(fetchError.message)
-      setLoading(false)
+      setClubsError(fetchError.message)
+      setClubsLoading(false)
       return
     }
 
     setClubs((data as unknown as ClubWithLogo[]) ?? [])
-    setLoading(false)
+    setClubsLoading(false)
   }, [user])
 
   useEffect(() => {
@@ -109,72 +113,89 @@ export default function RDODashboard() {
   }, [fetchClubs])
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Launchpad</h1>
-        <p className="text-gray-500 mt-1">Select a club to enter the coaching interface</p>
-      </div>
-
-      {/* Loading skeletons */}
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <ClubCardSkeleton />
-          <ClubCardSkeleton />
-          <ClubCardSkeleton />
+    <div className="p-6 md:p-8 max-w-5xl space-y-10">
+      {/* ── Launchpad Section ── */}
+      <section>
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Launchpad</h1>
+          <p className="text-gray-500 mt-1">Select a club to enter the coaching interface</p>
         </div>
-      )}
 
-      {/* Error state */}
-      {!loading && error && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <AlertCircle size={40} className="text-red-400 mb-4" aria-hidden="true" />
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Failed to load clubs</h2>
-          <p className="text-sm text-gray-500 mb-6 max-w-sm">{error}</p>
-          <button
-            onClick={fetchClubs}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            <RefreshCw size={15} aria-hidden="true" />
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && !error && clubs.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div
-            className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"
-            aria-hidden="true"
-          >
-            <Building2 size={28} className="text-gray-400" />
+        {/* Loading skeletons */}
+        {clubsLoading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ClubCardSkeleton />
+            <ClubCardSkeleton />
+            <ClubCardSkeleton />
           </div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">No clubs assigned</h2>
-          <p className="text-sm text-gray-500 max-w-sm">
-            You don't have access to any clubs yet. Contact your administrator to get clubs assigned to your account.
+        )}
+
+        {/* Error state */}
+        {!clubsLoading && clubsError && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <AlertCircle size={40} className="text-red-400 mb-4" aria-hidden="true" />
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">Failed to load clubs</h2>
+            <p className="text-sm text-gray-500 mb-6 max-w-sm">{clubsError}</p>
+            <button
+              onClick={fetchClubs}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!clubsLoading && !clubsError && clubs.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div
+              className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"
+              aria-hidden="true"
+            >
+              <Building2 size={28} className="text-gray-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">No clubs assigned</h2>
+            <p className="text-sm text-gray-500 max-w-sm">
+              You don't have access to any clubs yet. Contact your administrator to get clubs assigned to your account.
+            </p>
+          </div>
+        )}
+
+        {/* Club grid */}
+        {!clubsLoading && !clubsError && clubs.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {clubs.map((entry) => {
+              const club = entry.clubs
+              if (!club) return null
+              const logoUrl = club.club_settings?.[0]?.logo_url ?? null
+              return (
+                <ClubCard
+                  key={entry.club_id}
+                  name={club.name}
+                  logoUrl={logoUrl}
+                  onManage={() => switchTenant(entry.club_id)}
+                />
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── Weekly Readiness Matrix ── */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Command Center</h2>
+          <p className="text-gray-500 mt-1 text-sm">
+            At-a-glance readiness for this weekend across all managed clubs
           </p>
         </div>
-      )}
-
-      {/* Club grid */}
-      {!loading && !error && clubs.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {clubs.map((entry) => {
-            const club = entry.clubs
-            if (!club) return null
-            const logoUrl = club.club_settings?.[0]?.logo_url ?? null
-            return (
-              <ClubCard
-                key={entry.club_id}
-                name={club.name}
-                logoUrl={logoUrl}
-                onManage={() => switchTenant(entry.club_id)}
-              />
-            )
-          })}
-        </div>
-      )}
+        <ReadinessMatrix
+          data={readinessData}
+          loading={readinessLoading}
+          error={readinessError}
+        />
+      </section>
     </div>
   )
 }
