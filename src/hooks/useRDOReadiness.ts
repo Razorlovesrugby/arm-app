@@ -94,6 +94,7 @@ export function useRDOReadiness() {
     }
 
     let ignore = false
+    const userId = user.id
 
     async function fetchReadinessData() {
       setLoading(true)
@@ -125,7 +126,7 @@ export function useRDOReadiness() {
             )
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
 
       if (ignore) return
 
