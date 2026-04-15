@@ -29,6 +29,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Week, WeekTeam, Player } from '../lib/supabase'
+import { DEFAULT_PLAYER_TYPES } from '../lib/supabase'
 import { useSelectionBoard, selectionTeamsToPDF, type SelectionTeam } from '../hooks/useSelectionBoard'
 import { useClubSettings } from '../hooks/useClubSettings'
 import PlayerOverlay from './PlayerOverlay'
@@ -282,13 +283,15 @@ interface PoolSheetProps {
   teamName: string
   unassigned: ReturnType<typeof useSelectionBoard>['unassignedPlayers']
   availabilityMap: ReturnType<typeof useSelectionBoard>['availabilityMap']
+  playerTypeOptions: string[]
   onAssign: (playerId: string) => void
   onOpenOverlay: (playerId: string) => void   // BUG-FIX-C: row tap opens PlayerOverlay
   onClose: () => void
 }
 
-function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOverlay, onClose }: PoolSheetProps) {
+function PoolSheet({ teamName, unassigned, availabilityMap, playerTypeOptions, onAssign, onOpenOverlay, onClose }: PoolSheetProps) {
   const [activeFilter, setActiveFilter] = useState<PoolFilter>('All')
+  const [activeTypeFilter, setActiveTypeFilter] = useState<string>('all')
   const FILTERS: PoolFilter[] = ['All', 'Available', 'TBC', 'Forward', 'Back']
 
   useEffect(() => {
@@ -299,11 +302,11 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
   const filtered = unassigned.filter(p => {
     const av  = availabilityMap[p.id]?.availability
     const pos = p.primary_position ?? ''
-    if (activeFilter === 'All')       return true
-    if (activeFilter === 'Available') return av === 'Available'
-    if (activeFilter === 'TBC')       return av === 'TBC'
-    if (activeFilter === 'Forward')   return FORWARD_POSITIONS.includes(pos)
-    if (activeFilter === 'Back')      return BACK_POSITIONS.includes(pos)
+    if (activeFilter === 'Available' && av !== 'Available') return false
+    if (activeFilter === 'TBC'       && av !== 'TBC')       return false
+    if (activeFilter === 'Forward'   && !FORWARD_POSITIONS.includes(pos)) return false
+    if (activeFilter === 'Back'      && !BACK_POSITIONS.includes(pos))    return false
+    if (activeTypeFilter !== 'all'   && p.player_type !== activeTypeFilter) return false
     return true
   })
 
@@ -317,7 +320,7 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
           <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: '#F3F4F6', border: 'none', color: '#6B7280', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto', flexShrink: 0, borderBottom: '1px solid #E5E7EB', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '0 16px 8px', overflowX: 'auto', flexShrink: 0, WebkitOverflowScrolling: 'touch' }}>
           {FILTERS.map(f => (
             <button
               key={f}
@@ -326,6 +329,24 @@ function PoolSheet({ teamName, unassigned, availabilityMap, onAssign, onOpenOver
             >{f}</button>
           ))}
         </div>
+        {playerTypeOptions.length > 1 && (
+          <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto', flexShrink: 0, borderBottom: '1px solid #E5E7EB', WebkitOverflowScrolling: 'touch' }}>
+            <button
+              onClick={() => setActiveTypeFilter('all')}
+              style={{ padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeTypeFilter === 'all' ? 'rgba(107,33,168,0.15)' : '#F3F4F6', color: activeTypeFilter === 'all' ? '#6B21A8' : '#9CA3AF' }}
+            >All Types</button>
+            {playerTypeOptions.map(type => (
+              <button
+                key={type}
+                onClick={() => setActiveTypeFilter(type)}
+                style={{ padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeTypeFilter === type ? 'rgba(107,33,168,0.15)' : '#F3F4F6', color: activeTypeFilter === type ? '#6B21A8' : '#9CA3AF' }}
+              >{type}</button>
+            ))}
+          </div>
+        )}
+        {playerTypeOptions.length <= 1 && (
+          <div style={{ height: 1, background: '#E5E7EB', flexShrink: 0 }} />
+        )}
 
         <div style={{ overflowY: 'auto', overscrollBehavior: 'contain', flex: 1 }}>
           {filtered.length === 0 ? (
@@ -1006,6 +1027,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           teamName={activeTeam.weekTeam.team_name}
           unassigned={unassignedPlayers}
           availabilityMap={availabilityMap}
+          playerTypeOptions={clubSettings?.player_types ?? DEFAULT_PLAYER_TYPES}
           onAssign={(pid) => { assignPlayer(activeTeam.weekTeam.id, pid); }}
           onOpenOverlay={(pid) => { setPoolOpen(false); setOverlayPlayerId(pid) }}
           onClose={() => setPoolOpen(false)}

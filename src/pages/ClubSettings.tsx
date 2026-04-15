@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Info } from 'lucide-react'
 import { useClubSettings } from '../hooks/useClubSettings'
 import { getContrastColor, isValidHexColor } from '../lib/colorUtils'
+import { DEFAULT_PLAYER_TYPES } from '../lib/supabase'
 
 export default function ClubSettings() {
   const { clubSettings, loading, updateClubSettings } = useClubSettings()
@@ -10,6 +11,7 @@ export default function ClubSettings() {
   const [brandColor, setBrandColor] = useState('#6B21A8')
   const [logoUrl, setLogoUrl] = useState('')
   const [logoValid, setLogoValid] = useState(false)
+  const [playerTypes, setPlayerTypes] = useState<string[]>(DEFAULT_PLAYER_TYPES)
   const [defaultTeams, setDefaultTeams] = useState<string[]>(['1st XV', '2nd XV'])
   const [defaultSquadSize, setDefaultSquadSize] = useState(22)
   const [requirePositions, setRequirePositions] = useState(true)
@@ -33,6 +35,11 @@ export default function ClubSettings() {
       testImg.onerror = () => setLogoValid(false)
       testImg.src = clubSettings.logo_url
     }
+    setPlayerTypes(
+      clubSettings.player_types && clubSettings.player_types.length > 0
+        ? clubSettings.player_types
+        : DEFAULT_PLAYER_TYPES
+    )
     setDefaultTeams(
       clubSettings.default_teams && clubSettings.default_teams.length > 0
         ? clubSettings.default_teams
@@ -67,10 +74,46 @@ export default function ClubSettings() {
     setDefaultTeams(prev => prev.map((t, i) => i === idx ? value : t))
   }
 
+  function addPlayerType() {
+    if (playerTypes.length >= 8) return
+    setPlayerTypes(prev => [...prev, ''])
+  }
+
+  function removePlayerType(idx: number) {
+    if (playerTypes.length <= 1) return
+    setPlayerTypes(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function updatePlayerType(idx: number, value: string) {
+    setPlayerTypes(prev => prev.map((t, i) => i === idx ? value : t))
+  }
+
+  function movePlayerTypeUp(idx: number) {
+    if (idx === 0) return
+    setPlayerTypes(prev => {
+      const next = [...prev]
+      ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
+      return next
+    })
+  }
+
+  function movePlayerTypeDown(idx: number) {
+    setPlayerTypes(prev => {
+      if (idx >= prev.length - 1) return prev
+      const next = [...prev]
+      ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+      return next
+    })
+  }
+
   function validate(): boolean {
     const e: Record<string, string> = {}
     if (!clubName.trim()) e.clubName = 'Club name is required'
     if (brandColor && !isValidHexColor(brandColor)) e.brandColor = 'Invalid hex color (e.g. #6B21A8)'
+    const trimmedTypes = playerTypes.map(t => t.trim())
+    if (trimmedTypes.some(t => !t)) e.playerTypes = 'Player type names cannot be empty'
+    const uniqueTypes = new Set(trimmedTypes.map(t => t.toLowerCase()))
+    if (uniqueTypes.size !== trimmedTypes.length) e.playerTypes = 'Player types must be unique'
     const trimmedTeams = defaultTeams.map(t => t.trim()).filter(Boolean)
     if (trimmedTeams.length === 0) e.teams = 'At least one team is required'
     setErrors(e)
@@ -86,6 +129,7 @@ export default function ClubSettings() {
     setSaving(true)
     setSaveSuccess(false)
 
+    const trimmedTypes = playerTypes.map(t => t.trim()).filter(Boolean)
     const trimmedTeams = defaultTeams.map(t => t.trim()).filter(Boolean)
     const trimmedDays = trainingDays.map(d => ({ id: d.id, label: d.label.trim() })).filter(d => d.label)
 
@@ -93,6 +137,7 @@ export default function ClubSettings() {
       club_name: clubName.trim(),
       primary_color: brandColor || '#6B21A8',
       logo_url: logoUrl.trim() || null,
+      player_types: trimmedTypes.length > 0 ? trimmedTypes : DEFAULT_PLAYER_TYPES,
       default_teams: trimmedTeams,
       default_squad_size: defaultSquadSize,
       require_positions_in_form: requirePositions,
@@ -301,6 +346,65 @@ export default function ClubSettings() {
           </div>
 
           {errors.teams && <p className="text-xs font-medium text-red-600 mt-1">{errors.teams}</p>}
+        </div>
+
+        {/* Player Types */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Player Types</label>
+          <p className="text-xs text-gray-500 mb-3">Squad categories shown in player forms and the selection board</p>
+
+          <div className="space-y-3">
+            {playerTypes.map((type, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => movePlayerTypeUp(idx)}
+                    disabled={idx === 0}
+                    className="w-6 h-5 flex items-center justify-center text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                    aria-label="Move up"
+                  >▲</button>
+                  <button
+                    type="button"
+                    onClick={() => movePlayerTypeDown(idx)}
+                    disabled={idx === playerTypes.length - 1}
+                    className="w-6 h-5 flex items-center justify-center text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                    aria-label="Move down"
+                  >▼</button>
+                </div>
+                <input
+                  type="text"
+                  value={type}
+                  onChange={e => updatePlayerType(idx, e.target.value)}
+                  placeholder="e.g. Performance"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePlayerType(idx)}
+                  disabled={playerTypes.length <= 1}
+                  className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addPlayerType}
+              disabled={playerTypes.length >= 8}
+              className="text-sm font-medium text-purple-700 hover:text-purple-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              + Add Player Type
+            </button>
+
+            {playerTypes.length >= 8 && (
+              <p className="text-xs text-gray-500">Maximum 8 player types</p>
+            )}
+          </div>
+
+          {errors.playerTypes && <p className="text-xs font-medium text-red-600 mt-1">{errors.playerTypes}</p>}
         </div>
 
         {/* Default Squad Size */}

@@ -10,8 +10,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Player, WeekTeam, TeamSelection, AvailabilityResponse, PDFTeam, PDFPlayer } from '../lib/supabase'
-import { RUGBY_POSITION_ORDER, PLAYER_TYPE_ORDER } from '../lib/supabase'
+import { RUGBY_POSITION_ORDER, DEFAULT_PLAYER_TYPES } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useClubSettings } from './useClubSettings'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,7 @@ function formatLastPlayed(dateStr: string): string {
 
 export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoardReturn {
   const { activeClubId } = useAuth()
+  const { clubSettings } = useClubSettings()
 
   const [activeWeekId, setActiveWeekIdState]   = useState<string | null>(initialWeekId)
   const [weekTeams,    setWeekTeams]            = useState<WeekTeam[]>([])       // visible only
@@ -286,6 +288,8 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
       selections.flatMap(s => (s.player_order ?? []).filter((id): id is string => id !== null))
     )
 
+    const typeOrder = clubSettings?.player_types ?? DEFAULT_PLAYER_TYPES
+
     return allPlayers
       .filter(p => {
         if (assignedIds.has(p.id)) return false
@@ -293,22 +297,30 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
         return av === 'Available' || av === 'TBC'
       })
       .sort((a, b) => {
-        // 1. Sort by Player Type (Performance → Open → Women's)
-        const typeIndexA = PLAYER_TYPE_ORDER.indexOf(a.player_type)
-        const typeIndexB = PLAYER_TYPE_ORDER.indexOf(b.player_type)
-        if (typeIndexA !== typeIndexB) return typeIndexA - typeIndexB
+        // 1. Sort by Player Type (custom club order)
+        const typeIndexA = typeOrder.indexOf(a.player_type)
+        const typeIndexB = typeOrder.indexOf(b.player_type)
+        if (typeIndexA !== typeIndexB) {
+          if (typeIndexA === -1) return 1   // unknown types go last
+          if (typeIndexB === -1) return -1
+          return typeIndexA - typeIndexB
+        }
 
         // 2. Sort by Rugby Position
         const posA = a.primary_position ?? 'Unspecified'
         const posB = b.primary_position ?? 'Unspecified'
         const posIndexA = RUGBY_POSITION_ORDER.indexOf(posA)
         const posIndexB = RUGBY_POSITION_ORDER.indexOf(posB)
-        if (posIndexA !== posIndexB) return posIndexA - posIndexB
+        if (posIndexA !== posIndexB) {
+          if (posIndexA === -1) return 1
+          if (posIndexB === -1) return -1
+          return posIndexA - posIndexB
+        }
 
         // 3. Alphabetical fallback
         return a.name.localeCompare(b.name)
       })
-  }, [allPlayers, selections, availabilityMap])
+  }, [allPlayers, selections, availabilityMap, clubSettings])
 
   // ── Helper: trim trailing nulls (keeps array compact in storage) ─────────
 

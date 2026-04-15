@@ -65,9 +65,10 @@ export const RUGBY_POSITION_ORDER: Position[] = [
   'Unspecified',
 ]
 
-export type PlayerType = 'Performance' | 'Open' | "Women's"
+export type PlayerType = string // Dynamic — values defined per club in club_settings.player_types
 
-export const PLAYER_TYPE_ORDER: PlayerType[] = ['Performance', 'Open', "Women's"]
+export const DEFAULT_PLAYER_TYPES: string[] = ['Performance', 'Open', "Women's"]
+export const PLAYER_TYPE_ORDER = DEFAULT_PLAYER_TYPES // kept for backward compatibility
 export type PlayerStatus = 'Active' | 'Injured' | 'Unavailable' | 'Retired' | 'Archived'
 export type Availability = 'Available' | 'TBC' | 'Unavailable'
 export type WeekStatus = 'Open' | 'Closed'
@@ -170,7 +171,7 @@ export const POSITIONS: Position[] = [
   'Scrum-half', 'Fly-half', 'Centre', 'Wing', 'Fullback', 'Unspecified',
 ]
 
-export const PLAYER_TYPES: PlayerType[] = ['Performance', 'Open', "Women's"]
+export const PLAYER_TYPES: PlayerType[] = DEFAULT_PLAYER_TYPES
 export const PLAYER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired', 'Archived']
 
 export function normalisePhone(phone: string): string {
@@ -194,6 +195,7 @@ export interface ClubSettings {
   primary_color: string
   secondary_color: string
   logo_url: string | null
+  player_types: string[]
   default_teams: string[] | null
   default_squad_size?: number
   require_positions_in_form?: boolean

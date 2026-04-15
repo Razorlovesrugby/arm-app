@@ -2,10 +2,11 @@ import { useState, useEffect, FormEvent } from 'react'
 import { X } from 'lucide-react'
 import {
   supabase, Player, Position, PlayerType, PlayerStatus,
-  POSITIONS, PLAYER_TYPES, PLAYER_STATUSES, normalisePhone,
+  POSITIONS, PLAYER_STATUSES, DEFAULT_PLAYER_TYPES, normalisePhone,
 } from '../lib/supabase'
 import { usePlayerDetails, PlayerStats } from '../hooks/usePlayerDetails'
 import { useAuth } from '../contexts/AuthContext'
+import { useClubSettings } from '../hooks/useClubSettings'
 
 interface Props {
   player: Player | null   // null = add mode
@@ -45,6 +46,8 @@ const EMPTY: FormState = {
 
 export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
   const { activeClubId } = useAuth()
+  const { clubSettings } = useClubSettings()
+  const playerTypeOptions = clubSettings?.player_types ?? DEFAULT_PLAYER_TYPES
   const isEdit = player !== null
   const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -380,7 +383,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
                 onChange={e => set('player_type', e.target.value as PlayerType)}
                 style={inputStyle(false)}
               >
-                {PLAYER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {playerTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </Field>
             <Field label="Status" style={{ flex: 1 }}>
