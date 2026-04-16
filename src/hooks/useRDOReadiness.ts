@@ -15,7 +15,7 @@ interface RawAvailabilityResponse {
 
 interface RawTeamSelection {
   id: string
-  player_id: string | null
+  player_order: unknown[]
 }
 
 interface RawWeek {
@@ -41,7 +41,7 @@ interface RawRdoAccess {
 
 function deriveSelectionStatus(currentWeek: RawWeek | null): SelectionStatus {
   if (!currentWeek || currentWeek.team_selections.length === 0) return 'missing'
-  const hasPlayers = currentWeek.team_selections.some((ts) => ts.player_id !== null)
+  const hasPlayers = currentWeek.team_selections.some((ts) => ts.player_order.length > 0)
   return hasPlayers ? 'locked' : 'draft'
 }
 
@@ -113,7 +113,7 @@ export function useRDOReadiness() {
               ),
               team_selections (
                 id,
-                player_id
+                player_order
               )
             )
           )
