@@ -1,15 +1,20 @@
 // src/components/Layout.tsx
 // Phase 12.1/12.2 — Sidebar navigation with dynamic club branding + safe-area fixes
+// Phase 17.2 — God Mode banner for RDOs impersonating a club
 
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useClubSettings } from '../hooks/useClubSettings'
+import { useAuth } from '../contexts/AuthContext'
 import Sidebar from './Sidebar'
-import { Menu } from 'lucide-react'
+import { Menu, ShieldAlert } from 'lucide-react'
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { clubSettings } = useClubSettings()
+  const { role, activeClubId, switchTenant, switching } = useAuth()
+
+  const isGodMode = role === 'rdo' && activeClubId !== null
 
   return (
     <div className="flex h-[100dvh] bg-gray-50">
@@ -18,6 +23,25 @@ export default function Layout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* God Mode banner — shown when RDO is impersonating a club */}
+        {isGodMode && (
+          <div className="flex items-center justify-between gap-4 px-4 py-2 bg-amber-500 text-white flex-shrink-0">
+            <div className="flex items-center gap-2 text-sm font-medium min-w-0">
+              <ShieldAlert size={16} className="flex-shrink-0" aria-hidden="true" />
+              <span className="truncate">
+                RDO Mode — Viewing: <strong>{clubSettings?.club_name || 'Club'}</strong>
+              </span>
+            </div>
+            <button
+              onClick={() => switchTenant(null)}
+              disabled={switching}
+              className={`text-sm font-semibold underline hover:no-underline transition-all whitespace-nowrap flex-shrink-0 ${switching ? 'opacity-50 cursor-wait' : ''}`}
+            >
+              {switching ? 'Exiting...' : 'Exit to Command Center'}
+            </button>
+          </div>
+        )}
+
         {/* Mobile header */}
         <header
           className="md:hidden flex items-center justify-between px-4 bg-white border-b border-gray-200 flex-shrink-0"

@@ -1,12 +1,16 @@
 // src/App.tsx
 // Phase 12.6 — Branding, Defaults & Game Notes
+// Phase 17.2 — RDO routing with ProtectedShell pattern
 
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import RDOLayout from './components/RDOLayout'
+import RDODashboard from './pages/RDODashboard'
+import RfcPlayerPool from './pages/RfcPlayerPool'
 import Login from './pages/Login'
 import Roster from './pages/Roster'
 import DepthChart from './pages/DepthChart'
@@ -41,6 +45,51 @@ function BrandInjector() {
   return null
 }
 
+// Decides which layout shell to render based on role and activeClubId.
+//
+// RDO with no active club  → RDOLayout with the correct RDO page.
+//   Allowed RDO paths: /rdo-dashboard, /rdo-dashboard/player-pool.
+//   Anything else redirects to /rdo-dashboard.
+//
+// Coach or RDO impersonating a club → standard Layout with Outlet.
+//   key={activeClubId} forces React to fully remount the coach tree when
+//   the tenant changes, ensuring stale hook state is cleared.
+
+const RDO_PATHS = ['/rdo-dashboard', '/rdo-dashboard/player-pool']
+
+function ProtectedShell() {
+  const { role, activeClubId } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const isRdoCommandCenter = role === 'rdo' && activeClubId === null
+
+  // Redirect unknown RDO paths to the Command Center
+  useEffect(() => {
+    if (isRdoCommandCenter && !RDO_PATHS.includes(location.pathname)) {
+      navigate('/rdo-dashboard', { replace: true })
+    }
+  }, [isRdoCommandCenter, location.pathname, navigate])
+
+  if (isRdoCommandCenter) {
+    const page = location.pathname === '/rdo-dashboard/player-pool'
+      ? <RfcPlayerPool />
+      : <RDODashboard />
+
+    return (
+      <RDOLayout
+        activePath={location.pathname}
+        onNavigate={(path) => navigate(path)}
+      >
+        {page}
+      </RDOLayout>
+    )
+  }
+
+  // Coach or RDO with an active club — render the coach layout
+  return <Layout key={activeClubId ?? 'no-club'} />
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -49,42 +98,47 @@ export default function App() {
           <BrandInjector />
           <Routes>
 
-          {/* Public — no layout */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/availability/:token" element={<AvailabilityForm />} />
+            {/* Public — no layout */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/availability/:token" element={<AvailabilityForm />} />
 
-          {/* Protected — inside Layout */}
-          <Route
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/roster" replace />} />
+            {/* Protected — ProtectedShell selects layout based on role */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <ProtectedShell />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/roster" replace />} />
 
-            <Route path="roster" element={<Roster />} />
+              <Route path="roster" element={<Roster />} />
 
-            <Route path="depth" element={<DepthChart />} />
-            <Route path="depth-chart" element={<DepthChart />} />
+              <Route path="depth" element={<DepthChart />} />
+              <Route path="depth-chart" element={<DepthChart />} />
 
-            <Route path="board" element={<Board />} />
+              <Route path="board" element={<Board />} />
 
-            <Route path="weeks" element={<Weeks />} />
+              <Route path="weeks" element={<Weeks />} />
 
-            <Route path="results" element={<Results />} />
-            <Route path="results/:weekId" element={<ResultDetail />} />
+              <Route path="results" element={<Results />} />
+              <Route path="results/:weekId" element={<ResultDetail />} />
 
-            <Route path="grid" element={<Grid />} />
-            <Route path="attendance" element={<Attendance />} />
+              <Route path="grid" element={<Grid />} />
+              <Route path="attendance" element={<Attendance />} />
 
-            <Route path="club-settings" element={<ClubSettings />} />
+              <Route path="club-settings" element={<ClubSettings />} />
 
-            {/* Legacy redirects */}
-            <Route path="players" element={<Navigate to="/roster" replace />} />
-          </Route>
+              {/* Redirect coaches/impersonating-RDOs away from the RDO route.
+                  RDOs in Command Center mode never reach this element because
+                  ProtectedShell renders without an Outlet in that state. */}
+              <Route path="rdo-dashboard" element={<Navigate to="/roster" replace />} />
 
-          <Route path="*" element={<Navigate to="/roster" replace />} />
+              {/* Legacy redirects */}
+              <Route path="players" element={<Navigate to="/roster" replace />} />
+
+              <Route path="*" element={<Navigate to="/roster" replace />} />
+            </Route>
 
           </Routes>
         </AuthProvider>

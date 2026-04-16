@@ -2,15 +2,17 @@ import { useState, useEffect, FormEvent } from 'react'
 import { X } from 'lucide-react'
 import {
   supabase, Player, Position, PlayerType, PlayerStatus,
-  POSITIONS, PLAYER_TYPES, PLAYER_STATUSES, normalisePhone,
+  POSITIONS, PLAYER_STATUSES, DEFAULT_PLAYER_TYPES, normalisePhone,
 } from '../lib/supabase'
 import { usePlayerDetails, PlayerStats } from '../hooks/usePlayerDetails'
 import { useAuth } from '../contexts/AuthContext'
+import { useClubSettings } from '../hooks/useClubSettings'
 
 interface Props {
   player: Player | null   // null = add mode
   onClose: () => void
   onSaved: () => void
+  readOnly?: boolean      // true = RDO view-only mode
 }
 
 interface FormState {
@@ -43,8 +45,10 @@ const EMPTY: FormState = {
   court_fines: '',
 }
 
-export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
+export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = false }: Props) {
   const { activeClubId } = useAuth()
+  const { clubSettings } = useClubSettings()
+  const playerTypeOptions = clubSettings?.player_types ?? DEFAULT_PLAYER_TYPES
   const isEdit = player !== null
   const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -261,7 +265,12 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
           zIndex: 1,
         }}>
           <h2 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: '#111827' }}>
-            {isEdit ? 'Edit Player' : 'Add Player'}
+            {readOnly ? 'Player Profile' : isEdit ? 'Edit Player' : 'Add Player'}
+            {readOnly && (
+              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: '500', color: '#9CA3AF' }}>
+                (Read-Only)
+              </span>
+            )}
           </h2>
           <button
             onClick={onClose}
@@ -380,7 +389,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
                 onChange={e => set('player_type', e.target.value as PlayerType)}
                 style={inputStyle(false)}
               >
-                {PLAYER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                {playerTypeOptions.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </Field>
             <Field label="Status" style={{ flex: 1 }}>
@@ -517,22 +526,24 @@ export default function PlayerFormSheet({ player, onClose, onSaved }: Props) {
                 fontSize: '15px', fontWeight: '600', cursor: 'pointer',
               }}
             >
-              Cancel
+              {readOnly ? 'Close' : 'Cancel'}
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                flex: 2, minHeight: '48px',
-                background: saving ? '#9333EA' : '#6B21A8',
-                color: '#FFFFFF', border: 'none', borderRadius: '10px',
-                fontSize: '15px', fontWeight: '600',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                opacity: saving ? 0.75 : 1,
-              }}
-            >
-              {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Player'}
-            </button>
+            {!readOnly && (
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  flex: 2, minHeight: '48px',
+                  background: saving ? '#9333EA' : '#6B21A8',
+                  color: '#FFFFFF', border: 'none', borderRadius: '10px',
+                  fontSize: '15px', fontWeight: '600',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.75 : 1,
+                }}
+              >
+                {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Player'}
+              </button>
+            )}
           </div>
         </form>
 

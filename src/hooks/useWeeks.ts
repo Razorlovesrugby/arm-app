@@ -50,9 +50,10 @@ export function useWeeks(): UseWeeksResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchWeeks = useCallback(async () => {
+  const fetchWeeks = useCallback(async (sig?: { cancelled: boolean }) => {
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch weeks')
+      setWeeks([])
+      setAvailabilityCounts({})
       setLoading(false)
       return
     }
@@ -71,6 +72,7 @@ export function useWeeks(): UseWeeksResult {
         .eq('club_id', activeClubId),
     ])
 
+    if (sig?.cancelled) return
 
     if (weeksResult.error) {
       setError(weeksResult.error.message)
@@ -99,7 +101,9 @@ export function useWeeks(): UseWeeksResult {
   }, [activeClubId])
 
   useEffect(() => {
-    fetchWeeks()
+    const sig = { cancelled: false }
+    fetchWeeks(sig)
+    return () => { sig.cancelled = true }
   }, [fetchWeeks])
 
   const createWeek = useCallback(

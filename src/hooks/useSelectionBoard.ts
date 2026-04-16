@@ -10,7 +10,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Player, WeekTeam, TeamSelection, AvailabilityResponse, PDFTeam, PDFPlayer } from '../lib/supabase'
+import { RUGBY_POSITION_ORDER, DEFAULT_PLAYER_TYPES } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useClubSettings } from './useClubSettings'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +111,7 @@ function formatLastPlayed(dateStr: string): string {
 
 export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoardReturn {
   const { activeClubId } = useAuth()
+  const { clubSettings } = useClubSettings()
 
   const [activeWeekId, setActiveWeekIdState]   = useState<string | null>(initialWeekId)
   const [weekTeams,    setWeekTeams]            = useState<WeekTeam[]>([])       // visible only
@@ -129,21 +132,23 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   useEffect(() => {
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch players')
+      setAllPlayers([])
       return
     }
+    let ignore = false
     supabase
       .from('players')
       .select('*')
       .eq('club_id', activeClubId)
       .neq('status', 'Archived')
       .order('name')
-      .then(({ data }) => setAllPlayers(data ?? []))
+      .then(({ data }) => { if (!ignore) setAllPlayers(data ?? []) })
+    return () => { ignore = true }
   }, [activeClubId])
 
   // ── Week-scoped fetch — runs when activeWeekId changes ───────────────────
 
-  const fetchWeekData = useCallback(async (wid: string | null) => {
+  const fetchWeekData = useCallback(async (wid: string | null, sig?: { cancelled: boolean }) => {
     if (!wid) {
       setWeekTeams([])
       setAllWeekTeams([])
@@ -155,7 +160,6 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     }
 
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch week data')
       setLoading(false)
       return
     }
@@ -205,6 +209,8 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
         supabase.rpc('get_player_last_selections', { p_week_id: wid }),
       ])
 
+      if (sig?.cancelled) return
+
       if (visibleTeamsRes.error) throw visibleTeamsRes.error
       if (allTeamsRes.error)     throw allTeamsRes.error
       if (selectionsRes.error)   throw selectionsRes.error
@@ -236,15 +242,18 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
       setPlayerHistory(histMap)
 
     } catch (err: unknown) {
+      if (sig?.cancelled) return
       console.error('useSelectionBoard fetchWeekData error:', err)
       setError(err instanceof Error ? err.message : 'Failed to load board')
     } finally {
-      setLoading(false)
+      if (!sig?.cancelled) setLoading(false)
     }
   }, [activeClubId])
 
   useEffect(() => {
-    fetchWeekData(activeWeekId)
+    const sig = { cancelled: false }
+    fetchWeekData(activeWeekId, sig)
+    return () => { sig.cancelled = true }
   }, [activeWeekId, fetchWeekData])
 
   // ── Derived: teams (visible only) — memoised for stable reference ─────────
@@ -279,6 +288,8 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
       selections.flatMap(s => (s.player_order ?? []).filter((id): id is string => id !== null))
     )
 
+    const typeOrder = clubSettings?.player_types ?? DEFAULT_PLAYER_TYPES
+
     return allPlayers
       .filter(p => {
         if (assignedIds.has(p.id)) return false
@@ -286,17 +297,30 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
         return av === 'Available' || av === 'TBC'
       })
       .sort((a, b) => {
-        const order = (p: Player) => {
-          const av = availabilityMap[p.id]?.availability
-          if (av === 'Available') return 0
-          if (av === 'TBC')       return 1
-          return 2
+        // 1. Sort by Player Type (custom club order)
+        const typeIndexA = typeOrder.indexOf(a.player_type)
+        const typeIndexB = typeOrder.indexOf(b.player_type)
+        if (typeIndexA !== typeIndexB) {
+          if (typeIndexA === -1) return 1   // unknown types go last
+          if (typeIndexB === -1) return -1
+          return typeIndexA - typeIndexB
         }
-        const diff = order(a) - order(b)
-        if (diff !== 0) return diff
+
+        // 2. Sort by Rugby Position
+        const posA = a.primary_position ?? 'Unspecified'
+        const posB = b.primary_position ?? 'Unspecified'
+        const posIndexA = RUGBY_POSITION_ORDER.indexOf(posA)
+        const posIndexB = RUGBY_POSITION_ORDER.indexOf(posB)
+        if (posIndexA !== posIndexB) {
+          if (posIndexA === -1) return 1
+          if (posIndexB === -1) return -1
+          return posIndexA - posIndexB
+        }
+
+        // 3. Alphabetical fallback
         return a.name.localeCompare(b.name)
       })
-  }, [allPlayers, selections, availabilityMap])
+  }, [allPlayers, selections, availabilityMap, clubSettings])
 
   // ── Helper: trim trailing nulls (keeps array compact in storage) ─────────
 

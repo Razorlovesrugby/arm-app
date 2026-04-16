@@ -16,9 +16,9 @@ export function useClubSettings(): UseClubSettingsResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchClubSettings = useCallback(async () => {
+  const fetchClubSettings = useCallback(async (sig?: { cancelled: boolean }) => {
     if (!activeClubId) {
-      console.error('activeClubId is null - cannot fetch club settings')
+      setClubSettings(null)
       setLoading(false)
       return
     }
@@ -32,6 +32,7 @@ export function useClubSettings(): UseClubSettingsResult {
       .limit(1)
       .maybeSingle()
 
+    if (sig?.cancelled) return
     if (error) {
       setError(error.message)
       setClubSettings(null)
@@ -46,7 +47,9 @@ export function useClubSettings(): UseClubSettingsResult {
   }, [activeClubId])
 
   useEffect(() => {
-    fetchClubSettings()
+    const sig = { cancelled: false }
+    fetchClubSettings(sig)
+    return () => { sig.cancelled = true }
   }, [fetchClubSettings])
 
   const updateClubSettings = useCallback(async (

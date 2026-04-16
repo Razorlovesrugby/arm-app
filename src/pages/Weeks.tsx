@@ -214,9 +214,11 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
               Start date <span style={{ color: '#DC2626' }}>*</span>
             </label>
             <input
-              type="date"
+              type="text"
               value={startDate}
               onChange={e => handleStartChange(e.target.value)}
+              placeholder="YYYY-MM-DD"
+              pattern="\d{4}-\d{2}-\d{2}"
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: '10px 12px', borderRadius: '8px',
@@ -225,6 +227,9 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
                 outline: 'none', minHeight: '44px',
               }}
             />
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6B7280' }}>
+              Format: YYYY-MM-DD (e.g., {new Date().toISOString().split('T')[0]})
+            </p>
             {errors.start && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.start}</p>}
           </div>
 
@@ -234,9 +239,11 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
               End date <span style={{ color: '#DC2626' }}>*</span>
             </label>
             <input
-              type="date"
+              type="text"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
+              placeholder="YYYY-MM-DD"
+              pattern="\d{4}-\d{2}-\d{2}"
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: '10px 12px', borderRadius: '8px',
@@ -245,6 +252,9 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
                 outline: 'none', minHeight: '44px',
               }}
             />
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6B7280' }}>
+              Format: YYYY-MM-DD (e.g., {new Date().toISOString().split('T')[0]})
+            </p>
             {errors.end && <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#DC2626' }}>{errors.end}</p>}
           </div>
 

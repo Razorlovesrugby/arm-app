@@ -26,8 +26,24 @@ export interface Club {
 export interface Profile {
   id: string
   club_id?: string // Optional during expansion phase
-  role: string
+  role: 'coach' | 'rdo'
   created_at: string
+}
+
+export interface RdoClubAccess {
+  user_id: string
+  club_id: string
+  created_at: string
+}
+
+// Joined result from rdo_club_access → clubs → club_settings
+export interface ClubWithLogo {
+  club_id: string
+  clubs: {
+    id: string
+    name: string
+    club_settings: Array<{ logo_url: string | null }>
+  } | null
 }
 
 export type Position =
@@ -35,7 +51,24 @@ export type Position =
   | 'Scrum-half' | 'Fly-half' | 'Centre' | 'Wing' | 'Fullback'
   | 'Unspecified'
 
-export type PlayerType = 'Performance' | 'Open' | "Women's"
+export const RUGBY_POSITION_ORDER: Position[] = [
+  'Prop',
+  'Hooker',
+  'Lock',
+  'Flanker',
+  'Number 8',
+  'Scrum-half',
+  'Fly-half',
+  'Centre',
+  'Wing',
+  'Fullback',
+  'Unspecified',
+]
+
+export type PlayerType = string // Dynamic — values defined per club in club_settings.player_types
+
+export const DEFAULT_PLAYER_TYPES: string[] = ['Performance', 'Open', "Women's"]
+export const PLAYER_TYPE_ORDER = DEFAULT_PLAYER_TYPES // kept for backward compatibility
 export type PlayerStatus = 'Active' | 'Injured' | 'Unavailable' | 'Retired' | 'Archived'
 export type Availability = 'Available' | 'TBC' | 'Unavailable'
 export type WeekStatus = 'Open' | 'Closed'
@@ -138,7 +171,7 @@ export const POSITIONS: Position[] = [
   'Scrum-half', 'Fly-half', 'Centre', 'Wing', 'Fullback', 'Unspecified',
 ]
 
-export const PLAYER_TYPES: PlayerType[] = ['Performance', 'Open', "Women's"]
+export const PLAYER_TYPES: PlayerType[] = DEFAULT_PLAYER_TYPES
 export const PLAYER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired', 'Archived']
 
 export function normalisePhone(phone: string): string {
@@ -162,6 +195,7 @@ export interface ClubSettings {
   primary_color: string
   secondary_color: string
   logo_url: string | null
+  player_types: string[]
   default_teams: string[] | null
   default_squad_size?: number
   require_positions_in_form?: boolean
@@ -199,6 +233,46 @@ export const MATCH_EVENT_TYPES: MatchEventType[] = [
   'yellow_card', 'red_card',
   'Conversion Miss', 'Penalty Miss',
 ]
+
+// ============================================================
+// Phase 17.4: RDO Readiness Types
+// ============================================================
+
+export type SelectionStatus = 'missing' | 'draft' | 'locked'
+
+export interface ClubReadiness {
+  clubId: string
+  clubName: string
+  logoUrl: string | null
+  rosterSize: number
+  availabilityPercent: number
+  selectionStatus: SelectionStatus
+  currentWeekId: string | null
+}
+
+// ============================================================
+// Phase 17.5: RFC Player Pool RPC Types
+// ============================================================
+
+export interface PlayerPoolRow {
+  player_id: string
+  first_name: string
+  last_name: string
+  position_primary: string
+  player_type: string
+  status: string
+  team_name: string
+  club_id: string
+  current_availability: string
+}
+
+export interface PlayerPoolFilters {
+  team?: string
+  playerType?: string
+  status?: string
+  position?: string
+  availability?: string
+}
 
 // ============================================================
 // PDF Types (Phase 13)
