@@ -7,14 +7,10 @@ import { useAuth } from '../contexts/AuthContext'
 
 // ── Raw Supabase shape ─────────────────────────────────────────────────────────
 
-interface RawPlayer {
-  id: string
-  is_active: boolean
-}
-
 interface RawAvailabilityResponse {
   id: string
   player_id: string
+  availability: string
 }
 
 interface RawTeamSelection {
@@ -33,7 +29,6 @@ interface RawClub {
   id: string
   name: string
   club_settings: Array<{ logo_url: string | null }>
-  players: RawPlayer[]
   weeks: RawWeek[]
 }
 
@@ -54,18 +49,18 @@ function transformEntry(entry: RawRdoAccess): ClubReadiness | null {
   const club = entry.clubs
   if (!club) return null
 
-  const activeRoster = club.players.filter((p) => p.is_active)
-  const rosterSize = activeRoster.length
-
   // Current week = most recent by start_date
   const sortedWeeks = [...club.weeks].sort(
     (a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
   )
   const currentWeek = sortedWeeks[0] ?? null
 
-  const responseCount = currentWeek?.availability_responses.length ?? 0
+  // Roster size = players who submitted availability this week (any response)
+  const rosterSize = currentWeek?.availability_responses.length ?? 0
+  const availableCount =
+    currentWeek?.availability_responses.filter((ar) => ar.availability === 'Available').length ?? 0
   const availabilityPercent =
-    rosterSize > 0 ? Math.round((responseCount / rosterSize) * 100) : 0
+    rosterSize > 0 ? Math.round((availableCount / rosterSize) * 100) : 0
 
   return {
     clubId: entry.club_id,
@@ -108,16 +103,13 @@ export function useRDOReadiness() {
             id,
             name,
             club_settings (logo_url),
-            players (
-              id,
-              is_active
-            ),
             weeks (
               id,
               start_date,
               availability_responses (
                 id,
-                player_id
+                player_id,
+                availability
               ),
               team_selections (
                 id,
