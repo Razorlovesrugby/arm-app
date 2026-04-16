@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { Info } from 'lucide-react'
 import { useClubSettings } from '../hooks/useClubSettings'
+import { useAuth } from '../contexts/AuthContext'
 import { getContrastColor, isValidHexColor } from '../lib/colorUtils'
-import { DEFAULT_PLAYER_TYPES } from '../lib/supabase'
+import { DEFAULT_PLAYER_TYPES, supabase, type RenamePlayerTypeResult } from '../lib/supabase'
+
+type RenameItem = { from: string; to: string; playerCount: number }
 
 export default function ClubSettings() {
   const { clubSettings, loading, updateClubSettings } = useClubSettings()
+  const { activeClubId } = useAuth()
 
   const [clubName, setClubName] = useState('')
   const [brandColor, setBrandColor] = useState('#6B21A8')
@@ -23,6 +27,15 @@ export default function ClubSettings() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
+  // Snapshot of player types last saved to DB — used to detect renames
+  const loadedPlayerTypesRef = useRef<string[]>([])
+
+  const [renameModal, setRenameModal] = useState<{
+    renames: RenameItem[]
+    phase: 'confirm' | 'processing' | 'error'
+    errorMsg?: string
+  } | null>(null)
+
   // Sync from loaded settings
   useEffect(() => {
     if (!clubSettings) return
@@ -35,11 +48,12 @@ export default function ClubSettings() {
       testImg.onerror = () => setLogoValid(false)
       testImg.src = clubSettings.logo_url
     }
-    setPlayerTypes(
+    const loadedTypes =
       clubSettings.player_types && clubSettings.player_types.length > 0
         ? clubSettings.player_types
         : DEFAULT_PLAYER_TYPES
-    )
+    setPlayerTypes(loadedTypes)
+    loadedPlayerTypesRef.current = loadedTypes
     setDefaultTeams(
       clubSettings.default_teams && clubSettings.default_teams.length > 0
         ? clubSettings.default_teams
@@ -120,9 +134,79 @@ export default function ClubSettings() {
     return Object.keys(e).length === 0
   }
 
+  // Detect renames by set-diff: only treat as a rename when the count of
+  // removed and added types match exactly (1-to-1 substitution). Insertion or
+  // deletion alone produces unequal lengths and is treated as an add/remove,
+  // not a rename — avoiding spurious cascade triggers.
+  async function computeRenames(): Promise<RenameItem[]> {
+    if (!activeClubId) return []
+    const loaded  = loadedPlayerTypesRef.current
+    const current = playerTypes.map(t => t.trim()).filter(Boolean)
+
+    const removed = loaded.filter(t => !current.includes(t))
+    const added   = current.filter(t => !loaded.includes(t))
+
+    // Only cascade when it's a clean substitution (same count removed & added)
+    if (removed.length === 0 || removed.length !== added.length) return []
+
+    const items: RenameItem[] = []
+    for (let i = 0; i < removed.length; i++) {
+      const { count } = await supabase
+        .from('players')
+        .select('id', { count: 'exact', head: true })
+        .eq('club_id', activeClubId)
+        .eq('player_type', removed[i])
+      items.push({ from: removed[i], to: added[i], playerCount: count ?? 0 })
+    }
+    return items
+  }
+
   async function handleSave() {
     if (!validate()) return
+    setSaving(true)
 
+    const renames = await computeRenames()
+    if (renames.length > 0) {
+      setSaving(false)
+      setRenameModal({ renames, phase: 'confirm' })
+      return
+    }
+
+    await persistSettings()
+  }
+
+  async function confirmRename() {
+    if (!renameModal || !activeClubId) return
+
+    setRenameModal(prev => prev ? { ...prev, phase: 'processing' } : null)
+
+    for (const rename of renameModal.renames) {
+      const { data, error: rpcError } = await supabase.rpc('rename_custom_player_type', {
+        club_uuid: activeClubId,
+        old_type: rename.from,
+        new_type: rename.to,
+      })
+
+      const result = data as RenamePlayerTypeResult | null
+
+      if (rpcError || result?.success === false) {
+        setRenameModal(prev => prev ? {
+          ...prev,
+          phase: 'error',
+          errorMsg: rpcError?.message ?? result?.error ?? 'Rename failed. Please try again.',
+        } : null)
+        return
+      }
+    }
+
+    // All renames succeeded — update snapshot so re-saves don't re-trigger
+    loadedPlayerTypesRef.current = playerTypes.map(t => t.trim()).filter(Boolean)
+    setRenameModal(null)
+
+    await persistSettings()
+  }
+
+  async function persistSettings() {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
 
@@ -151,6 +235,7 @@ export default function ClubSettings() {
       setErrors({ save: error })
     } else {
       setSaveSuccess(true)
+      loadedPlayerTypesRef.current = playerTypes.map(t => t.trim()).filter(Boolean)
       setTimeout(() => setSaveSuccess(false), 3000)
     }
   }
@@ -504,6 +589,108 @@ export default function ClubSettings() {
         </button>
 
       </div>
+
+      {/* Rename confirmation / progress modal */}
+      {renameModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={renameModal.phase === 'confirm' ? () => setRenameModal(null) : undefined}
+          />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+
+            {renameModal.phase === 'confirm' && (
+              <>
+                <h2 className="text-lg font-bold text-gray-900">Rename Player Types</h2>
+                <p className="text-sm text-gray-500">
+                  {renameModal.renames.length === 1
+                    ? 'This rename will update all affected players to use the new type name.'
+                    : 'These renames will update all affected players to use the new type names.'}
+                </p>
+
+                <div className="space-y-3">
+                  {renameModal.renames.map((r, i) => (
+                    <div key={i} className="bg-gray-50 rounded-lg px-4 py-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-900 flex-wrap">
+                        <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded">{r.from}</span>
+                        <span className="text-gray-400">→</span>
+                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">{r.to}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {r.playerCount === 0
+                          ? 'No players currently tagged with this type'
+                          : `${r.playerCount} player${r.playerCount !== 1 ? 's' : ''} will be updated`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRenameModal(null)}
+                    className="flex-1 h-11 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmRename}
+                    className="flex-1 h-11 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800"
+                  >
+                    Confirm Rename
+                  </button>
+                </div>
+              </>
+            )}
+
+            {renameModal.phase === 'processing' && (
+              <>
+                <h2 className="text-lg font-bold text-gray-900">Renaming Players…</h2>
+                <div className="space-y-3">
+                  {renameModal.renames.map((r, i) => (
+                    <div key={i} className="bg-gray-50 rounded-lg px-4 py-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                        <span>"{r.from}" → "{r.to}"</span>
+                      </div>
+                      {r.playerCount > 0 && (
+                        <p className="text-xs text-gray-400 mt-1 ml-6">
+                          Updating {r.playerCount} player{r.playerCount !== 1 ? 's' : ''}…
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {renameModal.phase === 'error' && (
+              <>
+                <h2 className="text-lg font-bold text-gray-900">Rename Failed</h2>
+                <p className="text-sm text-red-600">{renameModal.errorMsg}</p>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRenameModal(null)}
+                    className="flex-1 h-11 border border-gray-300 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmRename}
+                    className="flex-1 h-11 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   )
 }

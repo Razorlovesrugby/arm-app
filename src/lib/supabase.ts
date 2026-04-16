@@ -275,6 +275,32 @@ export interface PlayerPoolFilters {
 }
 
 // ============================================================
+// Phase 17.8: Player Type Cascade RPC Types
+// ============================================================
+
+export interface RenamePlayerTypeResult {
+  success: boolean
+  updated_count: number
+  batches_processed: number
+  error?: string
+}
+
+// ============================================================
+// Phase 17.6: RDO Facilities Types
+// ============================================================
+
+export type FacilityType = 'Pitch' | 'Training Grid' | 'Gym' | 'Clubhouse' | 'Off-Site'
+
+export interface RdoFacility {
+  id: string
+  rdo_user_id: string
+  name: string
+  facility_type: FacilityType
+  is_active: boolean
+  created_at: string
+}
+
+// ============================================================
 // PDF Types (Phase 13)
 // ============================================================
 

@@ -25,6 +25,10 @@ BEGIN
     SELECT 1 FROM pg_constraint
     WHERE conname = 'profiles_role_check'
   ) THEN
+    -- Backfill any rows with non-conforming role values before adding constraint
+    UPDATE profiles
+      SET role = 'coach'
+      WHERE role NOT IN ('coach', 'rdo');
     ALTER TABLE profiles
       ADD CONSTRAINT profiles_role_check
       CHECK (role IN ('coach', 'rdo'));

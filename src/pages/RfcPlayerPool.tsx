@@ -61,12 +61,14 @@ interface FilterBarProps {
   data: PlayerPoolRow[]
   filters: PlayerPoolFilters
   onChange: (f: PlayerPoolFilters) => void
+  playerTypeOptions: string[]
 }
 
-function FilterBar({ data, filters, onChange }: FilterBarProps) {
-  const teams         = useMemo(() => [...new Set(data.map(r => r.team_name))].sort(), [data])
-  const playerTypes   = useMemo(() => [...new Set(data.map(r => r.player_type))].sort(), [data])
-  const statuses      = useMemo(() => [...new Set(data.map(r => r.status))].sort(), [data])
+function FilterBar({ data, filters, onChange, playerTypeOptions }: FilterBarProps) {
+  const teams              = useMemo(() => [...new Set(data.map(r => r.team_name))].sort(), [data])
+  const derivedPlayerTypes = useMemo(() => [...new Set(data.map(r => r.player_type))].sort(), [data])
+  const playerTypes        = playerTypeOptions.length > 0 ? playerTypeOptions : derivedPlayerTypes
+  const statuses           = useMemo(() => [...new Set(data.map(r => r.status))].sort(), [data])
   const positions     = useMemo(() => [...new Set(data.map(r => r.position_primary).filter(Boolean))].sort(), [data])
   const availabilities = ['Available', 'Unavailable', 'Pending', 'No Response']
 
@@ -335,7 +337,7 @@ function applyFilters(data: PlayerPoolRow[], filters: PlayerPoolFilters): Player
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function RfcPlayerPool() {
-  const { data, loading, error } = useRFCPlayerPool()
+  const { data, loading, error, playerTypeOptions } = useRFCPlayerPool()
   const [filters, setFilters] = useState<PlayerPoolFilters>({})
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerPoolRow | null>(null)
 
@@ -362,7 +364,7 @@ export default function RfcPlayerPool() {
       )}
 
       {/* Filter bar */}
-      <FilterBar data={data} filters={filters} onChange={setFilters} />
+      <FilterBar data={data} filters={filters} onChange={setFilters} playerTypeOptions={playerTypeOptions} />
 
       {/* Count line */}
       {!loading && (
