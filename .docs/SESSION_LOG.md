@@ -2,6 +2,69 @@ ARM Session Log
 
 ---
 
+## [2026-04-13 20:30] Session Summary
+- **Primary Objective:** Phase 16.6 — Safari iPad Date Selection Fix
+- **Tasks Completed:**
+  - [x] Replaced native `<input type="date">` with `<input type="text">` and YYYY-MM-DD format validation in CreateWeekForm
+  - [x] Added placeholder text "YYYY-MM-DD" to both date inputs
+  - [x] Added pattern attribute `\d{4}-\d{2}-\d{2}` for basic format validation
+  - [x] Added helper text with format guidance below date inputs
+  - [x] Maintained all existing validation logic (start date before end date, required fields)
+- **Architecture / Database Decisions Locked:**
+  - Safari iPad compatibility achieved by avoiding native date picker issues
+  - Backward compatibility maintained with existing YYYY-MM-DD date format
+  - No new dependencies added (minimal changes approach)
+  - User guidance via placeholder and helper text for format awareness
+- **Next Up:** Review next priority from tracker
+
+---
+
+## [2026-04-13 20:15] Session Summary
+- **Primary Objective:** Phase 16.5 — iOS Splash Screens & PWA Icon Standardisation
+- **Tasks Completed:**
+  - [x] Generated 8 device-specific iOS splash screens with #6B21A8 brand background
+  - [x] Added apple-touch-startup-image meta tags to index.html with correct device/pixel-ratio media queries
+  - [x] Created generate-icons.py script for future logo updates
+  - [x] Added generate-icons script to package.json (python3, no extra dependencies)
+- **Architecture / Database Decisions Locked:**
+  - iOS PWA home screen experience enhanced with branded splash screens
+  - Device-specific optimization for iPhone 8/11/12/15 Pro, iPhone X, iPad, iPad Pro
+  - Maintainable logo update process via Python script
+  - Brand consistency across all iOS devices
+- **Next Up:** Phase 16.6 — Safari iPad Date Selection Fix
+
+---
+
+## [2026-04-13 10:15] Session Summary
+- **Primary Objective:** Phase 16.4.1 — Club Settings Upsert Refinement
+- **Tasks Completed:**
+  - [x] Replaced upsert with client-side lookup+update-or-insert pattern in useClubSettings.ts
+  - [x] Fixed club_settings save for new tenants without UNIQUE constraint on club_id
+  - [x] Resolved update-vs-insert decision client-side at save time
+- **Architecture / Database Decisions Locked:**
+  - Client-side resolution for missing UNIQUE constraint avoids database migration
+  - First-time saves succeed for newly onboarded tenants
+  - Robust pattern handles both existing and new club settings
+- **Next Up:** Phase 16.5 — iOS Splash Screens & PWA Icon Standardisation
+
+---
+
+## [2026-04-13 09:56] Session Summary
+- **Primary Objective:** Phase 16.4 — Exhaustive Mutation Sweep & Club Settings Upsert Fix
+- **Tasks Completed:**
+  - [x] Audited every Supabase mutation across hooks/components/pages for club_id injection
+  - [x] Converted club_settings save from update() to upsert() with onConflict 'club_id'
+  - [x] Added null guards before each mutation call
+  - [x] Updated DeletePlayerDialog.tsx and other components with club_id payloads
+- **Architecture / Database Decisions Locked:**
+  - All write operations include club_id: activeClubId in payloads
+  - Tenant filtering applied to updates/deletes
+  - Public availability form continues to derive club_id from token-fetched week
+  - First-time club settings saves succeed via upsert pattern
+- **Next Up:** Phase 16.4.1 — Club Settings Upsert Refinement
+
+---
+
 ## [2026-04-13 10:45] Session Summary
 - **Primary Objective:** Phase 16.3.1 HOTFIX — Selection Board Save Patch
 - **Tasks Completed:**
@@ -378,3 +441,25 @@ src/components/DeletePlayerDialog.tsx
 
 ### Paste this at the start of next session
 "Continuing ARM Phase 14 from CP-14.4. Phases 1–14.3 complete. The app has auth, nav shell, PWA, Roster (full CRUD + CSV + Archived toggle), Depth Chart (drag-to-reorder, vertical layout), Weeks tab (create, UUID token, share), Availability Form, Selection Board (Light Mode, bulk add, text wrapping), Native App Shell Layout, Depth Chart UX improvements, and now advanced Kicking Stats with career percentage tracking and match event UX refinements. Live at https://arm-app-black.vercel.app. Phase 14.4 focuses on further polish and performance optimizations."
+
+---
+
+## [2026-04-16 12:20] Session Summary
+- **Primary Objective:** Phase 17.3 documentation completion and Phase 17.8 spec preparation
+- **Tasks Completed:**
+  - [x] Created Phase 17.3 COMPLETED_SPEC: `docs/phase-specs/17.3_GodMode_Hydration_DataSafety_COMPLETED_SPEC.md`
+  - [x] Updated Phase 17.8 from ACTIVE to COMPLETED by copying spec file
+  - [x] Updated ARM-TRACKER.md to reflect Phase 17.3 completion and Phase 17.8 as active
+  - [x] Updated ACTIVE_SPEC.md with Phase 17.8 technical specifications
+- **Architecture / Database Decisions Locked:**
+  - Phase 17.3 documented with comprehensive implementation details
+  - Phase 17.8 specifications finalized with database constraint removal strategy
+  - Project tracking updated to accurately reflect current state
+  - Documentation structure maintained with clear phase completion status
+- **Next Up:** Implementation of Phase 17.8 - Dynamic Player Type Cascading
+
+---
+
+**Paste this at the start of next session**
+"Phase 17.3 documentation completed and moved to phase specs. Phase 17.8 ACTIVE SPEC prepared with detailed technical specifications for Dynamic Player Type Cascading. The critical database constraint blocking custom player types needs to be removed via migration 024. Ready to begin implementation of Phase 17.8."
+

@@ -114,8 +114,15 @@
 #### `profiles` (Added in Migration 018)
 - **id**: UUID (References auth.users(id) PRIMARY KEY)
 - **club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
-- **role**: TEXT (Default: 'coach')
+- **role**: TEXT (Default: 'coach', CHECK constraint: role IN ('coach', 'rdo'))
 - **created_at**: TIMESTAMPTZ (Default: now())
+
+#### `rdo_club_access` (Added in Migration 021)
+- **user_id**: UUID (References auth.users(id) ON DELETE CASCADE)
+- **club_id**: UUID (References clubs(id) ON DELETE CASCADE)
+- **created_at**: TIMESTAMPTZ (Default: now())
+- **PRIMARY KEY**: (user_id, club_id) - Composite primary key ensures unique mappings
+- **Index**: idx_rdo_club_access_user_club for EXISTS subquery performance in RLS policies
 
 #### Multi-Tenant Columns (Added in Migration 018)
 - **players.club_id**: UUID (Foreign Key to clubs.id, NOT NULL)
@@ -152,6 +159,7 @@
 17. **018_phase_16_0.sql** - Phase 16.0 — Multi-Tenant Database Architecture (clubs, profiles tables, club_id columns, RLS policies)
 18. **019_phase_16_1_expand.sql** - Phase 16.1 — Database Expansion & Safe Backfill (club_id column population, data backfill to master club)
 19. **020_phase_16_3_lockdown.sql** - Phase 16.3 — Database Lockdown (NOT NULL constraints on club_id columns, RLS enforcement, indexes, service_role bypass)
+20. **021_phase_17_1_rdo_layer.sql** - Phase 17.1 — RDO Data Layer & RLS Expansion (profiles.role column, rdo_club_access table, expanded RLS policies with OR logic for RDO access)
 
 ### Migration Notes
 - All migrations are idempotent (safe to run multiple times)

@@ -89,6 +89,14 @@
 - **Defensive Hooks**: All `.single()` calls converted to `.maybeSingle()` with null checks
 - **Race Condition Defense**: Hooks guard against null activeClubId during login transitions
 
+### ARM15 MAX Enterprise Tier (Phase 17+)
+- **Role-Based Access**: Users have `profiles.role` as `'coach'` (single club) or `'rdo'` (Rugby Development Officer, multi-club)
+- **RDO Command Center**: RDOs with `activeClubId = null` land on RDODashboard with Launchpad of managed clubs
+- **Tenant Switching**: RDOs can impersonate any club they're mapped to via `rdo_club_access` bridging table
+- **RLS Expansion**: All 10 core tables have OR-based RLS policies allowing RDO access to mapped clubs
+- **God Mode Banner**: RDOs impersonating clubs see prominent banner with "Exit to Command Center" option
+- **Separate Layout**: RDOs use `RDOLayout` with sidebar navigation, coaches use standard `Layout`
+
 ## UI/UX Guidelines
 
 ### Design Tokens (CSS Custom Properties)
