@@ -3,7 +3,7 @@
 // Phase 17.5 — Navigation items are now routing-aware
 
 import { type ReactNode } from 'react'
-import { Home, Calendar, Users, LogOut, type LucideIcon } from 'lucide-react'
+import { Home, Calendar, Users, Settings, LogOut, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 interface NavItem {
@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Command Center', icon: Home,     path: '/rdo-dashboard' },
   { label: 'Player Pool',    icon: Users,    path: '/rdo-dashboard/player-pool' },
   { label: 'Calendar',       icon: Calendar, path: '/rdo-dashboard/calendar', disabled: true },
+  { label: 'Settings',       icon: Settings, path: '/rdo-settings' },
 ]
 
 interface RDOLayoutProps {

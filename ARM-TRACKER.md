@@ -1,12 +1,12 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-09**
-**Current position: Phase 14.2 complete (e802bd4). Depth Chart vertical layout, Selection Board Light Mode, bulk add functionality implemented. Next: Phase 12 (Polish).**
+**Last updated: 2026-04-15**
+**Current position: Phase 17.4 complete (RDO Command Center & Team Readiness Matrix). Next: Phase 17.5 (RFC Player Pool & Master Grids).**
 
 ---
 
 ## How to use this file
 
-- **Dev updates this file at the end of every session** (Rule 5).
+- **Tech Lead updates this file** after each phase completion (Rule 5).
 - Status values: `✅ Done` · `▶ Next` · `🔁 Needs Redo` · `⏳ Pending`
 - Corrections go in the **Corrections Queue** below — not in the PRD.
 - When a Needs Redo item is fixed, move it to Done and clear it from the queue.
@@ -31,169 +31,87 @@
 | 12 | Polish — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
 | 14 | Native App Shell Layout Refactor — fixed viewport, scroll containers, sticky headers | ✅ Done |
 | 14.2 | Depth Chart UX, Selection Board Light Mode & Bulk Add — vertical layout, light mode colors, bulk add, text wrapping | ✅ Done |
+| 14.3 | Match Event UX, Kicking Stats & Career Percentage — conversion/penalty miss types, career kicking % | ✅ Done |
+| 14.4 | Club Settings Expansion & Critical Bug Fixes — default_squad_size, require_positions_in_form, scroll fix | ✅ Done |
+| 14.5 | Export UX, Career Stats & Lightweight Polish — WhatsApp export, toast notifications, enhanced empty states | ✅ Done |
+| 15.1 | Attendance Metric — training_attendance table, availability dashboard, training schedule builder | ✅ Done |
+| 15.2 | Availability Form Data Collection Mode — require_contact_info, require_birthday, player profile updates | ✅ Done |
+| 16.0 | Multi-Tenant Database Architecture & Data Backfill — clubs/profiles tables, RLS policies, data migration | ✅ Done |
+| 16.1 | Database Expansion & Safe Backfill — NOT NULL constraints, service role bypass, zero frontend impact | ✅ Done |
+| 16.2 | Multi-Tenant Frontend Sweep — all hooks updated with activeClubId filtering, AuthContext polishing | ✅ Done |
+| 16.3 | Database Lockdown, Resilience & Edge Case Sweep — ErrorBoundary, Auth Airlock, multi-tab sync | ✅ Done |
+| 16.3.1 | Selection Board Save Patch — club_id injection fix for selection board mutations | ✅ Done |
+| 16.4 | Exhaustive Mutation Sweep & Club Settings Upsert Fix — audit of all Supabase mutations, upsert pattern | ✅ Done |
+| 16.5 | iOS Splash Screens & PWA Icon Standardisation — 8 device-specific splash screens, generate-icons script | ✅ Done |
+| 16.6 | Safari iPad Date Selection Fix — YYYY-MM-DD text input replacement, format validation | ✅ Done |
+| 16.7 | Selection Board Order — player_order sparse array optimization, droppable ghost rows | ✅ Done |
+| 16.8 | RDO Settings & Data Governance Foundation — rdo_facilities table, settings UI, data governance | ⏳ Pending |
+| 17.1 | RDO Data Layer & RLS Expansion — rdo_club_access table, profiles.role column, expanded RLS policies | ✅ Done |
+| 17.2 | RDO Command Center UX & Launchpad — RDOLayout, RDODashboard, switchTenant, God Mode banner | ✅ Done |
+| 17.3 | God Mode Hydration & Data Safety — hard remount, switching state, hook hardening, race condition protection | ✅ Done |
+| 17.4 | RDO Command Center & Team Readiness Matrix — useRDOReadiness hook, Weekly Readiness Matrix, aggregated metrics | ✅ Done |
+| **17.5** | **RFC Player Pool & Master Grids** — get_rfc_player_pool RPC, master grid with filters, read-only player panel | **▶ Next** |
 
 ---
 
-## Checkpoint Detail
+## Checkpoint Detail (Recent Phases)
 
-### Phase 1 ✅
+### Phase 16.7 ✅ (Selection Board Order)
 | CP | Description | Status |
 |---|---|---|
-| 1.1–1.x | Supabase schema: 6 tables, RLS, seed, Auth user | ✅ Done |
+| 16.7.1 | player_order sparse array optimization (string\|null)[] | ✅ Done |
+| 16.7.2 | DroppableGhostRow with useDroppable per slot | ✅ Done |
+| 16.7.3 | handleDragEnd handles slot-N targets for precise positioning | ✅ Done |
 
-**Note:** `players` table includes `email` (TEXT NOT NULL) and `date_of_birth` (DATE NOT NULL) — added Phase 1, accepted by product owner 2026-03-27.
-
----
-
-### Phase 2 ✅
+### Phase 17.1 ✅ (RDO Data Layer & RLS Expansion)
 | CP | Description | Status |
 |---|---|---|
-| 2.1 | Vite + React + TS + Tailwind scaffold | ✅ Done |
-| 2.2 | Design tokens, badge classes, base styles | ✅ Done |
-| 2.3 | Nav shell: bottom tab bar (mobile) + sidebar (tablet/desktop) | ✅ Done |
-| 2.4 | Auth: AuthContext, ProtectedRoute, Login page | ✅ Done |
-| 2.5 | App.tsx routing (all pages + public AvailabilityForm) | ✅ Done |
-| 2.6 | PWA: vite-plugin-pwa, manifest.json, offline.html, InstallPrompt | ✅ Done |
-| 2.7 | Stub pages created | ✅ Done |
-| 2.8 | TypeScript build errors fixed | ✅ Done |
-| 2.9 | SESSION_LOG created, git initialised, GitHub push, Vercel deployed | ✅ Done |
+| 17.1.1 | Migration 021: profiles.role column with CHECK constraint | ✅ Done |
+| 17.1.2 | rdo_club_access bridging table with RLS policies | ✅ Done |
+| 17.1.3 | Expanded RLS policies on all 10 core tables with OR logic | ✅ Done |
+| 17.1.4 | Composite index on rdo_club_access(user_id, club_id) | ✅ Done |
 
----
-
-### Phase 3 ✅
+### Phase 17.2 ✅ (RDO Command Center UX & Launchpad)
 | CP | Description | Status |
 |---|---|---|
-| 3.1 | usePlayers hook + live player list from Supabase | ✅ Done |
-| 3.2 | Search by name, filter by status/type/position | ✅ Done |
-| 3.3 | PlayerFormSheet: bottom sheet (mobile) + centred modal (desktop) | ✅ Done |
-| 3.4 | Add Player saves to Supabase | ✅ Done |
-| 3.5 | Edit Player: tap card, pre-populated form, save via update | ✅ Done |
-| 3.6 | DeletePlayerDialog: confirmation, irreversible delete | ✅ Done |
-| 3.7 | CSV export from filter panel | ✅ Done |
-| 3.8 | Build passing, committed, deployed | ✅ Done |
+| 17.2.1 | RDOLayout.tsx with sidebar navigation and branding | ✅ Done |
+| 17.2.2 | RDODashboard.tsx with ClubCard grid (Launchpad) | ✅ Done |
+| 17.2.3 | switchTenant function in AuthContext for club impersonation | ✅ Done |
+| 17.2.4 | God Mode banner in Layout.tsx for RDOs impersonating clubs | ✅ Done |
+| 17.2.5 | RDO routing logic in App.tsx conditional routing | ✅ Done |
 
----
-
-### Phase 4 ✅
+### Phase 17.3 ✅ (God Mode Hydration & Data Safety)
 | CP | Description | Status |
 |---|---|---|
-| 4.1 | useDepthChart hook: parallel fetch, 11 PositionColumn objects | ✅ Done |
-| 4.2 | DepthChart.tsx: 11 scrollable columns, compact chips, player count badges | ✅ Done |
-| 4.3–4.4 | dnd-kit drag-to-reorder within columns, optimistic update + rollback | ✅ Done |
-| 4.5 | Tap player → PlayerFormSheet edit mode, refetch after save | ✅ Done |
+| 17.3.1 | Hard remount with key={activeClubId} in App.tsx | ✅ Done |
+| 17.3.2 | Enhanced switchTenant with switching loading state | ✅ Done |
+| 17.3.3 | All 8 custom hooks hardened with ignore flag pattern | ✅ Done |
+| 17.3.4 | Race condition protection for all data fetches | ✅ Done |
 
----
-
-### Phase 5 ✅
+### Phase 17.4 ✅ (RDO Command Center & Team Readiness Matrix)
 | CP | Description | Status |
 |---|---|---|
-| 5.1 | useWeeks hook: fetch weeks, createWeek, auto-insert 5 week_teams | ✅ Done |
-| 5.2 | Weeks tab: week list, status badges, empty state | ✅ Done |
-| 5.3 | Create Week form: bottom sheet/modal, date pickers, auto-label | ✅ Done |
-| 5.4 | Link panel: Copy Link + Share (native navigator.share) | ✅ Done |
-| 5.5 | Week dropdown switcher | ✅ Done |
-| 5.6 | Migration 004: submitted_primary_position + submitted_secondary_positions | ✅ Done |
+| 17.4.1 | useRDOReadiness hook for aggregated club readiness data | ✅ Done |
+| 17.4.2 | Weekly Readiness Matrix data table with columns: Club, Active Roster, Availability %, Selection Status | ✅ Done |
+| 17.4.3 | Performance-optimized query without N+1 patterns | ✅ Done |
+| 17.4.4 | Visual alerts (traffic lights) for concerning metrics | ✅ Done |
+| 17.4.5 | Integration with existing RDODashboard | ✅ Done |
 
----
-
-### Phase 6 ✅
+### Phase 17.5 ▶ (RFC Player Pool & Master Grids)
 | CP | Description | Status |
 |---|---|---|
-| 6.1 | Migration 005: rename note→availability_note, archive_game_notes table, Archived status, TypeScript types, Show Archived toggle | ✅ Done |
-| 6.2–6.5 | AvailabilityForm.tsx full implementation: token lookup, form fields, submit logic, auto-create, position sync, success/error states | ✅ Done |
-
----
-
-### Phase 7 ✅
-| CP | Description | Status |
-|---|---|---|
-| 7.1 | useSelectionBoard hook: parallel fetch, derives unassignedPlayers, optimistic update + rollback | ✅ Done |
-| 7.2 | Mobile unassigned list: AssignRow component with team dropdown | ✅ Done |
-| 7.3 | Mobile swipe: arrow nav + dot indicator | ✅ Done |
-| 7.4 | Mobile drag-to-reorder: MobileTeamView with dnd-kit SortableContext | ✅ Done |
-| 7.5 | Desktop multi-column drag-drop: DndContext, useDroppable per column, DragOverlay | ✅ Done |
-| 7.6 | PlayerOverlay: Coach Notes (editable) + Availability Note (read-only) | ✅ Done |
-| 7.7 | Integration: SelectionBoard + PlayerOverlay wired into Weeks.tsx | ✅ Done |
-| 7.8 | **Selection Board redesign:** tabbed UI, numbered position rows, avatar circles, unassigned pool with "+", removed multi-column desktop layout | ✅ Done |
-
-### CP7-A ✅ (Selection Board Core Rebuild — scrap and replace)
-| CP | Description | Status |
-|---|---|---|
-| 7A.0 | supabase.ts: WeekTeam.visible + TeamSelection.captain_id | ✅ Done |
-| 7A.1 | New Layout.tsx (3-tab bottom nav) + App.tsx (new routing) + Board.tsx (standalone board page) | ✅ Done |
-| 7A.2 | useSelectionBoard.ts: visible filter, captain_id, setCaptain mutation, saveStatus | ✅ Done |
-| 7A.3+4 | SelectionBoard.tsx full rebuild: header, team tabs, filled/ghost rows, pool sheet, dnd-kit PointerSensor+TouchSensor+DragOverlay | ✅ Done |
-| 7A.5 | PlayerOverlay.tsx: captain toggle, info grid, positions chips, debounced notes auto-save, selection note | ✅ Done |
-| 7A.6 | Weeks.tsx stripped of SelectionBoard. Commit: 7fa7426 | ✅ Done |
-
-### CP7-B ✅ (Selection Board Data Layer + Management)
-| CP | Description | Status |
-|---|---|---|
-| 7B.1 | Migration 007: get_player_last_selections RPC (Postgres function) | ✅ Done |
-| 7B.2 | useSelectionBoard: activeWeekId internal state, playerHistory RPC, allWeekTeams, saveTeamSettings, players week-agnostic | ✅ Done |
-| 7B.3 | PlayerOverlay: lastTeam + lastPlayed wired from playerHistory (replaces — placeholders) | ✅ Done |
-| 7B.4 | SelectionBoard: Team Management sheet (rename/starters/visibility), Week Picker sheet (all weeks, checkmark, empty state) | ✅ Done |
-| 7B.5 | Board.tsx prop rename + commit bef62b1 | ✅ Done |
-
-**✅ All deploy prerequisites complete:**
-- Migration 006 applied (week_teams.visible + team_selections.captain_id)
-- Migration 007 applied (get_player_last_selections RPC)
-- Commits 55686d4 + 0ec8bad pushed, Vercel build clean
-
----
-
-### Phase 8 ✅
-| CP | Description | Status |
-|---|---|---|
-| 8.1 | DB trigger (009_cp8_trigger.sql): AFTER INSERT on availability_responses, availability=Unavailable → replace player UUID with null in player_order for all team_selections for that week. Preserves sparse array structure. | ✅ Done |
-
-### Phase 9 ✅
-| CP | Description | Status |
-|---|---|---|
-| 9.1 | Close Week dialog: danger modal, empty-active-team warning variant. CloseWeekDialog component in Weeks.tsx. | ✅ Done |
-| 9.2 | close_week RPC (010_cp8_close_week_rpc.sql): atomic — sets Closed, updates last_played_date + last_played_team. | ✅ Done |
-| 9.3 | RPC upserts archive_game_notes with player_name_snapshot, player_type_snapshot, position_snapshot. | ✅ Done |
-
-### Phase 11 ✅
-| CP | Description | Status |
-|---|---|---|
-| 11.1 | Archive tab: reverse-chrono closed weeks, pill team tabs (hides is_active=false Bye teams), click-to-expand game notes. | ✅ Done |
-| 11.2 | Game notes: debounced auto-save on textarea change. | ✅ Done |
-| 11.3 | Player History Search: ilike query, sorted by most recent week, search cards with badges + notes preview. | ✅ Done |
-| 11.4 | Deep-link: tap search result → /archive?tab=archive&week=X&team=Y&player=Z. Auto-expands week, selects team tab, scrollIntoView(center). Back button preserves q param. | ✅ Done |
-
----
-
-### Phase 10 ⏳
-| CP | Description | Status |
-|---|---|---|
-| 10.1 | PDF export: jsPDF, one PDF per team, starters + bench numbered list, native OS share sheet | ⏳ Pending |
-| 10.2 | Plain text export: formatted team sheet string, native OS share sheet | ⏳ Pending |
-
----
-
-### Phase 11 ⏳
-| CP | Description | Status |
-|---|---|---|
-| 11.1 | Archive: Closed Weeks sub-tab — reverse chronological, historical team names | ⏳ Pending |
-| 11.2 | Inline editable Game Notes per player (saves to archive_game_notes) | ⏳ Pending |
-| 11.3 | Player History Search sub-tab: search by player name, results from archive_game_notes | ⏳ Pending |
-
----
-
-### Phase 12 ⏳
-| CP | Description | Status |
-|---|---|---|
-| 12.1 | Empty states — all screens | ⏳ Pending |
-| 12.2 | Error banners + Saved inline feedback | ⏳ Pending |
-| 12.3 | Touch target audit (44px minimum) | ⏳ Pending |
-| 12.4 | Lighthouse PWA score 90+ | ⏳ Pending |
+| 17.5.1 | Migration 022: get_rfc_player_pool() RPC function | ⏳ Pending |
+| 17.5.2 | src/hooks/useRFCPlayerPool.ts custom hook | ⏳ Pending |
+| 17.5.3 | src/pages/RfcPlayerPool.tsx master grid page | ⏳ Pending |
+| 17.5.4 | Filter bar with Team, Type, Status, Position, Availability filters | ⏳ Pending |
+| 17.5.5 | Read-only PlayerFormSheet enhancement | ⏳ Pending |
+| 17.5.6 | RDOLayout navigation update | ⏳ Pending |
 
 ---
 
 ## Corrections Queue
 
-> Corrections go here when output needs fixing. Dev picks these up at the start of the next relevant session.
+> Corrections go here when output needs fixing. Tech Lead picks these up at the start of the next relevant session.
 > Format: `[Phase/CP] — What was wrong — What it should do instead`
 
 | Ref | Issue | Required Fix | Status |
@@ -212,5 +130,28 @@
 - GitHub: https://github.com/Razorlovesrugby/arm-app.git
 - Vercel: https://arm-app-black.vercel.app
 - Git identity: raysairaijimckenzie@gmail.com / Razorlovesrugby
-- Supabase migrations applied: 001–007
+- Supabase migrations applied: 001–021
+- **Current Git Commit:** d375302cd2f02cd62fbb68af197d05c84a217767
 - **Recurring note:** GitHub push blocked by VM network proxy. Run `git push origin main` from terminal or Codespaces after each session.
+
+---
+
+## Quick Navigation
+
+- **Next Immediate Task:** Phase 17.5 — RFC Player Pool & Master Grids
+- **Active Spec:** `docs/phase-specs/17.5_RFC_Player_Pool_Master_Grids_ACTIVE_SPEC.md`
+- **Recent Completed:** Phase 17.4 — RDO Command Center & Team Readiness Matrix
+- **New Spec Created:** Phase 16.8 — RDO Settings & Data Governance Foundation (`docs/phase-specs/16.8_RDO_Settings_Data_Governance_ACTIVE_SPEC.md`)
+- **Pending Polish:** Phase 12 (Polish) and Phase 10 (Exports) remain pending but lower priority than RDO features
+
+---
+
+## Developer Notes
+
+- **Phase 17.5 Spec Complete:** Comprehensive ACTIVE_SPEC created with detailed implementation plan
+- **Database Impact:** Migration 022 required for RPC function only (no new tables)
+- **Frontend Impact:** New page, new hook, component enhancements
+- **Security:** RPC uses SECURITY DEFINER with RLS bypass respect from Phase 17.1
+- **Performance:** Optimized single-query RPC prevents N+1 frontend fetches
+
+**Ready for Developer execution.** Toggle to Act Mode to begin Phase 17.5 implementation.

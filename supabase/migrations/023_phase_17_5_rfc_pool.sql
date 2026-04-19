@@ -57,8 +57,7 @@ BEGIN
   LEFT JOIN availability_responses ar
     ON p.id = ar.player_id
    AND w.id = ar.week_id
-  WHERE p.is_active = true
-    AND p.status != 'Archived'
+  WHERE p.status != 'Archived'
   ORDER BY c.name, p.name;
 END;
 $$;
@@ -71,9 +70,9 @@ CREATE INDEX IF NOT EXISTS idx_rdo_club_access_user_id
   ON rdo_club_access(user_id);
 
 -- Fast cross-club player scan
-CREATE INDEX IF NOT EXISTS idx_players_club_id_active
-  ON players(club_id, is_active)
-  WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_players_club_id_status
+  ON players(club_id, status)
+  WHERE status != 'Archived';
 
 -- Open-week lookup
 CREATE INDEX IF NOT EXISTS idx_weeks_club_id_open

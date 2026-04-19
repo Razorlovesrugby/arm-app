@@ -11,6 +11,7 @@ import Layout from './components/Layout'
 import RDOLayout from './components/RDOLayout'
 import RDODashboard from './pages/RDODashboard'
 import RfcPlayerPool from './pages/RfcPlayerPool'
+import RDOSettings from './pages/RDOSettings'
 import Login from './pages/Login'
 import Roster from './pages/Roster'
 import DepthChart from './pages/DepthChart'
@@ -55,7 +56,7 @@ function BrandInjector() {
 //   key={activeClubId} forces React to fully remount the coach tree when
 //   the tenant changes, ensuring stale hook state is cleared.
 
-const RDO_PATHS = ['/rdo-dashboard', '/rdo-dashboard/player-pool']
+const RDO_PATHS = ['/rdo-dashboard', '/rdo-dashboard/player-pool', '/rdo-settings']
 
 function ProtectedShell() {
   const { role, activeClubId } = useAuth()
@@ -72,9 +73,14 @@ function ProtectedShell() {
   }, [isRdoCommandCenter, location.pathname, navigate])
 
   if (isRdoCommandCenter) {
-    const page = location.pathname === '/rdo-dashboard/player-pool'
-      ? <RfcPlayerPool />
-      : <RDODashboard />
+    let page: JSX.Element
+    if (location.pathname === '/rdo-dashboard/player-pool') {
+      page = <RfcPlayerPool />
+    } else if (location.pathname === '/rdo-settings') {
+      page = <RDOSettings />
+    } else {
+      page = <RDODashboard />
+    }
 
     return (
       <RDOLayout

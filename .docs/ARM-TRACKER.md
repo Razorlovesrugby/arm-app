@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-13 10:50**
-**Current position: Phase 16.3.1 Complete — Selection Board Save Patch implemented. All mutation payloads include club_id, defensive null checks added. Multi-tenant migration fully complete with frontend resilience.**
+**Last updated: 2026-04-16 12:20**
+**Current position: Phase 17.8 ACTIVE — Dynamic Player Type Cascading implementation. Phase 17.3 moved to completed specs.**
 
 ---
 
@@ -33,6 +33,12 @@
 | 14 | Polish & Performance — empty states, error banners, Saved feedback, 44px touch audit, Lighthouse 90+ | ⏳ Pending |
 | 15 | Training & Analytics — Training attendance, availability dashboard, data collection mode | ✅ Done |
 | 16 | Multi-Tenant Architecture — Club-based data isolation, frontend sweep, database lockdown | ✅ Done |
+| 16.7 | Selection Board Positional Sorting — Rugby position order, player type hierarchy | ✅ Done |
+| 17 | ARM15 MAX Enterprise Tier — RDO (Rugby Development Officer) multi-club management | ✅ Done |
+| 17.1 | RDO Data Layer & RLS Expansion — Database schema, role-based access, RLS policies | ✅ Done |
+| 17.2 | Command Center UX & Launchpad — RDO dashboard, club switching, God Mode banner | ✅ Done |
+| 17.3 | God Mode Hydration & Data Safety — React tree remount, race condition protection | ✅ Done (2026-04-14) |
+| 17.8 | Dynamic Player Type Cascading — Database constraint removal, safe batch RPC, dynamic filters | ▶ Active |
 
 **Note:** Project has pivoted to v2.0 architecture. Phase 10 (Exports) deferred to focus on v2.0 features. Archive functionality is no longer a standalone locked tab; historical data is now accessed via the concurrent 'Results' toggle on the Selection Board.
 
@@ -194,10 +200,10 @@
 - **Implementation:** ⏳ Pending — Ready to begin
 - **Scope:** Filter consistency, overlay scroll fixes, Master Availability Grid, branding features (default teams, game notes, opponent tracking)
 - **Key Components:** 
-  1. Filter consistency for "Show Retired Players"
-  2. Overlay scroll fixes ("horizontal jiggle" & "scroll chaining")
-  3. Master Availability Grid architecture & implementation
-  4. Branding features (Club Settings with default teams, game notes, opponent)
+   1. Filter consistency for "Show Retired Players"
+   2. Overlay scroll fixes ("horizontal jiggle" & "scroll chaining")
+   3. Master Availability Grid architecture & implementation
+   4. Branding features (Club Settings with default teams, game notes, opponent)
 - **Implementation Files Planned:** 
   - `supabase/migrations/013_phase_12_6.sql` — Database migrations
   - `src/lib/colorUtils.ts` — Color contrast utilities
@@ -206,11 +212,11 @@
   - `src/pages/ClubSettings.tsx` — Complete rewrite with branding UI
 - **Acceptance Criteria:** 25 binary pass/fail criteria defined
 - **Implementation Order:** 
-  1. Filter consistency fixes
-  2. Overlay scroll fixes
-  3. Master Availability Grid
-  4. Branding features
-  5. Test all features together on iOS Safari
+   1. Filter consistency fixes
+   2. Overlay scroll fixes
+   3. Master Availability Grid
+   4. Branding features
+   5. Test all features together on iOS Safari
 
 
 **Phase 12.1 Details:**
@@ -296,6 +302,11 @@
 | 16.2 | **Frontend Sweep:** All 8 data hooks updated with activeClubId checks and club filtering, AuthContext polished, AvailabilityForm uses week.club_id for anonymous submissions | ✅ Done (2026-04-10) |
 | 16.3 | **Database Lockdown:** NOT NULL constraints + RLS enforcement for club_id columns, Error Boundary, Auth Airlock, defensive hooks with .maybeSingle() and activeClubId guards | ✅ Done (2026-04-10) |
 | 16.3.1 | **Selection Board Save Patch:** Hotfix ensuring all mutation payloads include club_id, defensive null checks added to prevent "Save failed" errors | ✅ Done (2026-04-13) |
+| 16.4 | **Exhaustive Mutation Sweep & Club Settings Upsert Fix:** Audit every Supabase mutation across hooks/components/pages, inject club_id into payloads, convert club_settings save from update() to upsert() with onConflict 'club_id' | ✅ Done (2026-04-13) |
+| 16.4.1 | **Club Settings Upsert Refinement:** Replace upsert with client-side lookup+update-or-insert to handle missing UNIQUE constraint on club_id in club_settings table | ✅ Done (2026-04-13) |
+| 16.5 | **iOS Splash Screens & PWA Icon Standardisation:** Generate 8 device-specific iOS splash screens with #6B21A8 brand background, add apple-touch-startup-image meta tags with correct device/pixel-ratio media queries, create generate-icons script for future logo updates | ✅ Done (2026-04-13) |
+| 16.6 | **Safari iPad Date Selection Fix:** Replace native `<input type="date">` with `<input type="text">` and YYYY-MM-DD format validation in CreateWeekForm to fix Safari iPad compatibility issues with date picker | ✅ Done (2026-04-13) |
+| 16.7 | **Selection Board Positional Sorting:** Implement rugby positional hierarchy sorting in Selection Board unassigned pool. Add `RUGBY_POSITION_ORDER` and `PLAYER_TYPE_ORDER` constants to supabase.ts. Three-tier sorting: 1) Player Type (Performance → Open → Women's), 2) Rugby Position (Prop → Hooker → Lock → etc.), 3) Alphabetical fallback. Maintains flat UI with no visual dividers as requested. | ✅ Done (2026-04-14) |
 
 **Phase 16.2 Implementation Details:**
 - **Scope:** Frontend data hooks sweep to inject activeClubId into all queries and mutations
@@ -348,6 +359,39 @@
 
 ---
 
+### Phase 17 ✅ — ARM15 MAX Enterprise Tier (RDO Multi-Club Management)
+| CP | Description | Status |
+|---|---|---|
+| 17.1 | **RDO Data Layer & RLS Expansion:** Database migration 021 with profiles.role column, rdo_club_access bridging table, expanded RLS policies for all 10 core tables with OR logic allowing RDO access via club mappings. AuthContext updated with role and switchTenant function. TypeScript types tightened for Profile.role as 'coach' \| 'rdo'. | ✅ Done (2026-04-14) |
+| 17.2 | **Command Center UX & Launchpad:** RDODashboard with Launchpad UI showing club cards, RDOLayout with RDO-specific sidebar navigation, God Mode banner in Layout.tsx for RDO impersonation, App.tsx conditional routing for RDO users. RDOs with activeClubId=null land on Command Center, can click clubs to impersonate coaches, see God Mode banner with "Exit to Command Center" button. | ✅ Done (2026-04-14) |
+| 17.3 | **God Mode Hydration & Data Safety:** React tree remount strategy with key={activeClubId}, enhanced switchTenant with switching state, three-layer hook protection with ignore flag pattern, realtime subscription safety. | ✅ Done (2026-04-14) |
+
+**Phase 17.1 Implementation Details:**
+- **Database Migration (021_phase_17_1_rdo_layer.sql):**
+  - `profiles.role` column with CHECK (role IN ('coach', 'rdo')) constraint
+  - `rdo_club_access` bridging table with composite primary key (user_id, club_id)
+  - Expanded RLS policies on all 10 core tables with OR logic: coach access OR RDO access via rdo_club_access
+  - Composite index on rdo_club_access(user_id, club_id) for performance
+  - Service role bypass preserved
+- **AuthContext Updates:**
+  - Added `role: 'coach' \| 'rdo' \| null` to AuthContextValue interface
+  - Updated `fetchProfile` to retrieve both `club_id` and `role`
+  - Implemented `switchTenant` function for RDO club switching
+  - Modified `airlockActive` logic to allow RDO bypass when activeClubId=null
+- **TypeScript Types:**
+  - `Profile.role` typed as `'coach' \| 'rdo'` (tightened from string)
+  - Added `RdoClubAccess` interface
+  - Added `ClubWithLogo` type for joined queries
+
+**Phase 17.2 Implementation Details:**
+- **RDODashboard.tsx:** Launchpad UI with club cards, data fetching from rdo_club_access, loading/error/empty states, "Manage Club" button triggers switchTenant
+- **RDOLayout.tsx:** RDO-specific layout with sidebar navigation, Command Center branding, mobile/desktop responsive design
+- **Layout.tsx:** God Mode banner for RDOs impersonating clubs, shows club name and "Exit to Command Center" button
+- **App.tsx:** Conditional routing based on role and activeClubId, RDOs with activeClubId=null route to RDODashboard
+- **Test Data:** RDO@test.com test user with role='rdo' and club mapping in rdo_club_access
+
+---
+
 ## Corrections Queue
 
 > Corrections go here when output needs fixing. Dev picks these up at the start of the next relevant session.
@@ -369,8 +413,10 @@
 - GitHub: https://github.com/Razorlovesrugby/arm-app.git
 - Vercel: https://arm-app-black.vercel.app
 - Git identity: raysairaijimckenzie@gmail.com / Razorlovesrugby
-- Supabase migrations applied: 001–019 (all migrations complete)
+- Supabase migrations applied: 001–021 (all migrations complete)
 - **Migration 018_phase_16_0.sql** — Multi-tenant architecture (clubs, profiles tables, club_id columns)
 - **Migration 019_phase_16_1_expand.sql** — Database expansion and data backfill
+- **Migration 020_phase_16_3_lockdown.sql** — Database lockdown with NOT NULL constraints
+- **Migration 021_phase_17_1_rdo_layer.sql** — RDO Data Layer & RLS Expansion
 - **v2.0 Baseline:** Migration 011 applied. All v1.9 'Close Week' and 'Archive' logic is deprecated.
 - **Multi-agent "Agency" workflow activated:** Project transitions from single-agent development to specialized agents for QA, documentation, deployment, and maintenance.

@@ -77,6 +77,9 @@ export default function PlayerOverlay({
   const [trainingAttended, setTrainingAttended] = useState<number | null>(null)
   const [trainingTotal, setTrainingTotal] = useState<number | null>(null)
 
+  // Total Caps State
+  const [totalCaps, setTotalCaps] = useState<number | null>(null)
+
   // Lock body scroll while overlay is open
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -134,6 +137,25 @@ export default function PlayerOverlay({
     }
 
     fetchTraining()
+    return () => { cancelled = true }
+  }, [player.id])
+
+  // Fetch Total Caps via the Database RPC
+  useEffect(() => {
+    let cancelled = false
+    setTotalCaps(null)
+
+    async function fetchCaps() {
+      const { data, error } = await supabase.rpc('calculate_player_caps', {
+        p_player_id: player.id
+      })
+
+      if (!cancelled && !error) {
+        setTotalCaps(data)
+      }
+    }
+
+    fetchCaps()
     return () => { cancelled = true }
   }, [player.id])
 
@@ -238,7 +260,7 @@ export default function PlayerOverlay({
           </div>
 
           {/* Section 2 — Info grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             <InfoCell label="Last Team"   value={lastTeam   ?? '—'} />
             <InfoCell label="Last Played" value={lastPlayed ?? '—'} />
             <InfoCell label="Availability" value={avLabel} valueColor={avColor} />
@@ -247,6 +269,10 @@ export default function PlayerOverlay({
               value={trainingAttended !== null && trainingTotal !== null
                 ? `${trainingAttended} / ${trainingTotal}`
                 : '—'}
+            />
+            <InfoCell
+              label="Total Caps"
+              value={totalCaps !== null ? totalCaps.toString() : '—'}
             />
           </div>
 
