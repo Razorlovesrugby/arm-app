@@ -150,9 +150,12 @@ export default function PlayerOverlay({
         p_player_id: player.id
       })
 
-      if (!cancelled && !error) {
-        setTotalCaps(data)
+      if (cancelled) return
+      if (error) {
+        console.error('[PlayerOverlay] calculate_player_caps RPC failed:', error)
+        return
       }
+      setTotalCaps(data)
     }
 
     fetchCaps()
