@@ -1,36 +1,30 @@
-phase 17.9
-***
+17.9.1 BUG FIX
 
-# ACTIVE_SPEC.md: Player Overlay Total Caps Integration
+```text
+# Context
+You are an expert React, TypeScript, and Supabase developer. You are working on "ARM Tracker," a rugby team management PWA. 
 
-### 🎯 Why
-Phase 12.5 introduced a database function to dynamically calculate player caps (`calculate_player_caps`), but the frontend `PlayerOverlay.tsx` was never wired up to fetch or display this data. We need to implement the compute-on-read fetch and render the Total Caps in the overlay's info grid.
+## Architecture & Current State
+- **Stack:** React 18, Vite, Tailwind CSS, Supabase (PostgreSQL).
+- **Current Phase:** Phase 16.3.1 Complete (Multi-Tenant Architecture).
+- **Multi-Tenant Rules:** The database is strictly locked down with Row Level Security (RLS). Every table has a `club_id`. Every frontend query MUST explicitly filter by `club_id` using an `activeClubId` from `AuthContext`, or operations will fail/return empty.
+- **The Feature:** We are trying to display a player's "Total Caps" in the `PlayerOverlay.tsx` component.
+- **The Calculation Pattern:** We use a "Compute-on-Read" pattern. Caps are NOT a static column. They are dynamically calculated via a Postgres RPC function (`calculate_player_caps`) defined in migration `011_v2_pivot.sql`.
 
-### 🏗️ Architecture Decisions
-* **Compute-on-Read Pattern:** The component will query the existing `calculate_player_caps` RPC. We will not pass caps down through props to avoid invalidating the parent `usePlayers` cache.
-* **Asynchronous Fetching:** Caps will be fetched via a dedicated `useEffect` hooked to `player.id`. 
-* **Grid Reflow:** The existing `InfoCell` grid currently uses `gridTemplateColumns: '1fr 1fr'` for 4 items. Adding a 5th item requires updating the grid to `1fr 1fr 1fr` to prevent orphaned, full-width bottom rows.
-* **Styling Consistency:** The `PlayerOverlay` component uses inline styling. Do not refactor to Tailwind; match the existing inline style objects exactly.
+## The Bug
+We recently updated `src/components/PlayerOverlay.tsx` to fetch and display the Total Caps using the RPC, but the caps are **not updating or appearing correctly on the frontend**. It seems to be failing silently or returning null/0.
 
-### 📁 Files to Touch
-1.  **`src/components/PlayerOverlay.tsx`**
-    * Add `totalCaps` state.
-    * Add `useEffect` for the RPC fetch.
-    * Update Section 2 grid CSS and insert the new `InfoCell`.
-
-### 🎨 UI Implementation
-
-**1. State & Fetch Logic (Insert below existing training state):**
+## What we recently added to `PlayerOverlay.tsx`
+We added this state and effect:
 ```tsx
-  // Total Caps State
   const [totalCaps, setTotalCaps] = useState<number | null>(null)
 
-  // Fetch Total Caps via the Database RPC
   useEffect(() => {
     let cancelled = false
     setTotalCaps(null)
 
     async function fetchCaps() {
+      // Calling the RPC
       const { data, error } = await supabase.rpc('calculate_player_caps', { 
         p_player_id: player.id 
       })
@@ -45,40 +39,43 @@ Phase 12.5 introduced a database function to dynamically calculate player caps (
   }, [player.id])
 ```
 
-**2. Grid Layout & Render (Replace existing Section 2 grid):**
-```tsx
-          {/* Section 2 — Info grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            <InfoCell label="Last Team"   value={lastTeam   ?? '—'} />
-            <InfoCell label="Last Played" value={lastPlayed ?? '—'} />
-            <InfoCell label="Availability" value={avLabel} valueColor={avColor} />
-            <InfoCell
-              label="Training"
-              value={trainingAttended !== null && trainingTotal !== null
-                ? `${trainingAttended} / ${trainingTotal}`
-                : '—'}
-            />
-            <InfoCell 
-              label="Total Caps" 
-              value={totalCaps !== null ? totalCaps.toString() : '—'} 
-            />
-          </div>
+## The Database RPC (from `011_v2_pivot.sql`)
+```sql
+CREATE OR REPLACE FUNCTION calculate_player_caps(p_player_id UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  v_historical_caps INTEGER;
+  v_match_caps INTEGER;
+BEGIN
+  SELECT COALESCE(historical_caps, 0) INTO v_historical_caps
+  FROM players WHERE id = p_player_id;
+  
+  SELECT COUNT(DISTINCT ts.week_id) INTO v_match_caps
+  FROM team_selections ts
+  JOIN week_teams wt ON ts.week_team_id = wt.id
+  WHERE (
+    EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements_text(ts.player_order) WITH ORDINALITY AS elem(player_id, idx)
+      WHERE elem.player_id::UUID = p_player_id
+        AND elem.idx BETWEEN 1 AND 23
+    )
+    AND (wt.score_for IS NOT NULL OR wt.score_against IS NOT NULL)
+  );
+  
+  RETURN v_historical_caps + v_match_caps;
+END;
+$$ LANGUAGE plpgsql STABLE;
 ```
 
-### ✅ Acceptance Criteria
-* [ ] `totalCaps` state is initialized.
-* [ ] `useEffect` correctly targets `supabase.rpc('calculate_player_caps', { p_player_id: player.id })`.
-* [ ] Section 2 `div` style is updated to `gridTemplateColumns: '1fr 1fr 1fr'`.
-* [ ] `InfoCell` for "Total Caps" is rendered.
-* [ ] A null or loading caps state safely falls back to rendering `"—"`.
+## Suspected Issues to Investigate
+1. **Phase 16 Multi-Tenant RLS Block:** Since Phase 16 enforced strict RLS, does the `calculate_player_caps` RPC need to be updated to accept a `p_club_id` parameter, or does it need `SECURITY DEFINER` to bypass read restrictions on `team_selections` and `week_teams`?
+2. **Missing Frontend Context:** Is the `useEffect` in `PlayerOverlay.tsx` failing because it isn't passing or checking `activeClubId` like all other Phase 16 hooks do?
+3. **Array Indexing:** In Postgres `WITH ORDINALITY`, is `idx` 1-indexed? Does that align perfectly with our frontend JSONB array (slots 1-23)?
 
-### ⚠️ Edge Cases
-* **Component Unmount During Fetch:** Handled via the `cancelled` boolean guard inside the `useEffect`.
-* **RPC Failure:** Silently caught; `totalCaps` remains `null`, gracefully degrading the UI to `"—"`.
-
-### 🚀 Implementation Order
-1. Open `src/components/PlayerOverlay.tsx`.
-2. Add `totalCaps` to `useState` block.
-3. Add the `fetchCaps` `useEffect` hook.
-4. Locate "Section 2 — Info grid", update the `gridTemplateColumns` property, and append the `InfoCell`.
-5. Save and verify.
+## Your Task
+1. Diagnose exactly why the caps are not calculating/returning to the frontend.
+2. If the RPC needs updating to handle Phase 16 Multi-Tenancy (RLS/club_id), provide the exact SQL migration to patch `calculate_player_caps`.
+3. If the frontend `PlayerOverlay.tsx` fetch needs fixing (e.g., passing club context or handling errors better), provide the exact React code fix.
+4. Output your solution as a clear, step-by-step fix.
+```
