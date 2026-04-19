@@ -146,13 +146,15 @@ export default function PlayerOverlay({
     setTotalCaps(null)
 
     async function fetchCaps() {
+      console.log('[Caps] calling RPC for player.id:', player.id)
       const { data, error } = await supabase.rpc('calculate_player_caps', {
         p_player_id: player.id
       })
+      console.log('[Caps] RPC result:', { data, error, type: typeof data })
 
       if (cancelled) return
       if (error) {
-        console.error('[PlayerOverlay] calculate_player_caps RPC failed:', error)
+        console.error('[Caps] RPC failed:', error)
         return
       }
       setTotalCaps(data)
