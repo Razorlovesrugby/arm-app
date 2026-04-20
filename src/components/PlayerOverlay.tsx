@@ -250,7 +250,7 @@ export default function PlayerOverlay({
             />
             <InfoCell
               label="Total Caps"
-              value={player.total_caps.toString()}
+              value={(player.total_caps ?? 0).toString()}
             />
           </div>
 
