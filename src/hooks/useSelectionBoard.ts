@@ -137,12 +137,8 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     }
     let ignore = false
     supabase
-      .from('players')
-      .select('*')
-      .eq('club_id', activeClubId)
-      .neq('status', 'Archived')
-      .order('name')
-      .then(({ data }) => { if (!ignore) setAllPlayers(data ?? []) })
+      .rpc('get_club_players', { p_club_id: activeClubId })
+      .then(({ data }) => { if (!ignore) setAllPlayers((data as Player[]) ?? []) })
     return () => { ignore = true }
   }, [activeClubId])
 
