@@ -77,9 +77,6 @@ export default function PlayerOverlay({
   const [trainingAttended, setTrainingAttended] = useState<number | null>(null)
   const [trainingTotal, setTrainingTotal] = useState<number | null>(null)
 
-  // Total Caps State
-  const [totalCaps, setTotalCaps] = useState<number | null>(null)
-
   // Lock body scroll while overlay is open
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -137,30 +134,6 @@ export default function PlayerOverlay({
     }
 
     fetchTraining()
-    return () => { cancelled = true }
-  }, [player.id])
-
-  // Fetch Total Caps via the Database RPC
-  useEffect(() => {
-    let cancelled = false
-    setTotalCaps(null)
-
-    async function fetchCaps() {
-      console.log('[Caps] calling RPC for player.id:', player.id)
-      const { data, error } = await supabase.rpc('calculate_player_caps', {
-        p_player_id: player.id
-      })
-      console.log('[Caps] RPC result:', { data, error, type: typeof data })
-
-      if (cancelled) return
-      if (error) {
-        console.error('[Caps] RPC failed:', error)
-        return
-      }
-      setTotalCaps(data)
-    }
-
-    fetchCaps()
     return () => { cancelled = true }
   }, [player.id])
 
@@ -277,7 +250,7 @@ export default function PlayerOverlay({
             />
             <InfoCell
               label="Total Caps"
-              value={totalCaps !== null ? totalCaps.toString() : '—'}
+              value={(player.total_caps ?? 0).toString()}
             />
           </div>
 
