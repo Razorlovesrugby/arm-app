@@ -68,7 +68,6 @@ export default function PlayerOverlay({
   player, slot, isCaptain, availabilityResponse, lastTeam, lastPlayed, weekLabel, onSetCaptain, onClose,
 }: PlayerOverlayProps) {
   const { activeClubId } = useAuth()
-  console.log('[PlayerOverlay] total_caps raw:', player.total_caps, 'type:', typeof player.total_caps, 'player:', player.name)
   const [captainState, setCaptainState] = useState(isCaptain)
   const [coachNotes, setCoachNotes] = useState(player.notes ?? '')
   const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
