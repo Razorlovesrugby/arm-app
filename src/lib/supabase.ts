@@ -89,6 +89,7 @@ export interface Player {
   last_played_date: string | null
   last_played_team: string | null
   historical_caps: number
+  total_caps: number
   court_fines: string | null
   is_retired: boolean
   created_at: string
