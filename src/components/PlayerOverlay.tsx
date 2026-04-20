@@ -76,6 +76,7 @@ export default function PlayerOverlay({
   // Training attendance for the active week
   const [trainingAttended, setTrainingAttended] = useState<number | null>(null)
   const [trainingTotal, setTrainingTotal] = useState<number | null>(null)
+  const [totalCaps, setTotalCaps] = useState<number | null>(null)
 
   // Lock body scroll while overlay is open
   useEffect(() => {
@@ -134,6 +135,14 @@ export default function PlayerOverlay({
     }
 
     fetchTraining()
+    return () => { cancelled = true }
+  }, [player.id])
+
+  useEffect(() => {
+    let cancelled = false
+    setTotalCaps(null)
+    supabase.rpc('calculate_player_caps', { p_player_id: player.id })
+      .then(({ data }) => { if (!cancelled && data !== null) setTotalCaps(data) })
     return () => { cancelled = true }
   }, [player.id])
 
@@ -250,7 +259,7 @@ export default function PlayerOverlay({
             />
             <InfoCell
               label="Total Caps"
-              value={(player.total_caps ?? 0).toString()}
+              value={totalCaps !== null ? totalCaps.toString() : (player.total_caps ?? 0).toString()}
             />
           </div>
 
