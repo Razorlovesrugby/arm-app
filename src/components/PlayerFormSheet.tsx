@@ -26,7 +26,6 @@ interface FormState {
   status: PlayerStatus
   subscription_paid: boolean
   notes: string
-  historical_caps: number
   court_fines: string
 }
 
@@ -41,7 +40,6 @@ const EMPTY: FormState = {
   status: 'Active',
   subscription_paid: false,
   notes: '',
-  historical_caps: 0,
   court_fines: '',
 }
 
@@ -82,7 +80,6 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
         status: player.status,
         subscription_paid: player.subscription_paid,
         notes: player.notes ?? '',
-        historical_caps: player.historical_caps ?? 0,
         court_fines: player.court_fines ?? '',
       })
       // Load career stats lazily
@@ -198,7 +195,6 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
       status:              form.status,
       subscription_paid:   form.subscription_paid,
       notes:               form.notes.trim() || null,
-      historical_caps:     form.historical_caps,
       court_fines:         form.court_fines.trim() || null,
       club_id:             activeClubId,
     }
@@ -483,18 +479,14 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
                 })()
               )}
 
-              {/* Total Caps */}
+              {/* Total Caps (read-only from database) */}
               <Field label="Total Caps">
                 <input
                   type="number"
-                  min={0}
-                  value={form.historical_caps}
-                  onChange={e => set('historical_caps', parseInt(e.target.value) || 0)}
-                  style={inputStyle(false)}
+                  value={player?.total_caps ?? 0}
+                  readOnly
+                  style={{ ...inputStyle(false), background: '#F9FAFB', color: '#6B7280', cursor: 'not-allowed' }}
                 />
-                <span style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '3px', display: 'block' }}>
-                  Manual override of auto-calculated caps
-                </span>
               </Field>
 
               {/* Court Fines */}
