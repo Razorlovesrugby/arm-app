@@ -83,3 +83,29 @@ body {
   background: var(--border);
   border-radius: 2px;
 }
+
+/* ============================================================
+   Touch behavior control (Phase 18.0)
+   ============================================================ */
+html, body {
+  touch-action: pan-y;
+  -ms-touch-action: pan-y;
+}
+
+/* iOS-only: enforce 16px minimum on inputs to prevent auto-zoom on focus.
+   Scoped via @supports so desktop/Android keep their intended sizing. */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: max(16px, 1em);
+  }
+}
+
+input, textarea, select {
+  touch-action: manipulation;
+}
+
+/* Lock fixed overlays — pan-y still allows inner vertical scroll containers */
+.fixed-overlay-lock {
+  touch-action: none;
+  overscroll-behavior: contain;
+}

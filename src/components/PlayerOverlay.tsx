@@ -205,7 +205,7 @@ export default function PlayerOverlay({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50 }}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, touchAction: 'none' }}
       />
 
       {/* Sheet */}
@@ -218,6 +218,7 @@ export default function PlayerOverlay({
         overflowY: 'auto',
         overscrollBehavior: 'contain',
         WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
         {/* Drag pill */}
