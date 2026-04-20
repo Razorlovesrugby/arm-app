@@ -1,81 +1,202 @@
-17.9.1 BUG FIX
+# ACTIVE_SPEC: Phase 18.0 — Touch Zoom & Movement Lockdown for Native PWA Experience
 
-```text
-# Context
-You are an expert React, TypeScript, and Supabase developer. You are working on "ARM Tracker," a rugby team management PWA. 
+## 📋 Metadata
+- **Status**: ACTIVE  
+- **Priority**: High (User Experience / Native App Feel)
+- **Phase**: 18.0
+- **Estimated Effort**: 1-2 hours
+- **Dependencies**: None
+- **Related Specs**: 14.1 (Native App Shell Layout), 16.5 (Logo Consistency & iOS Home Screen)
+- **Target Devices**: iPhone 11 and newer, modern Android devices
+- **Browser Support**: iOS Safari 12+, Chrome for Android, Safari for iPad
+- **Implementation Date**: Pending
 
-## Architecture & Current State
-- **Stack:** React 18, Vite, Tailwind CSS, Supabase (PostgreSQL).
-- **Current Phase:** Phase 16.3.1 Complete (Multi-Tenant Architecture).
-- **Multi-Tenant Rules:** The database is strictly locked down with Row Level Security (RLS). Every table has a `club_id`. Every frontend query MUST explicitly filter by `club_id` using an `activeClubId` from `AuthContext`, or operations will fail/return empty.
-- **The Feature:** We are trying to display a player's "Total Caps" in the `PlayerOverlay.tsx` component.
-- **The Calculation Pattern:** We use a "Compute-on-Read" pattern. Caps are NOT a static column. They are dynamically calculated via a Postgres RPC function (`calculate_player_caps`) defined in migration `011_v2_pivot.sql`.
+## 🎯 Why This Matters
+When users interact with the ARM PWA on touch devices, they expect:
+- **No accidental zooming** from pinch gestures
+- **No unwanted panning/scrolling** on fixed overlays (like Player Overlay)
+- **Consistent native app behavior** across all screens
+- **Professional, polished touch interactions**
 
-## The Bug
-We recently updated `src/components/PlayerOverlay.tsx` to fetch and display the Total Caps using the RPC, but the caps are **not updating or appearing correctly on the frontend**. It seems to be failing silently or returning null/0.
+Currently, users can pinch-to-zoom on any screen and may experience unwanted movement on overlays, breaking the native app illusion we've worked hard to create.
 
-## What we recently added to `PlayerOverlay.tsx`
-We added this state and effect:
+## 🧠 Current State Analysis
+
+### 1. Viewport Configuration (`index.html`)
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+```
+- **Issue**: Missing `user-scalable=no` and `maximum-scale=1.0` parameters
+- **Impact**: Allows pinch-to-zoom on iOS and Android
+
+### 2. CSS Touch Controls
+- **Current**: No global touch-action restrictions
+- **Impact**: Browser default touch behaviors apply (zoom, pan)
+
+### 3. Player Overlay & Modal Screens
+- **Observation**: Users can "move around certain screens like the player overlay"
+- **Root Cause**: Missing `touch-action: none` or `overflow: hidden` on overlay containers
+- **Impact**: Users can drag/scroll content that should be fixed
+
+### 4. iOS Auto-Zoom Prevention
+- **Found in `AvailabilityForm.tsx`**:
+  ```typescript
+  fontSize: '16px', // 16px prevents iOS auto-zoom
+  ```
+- **Good Practice**: This should be extended to all form inputs
+
+## 🏗️ Architecture Decisions
+
+### 1. **Multi-Layer Defense Strategy**
+We'll implement three complementary layers for maximum compatibility:
+
+#### **Layer 1: HTML Meta Tag (Primary Defense)**
+Update viewport meta tag to explicitly disable scaling:
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+```
+
+#### **Layer 2: CSS Touch-Action (Modern Standard)**
+Add global CSS to restrict touch behaviors:
+```css
+html, body {
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+}
+
+/* Prevent zoom on specific interactive elements */
+input, textarea, select {
+  touch-action: manipulation;
+}
+```
+
+#### **Layer 3: Critical Screen Lockdown**
+Add specific rules for overlays and modals:
+```css
+/* Player overlay and other modal containers */
+.fixed-overlay, .modal-container, [data-prevent-touch-move] {
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+```
+
+### 2. **iOS-Specific Considerations**
+- iPhone 11 (iOS 14+) has good support for `touch-action`
+- `user-scalable=no` still works but is deprecated - we'll use it as fallback
+- Maintain `font-size: 16px` on all form inputs to prevent auto-zoom
+
+### 3. **Backward Compatibility**
+- Keep existing `viewport-fit=cover` for notch support
+- Use vendor prefixes where needed
+- Test on actual iPhone 11 (or simulator)
+
+## 📝 Implementation Plan
+
+### **Phase 1: Core Viewport & CSS Updates (30 minutes)**
+1. **Update `index.html`** - Modify viewport meta tag
+2. **Create/Update Global CSS** - Add touch-action rules to `src/index.css`
+3. **Verify iOS Form Inputs** - Ensure all inputs have minimum 16px font size
+
+### **Phase 2: Screen-Specific Fixes (45 minutes)**
+1. **Identify Problem Screens** - Player overlay and other movable screens
+2. **Add CSS Classes** - Apply `touch-action: none` to overlay containers
+3. **Test Touch Interactions** - Verify no unwanted movement remains
+
+### **Phase 3: Testing & Validation (30 minutes)**
+1. **Device Testing** - Test on iPhone 11 simulator/device
+2. **Browser Testing** - Safari, Chrome, Firefox
+3. **Interaction Testing** - Verify normal scrolling still works where needed
+
+## 🔧 Files to Modify
+
+### 1. `index.html` (Line 5)
+```diff
+- <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
++ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+```
+
+### 2. `src/index.css` (Add to end of file)
+```css
+/* Touch behavior control */
+html, body {
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+}
+
+/* Prevent zoom on form elements */
+input, textarea, select {
+  touch-action: manipulation;
+  font-size: 16px !important; /* Prevent iOS auto-zoom */
+}
+
+/* Lock overlays and modals in place */
+.fixed-overlay, .modal-container, [data-prevent-touch-move] {
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+```
+
+### 3. **Player Overlay Component** (`src/components/PlayerOverlay.tsx`)
+Add CSS class or data attribute to root container:
 ```tsx
-  const [totalCaps, setTotalCaps] = useState<number | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    setTotalCaps(null)
-
-    async function fetchCaps() {
-      // Calling the RPC
-      const { data, error } = await supabase.rpc('calculate_player_caps', { 
-        p_player_id: player.id 
-      })
-      
-      if (!cancelled && !error) {
-        setTotalCaps(data)
-      }
-    }
-
-    fetchCaps()
-    return () => { cancelled = true }
-  }, [player.id])
+// Add className or data attribute to prevent touch movement
+<div className="fixed-overlay" data-prevent-touch-move>
+  {/* Existing overlay content */}
+</div>
 ```
 
-## The Database RPC (from `011_v2_pivot.sql`)
-```sql
-CREATE OR REPLACE FUNCTION calculate_player_caps(p_player_id UUID)
-RETURNS INTEGER AS $$
-DECLARE
-  v_historical_caps INTEGER;
-  v_match_caps INTEGER;
-BEGIN
-  SELECT COALESCE(historical_caps, 0) INTO v_historical_caps
-  FROM players WHERE id = p_player_id;
-  
-  SELECT COUNT(DISTINCT ts.week_id) INTO v_match_caps
-  FROM team_selections ts
-  JOIN week_teams wt ON ts.week_team_id = wt.id
-  WHERE (
-    EXISTS (
-      SELECT 1
-      FROM jsonb_array_elements_text(ts.player_order) WITH ORDINALITY AS elem(player_id, idx)
-      WHERE elem.player_id::UUID = p_player_id
-        AND elem.idx BETWEEN 1 AND 23
-    )
-    AND (wt.score_for IS NOT NULL OR wt.score_against IS NOT NULL)
-  );
-  
-  RETURN v_historical_caps + v_match_caps;
-END;
-$$ LANGUAGE plpgsql STABLE;
-```
+## 🧪 Testing Strategy
 
-## Suspected Issues to Investigate
-1. **Phase 16 Multi-Tenant RLS Block:** Since Phase 16 enforced strict RLS, does the `calculate_player_caps` RPC need to be updated to accept a `p_club_id` parameter, or does it need `SECURITY DEFINER` to bypass read restrictions on `team_selections` and `week_teams`?
-2. **Missing Frontend Context:** Is the `useEffect` in `PlayerOverlay.tsx` failing because it isn't passing or checking `activeClubId` like all other Phase 16 hooks do?
-3. **Array Indexing:** In Postgres `WITH ORDINALITY`, is `idx` 1-indexed? Does that align perfectly with our frontend JSONB array (slots 1-23)?
+### **Test Cases**
+1. **Pinch-to-Zoom Prevention**
+   - Try to zoom on any screen using two-finger pinch
+   - Expected: No zoom occurs
 
-## Your Task
-1. Diagnose exactly why the caps are not calculating/returning to the frontend.
-2. If the RPC needs updating to handle Phase 16 Multi-Tenancy (RLS/club_id), provide the exact SQL migration to patch `calculate_player_caps`.
-3. If the frontend `PlayerOverlay.tsx` fetch needs fixing (e.g., passing club context or handling errors better), provide the exact React code fix.
-4. Output your solution as a clear, step-by-step fix.
-```
+2. **Overlay Movement Prevention**
+   - Open Player Overlay
+   - Try to drag/swipe the overlay content
+   - Expected: Overlay stays fixed, no movement
+
+3. **Normal Scrolling Preservation**
+   - Scroll through player lists, roster, etc.
+   - Expected: Normal vertical scrolling works
+
+4. **Form Input Accessibility**
+   - Tap on form fields
+   - Expected: No iOS auto-zoom, keyboard appears normally
+
+### **Test Devices**
+- iPhone 11 (iOS 14+)
+- iPad (latest iOS)
+- Android Chrome
+- Desktop browsers (should be unaffected)
+
+## ⚠️ Risk Assessment & Rollback Plan
+
+### **Potential Risks**
+1. **Over-restriction**: Might accidentally disable legitimate scrolling
+2. **Browser Compatibility**: Some older browsers may ignore `touch-action`
+3. **Accessibility**: Must ensure zoom accessibility features still work via browser menus
+
+### **Rollback Procedure**
+If issues arise:
+1. **Revert `index.html`** to original viewport tag
+2. **Remove CSS additions** from `index.css`
+3. **Remove overlay classes** from components
+4. **All changes are isolated** and easily reversible
+
+## 📊 Success Metrics
+- ✅ No pinch-to-zoom on any screen
+- ✅ Player overlay and modals don't move when touched
+- ✅ Normal scrolling still works everywhere else
+- ✅ Form inputs work without iOS auto-zoom
+- ✅ No regression in existing functionality
+
+## 🚀 Implementation Status
+- [ ] Phase 1: Core Viewport & CSS Updates
+- [ ] Phase 2: Screen-Specific Fixes  
+- [ ] Phase 3: Testing & Validation
+- [ ] Mark as COMPLETED
+
+---
+*This spec follows the established ARM project specification format and addresses a critical user experience issue affecting the native PWA feel on touch devices.*
