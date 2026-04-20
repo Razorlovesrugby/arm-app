@@ -244,6 +244,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
         maxHeight: '92dvh',
         overflowY: 'auto',
         overscrollBehavior: 'contain',
+        touchAction: 'pan-y',
         // Tablet+: centred modal
         // (override via media query below)
       }}
