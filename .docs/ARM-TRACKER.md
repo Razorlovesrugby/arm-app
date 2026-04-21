@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-16 12:20**
-**Current position: Phase 17.8 ACTIVE — Dynamic Player Type Cascading implementation. Phase 17.3 moved to completed specs.**
+**Last updated: 2026-04-20 21:30**
+**Current position: Phase 18.1 COMPLETE — Form Layer Sheet Sideways Movement Lockdown implementation. Phases 17.9.3, 18.0, and 18.1 moved to completed specs.**
 
 ---
 
@@ -38,7 +38,12 @@
 | 17.1 | RDO Data Layer & RLS Expansion — Database schema, role-based access, RLS policies | ✅ Done |
 | 17.2 | Command Center UX & Launchpad — RDO dashboard, club switching, God Mode banner | ✅ Done |
 | 17.3 | God Mode Hydration & Data Safety — React tree remount, race condition protection | ✅ Done (2026-04-14) |
-| 17.8 | Dynamic Player Type Cascading — Database constraint removal, safe batch RPC, dynamic filters | ▶ Active |
+| 17.9.1 | Caps RPC RLS Fix — SECURITY DEFINER patch for calculate_player_caps function | ✅ Done (2026-04-20) |
+| 17.9.2 | Caps Materialized Column — total_caps column with trigger-based synchronization | ✅ Done (2026-04-20) |
+| 17.9.3 | PlayerForm Total Caps Fix — Read-only total caps display, database trigger for historical caps synchronization | ✅ Done (2026-04-20) |
+| 17.8 | Dynamic Player Type Cascading — Database constraint removal, safe batch RPC, dynamic filters | ✅ Done (2026-04-20) |
+| 18.0 | Touch Zoom & Movement Lockdown — Viewport meta tag, touch-action CSS, iOS auto-zoom prevention | ✅ Done (2026-04-20) |
+| 18.1 | Form Layer Sheet Sideways Movement Lockdown — touch-action: pan-y on PlayerFormSheet, horizontal swipe prevention | ✅ Done (2026-04-20) |
 
 **Note:** Project has pivoted to v2.0 architecture. Phase 10 (Exports) deferred to focus on v2.0 features. Archive functionality is no longer a standalone locked tab; historical data is now accessed via the concurrent 'Results' toggle on the Selection Board.
 
@@ -389,6 +394,33 @@
 - **Layout.tsx:** God Mode banner for RDOs impersonating clubs, shows club name and "Exit to Command Center" button
 - **App.tsx:** Conditional routing based on role and activeClubId, RDOs with activeClubId=null route to RDODashboard
 - **Test Data:** RDO@test.com test user with role='rdo' and club mapping in rdo_club_access
+
+**Phase 17.9.1 Implementation Details:**
+- **Database Migration (028_phase_17_9_1_caps_rpc_fix.sql):**
+  - `calculate_player_caps` RPC recreated with `SECURITY DEFINER` to bypass RLS restrictions
+  - Function runs as owner (postgres) instead of authenticated role
+  - Read-only (`STABLE`) function scoped to single player_id
+  - Maintains original calculation logic: historical_caps + match caps (weeks where player in slots 1-23 with scores)
+- **Root Cause Fix:** RPC created pre-Phase 16 RLS as `SECURITY INVOKER`, causing internal table scans on `team_selections` and `week_teams` to be filtered by RLS policies
+- **Frontend Impact:** None required - RPC call pattern in `PlayerOverlay.tsx` already correct
+- **Security Rationale:** Safe bypass because caller's auth context validates player access before overlay opens
+
+**Phase 17.9.2 Implementation Details:**
+- **Database Migration (029_phase_17_9_2_caps_materialized.sql):**
+  - Added `total_caps INT NOT NULL DEFAULT 0` column to `players` table
+  - Created `refresh_player_caps(UUID)` function with `SECURITY DEFINER`
+  - Created trigger `trg_caps_on_selection_change()` on `team_selections` (player_order changes)
+  - Created trigger `trg_caps_on_score_change()` on `week_teams` (score updates)
+  - Backfilled all existing players with one-time migration
+- **Frontend Changes:**
+  - `src/lib/supabase.ts`: Added `total_caps: number` to `Player` interface
+  - `src/components/PlayerOverlay.tsx`: Removed async RPC fetch, reads `player.total_caps` directly
+  - Removed `totalCaps` state and `useEffect` for caps calculation
+- **Architecture Decision:** Materialized column pattern replaces async compute-on-read RPC
+  - Instant reads (no async fetch, no loading states)
+  - Trigger-maintained consistency (scores and selection changes automatically update caps)
+  - Eliminates PostgREST/RLS interaction issues from production environment
+- **Performance Benefits:** Reduced database load (no RPC calls on every overlay open), immediate data availability
 
 ---
 

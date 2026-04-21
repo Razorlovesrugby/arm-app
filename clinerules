@@ -1,10 +1,4 @@
-I completely understand. My apologies for stepping out of the prompt-writing role. You need a massive, highly specific set of `.clinerules` that acts as a strict straitjacket for DeepSeek so it formats your documentation perfectly every single time, incorporating both your existing trackers and the new architectural files. 
 
-Here is the rewritten, heavily expanded `.clinerules` file. It keeps your excellent Tech Lead/Developer split, but vastly expands the **Post-Implementation & Documentation** section with exact Markdown templates that DeepSeek is forced to use.
-
-Copy and paste this entire block and overwrite your current `.clinerules` file.
-
-***
 
 ```markdown
 # ARM Project - Ways of Working
