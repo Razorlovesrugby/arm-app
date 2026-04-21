@@ -5,6 +5,7 @@ import { Player, PlayerStatus, PlayerType, Position, POSITIONS, PLAYER_TYPES } f
 import PlayerCard from '../components/PlayerCard'
 import PlayerFormSheet from '../components/PlayerFormSheet'
 import DeletePlayerDialog from '../components/DeletePlayerDialog'
+import MergePlayerModal from '../components/MergePlayerModal'
 
 // Statuses shown in the Roster filter dropdown — Archived is handled by its own toggle
 const ROSTER_FILTER_STATUSES: PlayerStatus[] = ['Active', 'Injured', 'Unavailable', 'Retired']
@@ -28,6 +29,7 @@ export default function Roster() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [deletingPlayer, setDeletingPlayer] = useState<Player | null>(null)
+  const [mergingPlayer, setMergingPlayer] = useState<Player | null>(null)
 
   // Derived: filtered + sorted list
   const filtered = useMemo(() => {
@@ -416,6 +418,7 @@ export default function Roster() {
           player={editingPlayer}
           onClose={() => setSheetOpen(false)}
           onSaved={() => { setSheetOpen(false); refetch() }}
+          onMerge={(p) => { setSheetOpen(false); setMergingPlayer(p) }}
         />
       )}
 
@@ -424,6 +427,14 @@ export default function Roster() {
           player={deletingPlayer}
           onCancel={() => setDeletingPlayer(null)}
           onDeleted={() => { setDeletingPlayer(null); refetch() }}
+        />
+      )}
+
+      {mergingPlayer && (
+        <MergePlayerModal
+          duplicatePlayer={mergingPlayer}
+          onClose={() => setMergingPlayer(null)}
+          onSuccess={() => { setMergingPlayer(null); refetch() }}
         />
       )}
     </div>
