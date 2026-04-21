@@ -1,160 +1,233 @@
-# ACTIVE_SPEC: Phase 18.1 — Form Layer Sheet Sideways Movement Lockdown
+# ACTIVE_SPEC: Phase 19.0 — Player Merge Feature (Public Form Duplicate Cleanup)
 
 ## 📋 Metadata
 - **Status**: ACTIVE  
-- **Priority**: High (User Experience / Touch Interaction)
-- **Phase**: 18.1
-- **Estimated Effort**: 15 minutes
-- **Dependencies**: Phase 18.0 (Touch Zoom & Movement Lockdown)
-- **Related Specs**: 18.0 (Touch Zoom & Movement Lockdown), 14.1 (Native App Shell Layout)
-- **Target Devices**: iPhone 11 and newer, modern Android devices
-- **Browser Support**: iOS Safari 12+, Chrome for Android, Safari for iPad
+- **Priority**: High (Data Integrity / Coach Workflow)
+- **Phase**: 19.0
+- **Estimated Effort**: 2-3 hours
+- **Dependencies**: None
+- **Related Specs**: 15.2 (Availability Form Data Collection)
+- **Target Users**: Coaches managing rosters
 - **Implementation Date**: Pending
 
 ## 🎯 Why This Matters
-When users interact with the PlayerFormSheet (add/edit player form) on touch devices, they can accidentally swipe horizontally, causing unwanted sideways movement. This breaks the native app illusion and creates a less polished experience. Users expect bottom sheets to stay fixed horizontally while allowing vertical scrolling for form content.
+Players frequently submit the public availability form using slight name variations (e.g., "Jonny Smith" vs "Jonathan Smith"). This creates duplicate "failed match" player records with no real history. Coaches need a simple, safe way to merge these duplicates into the correct real player profile, transferring availability responses while preserving data integrity.
 
 ## 🧠 Current State Analysis
 
-### 1. PlayerFormSheet Touch Behavior
-- **Current**: No `touch-action` CSS property set
-- **Impact**: Browser default touch behaviors apply (allows horizontal swiping)
-- **Location**: `src/components/PlayerFormSheet.tsx` lines 240-265
+### 1. Database Schema
+- **players table**: Has `historical_caps`, `total_caps`, `club_id` fields
+- **availability_responses table**: `player_id`, `week_id`, `availability` (no unique constraint found)
+- **training_attendance table**: `player_id`, `week_id`, `session_id`
+- **match_events table**: `player_id` foreign key
+- **team_selections table**: `captain_id` foreign key to players
 
-### 2. Comparison with PlayerOverlay
-- **PlayerOverlay**: Has `touchAction: 'pan-y'` (line 221)
-- **Result**: Restricts touch to vertical panning only
-- **Consistency**: PlayerFormSheet lacks this restriction
+### 2. Frontend Components
+- **Roster Page** (`src/pages/Roster.tsx`): Displays player list with search/filter
+- **PlayerCard** (`src/components/PlayerCard.tsx`): Clickable card, no action menu currently
+- **DeletePlayerDialog**: Existing pattern for destructive operations
 
-### 3. Technical Analysis
-```tsx
-// PlayerFormSheet current styling (lines 240-255):
-<div style={{
-  position: 'fixed',
-  zIndex: 51,
-  background: '#FFFFFF',
-  bottom: 0, left: 0, right: 0,
-  borderTopLeftRadius: '20px',
-  borderTopRightRadius: '20px',
-  maxHeight: '92dvh',
-  overflowY: 'auto',
-  overscrollBehavior: 'contain', // <-- Only prevents scroll chaining
-  // Missing: touch-action property
-}}
-```
+### 3. User Pain Point
+Coaches see duplicate players like "J Smith" (created via public form) alongside real player "Jonathan Smith". They need to:
+1. Identify which is the duplicate (usually newer, minimal data)
+2. Merge duplicate's availability responses into real player
+3. Delete the duplicate cleanly
 
 ## 🏗️ Architecture Decisions
 
-### 1. **Touch-Action Strategy**
-We'll implement `touch-action: pan-y` to:
-- **Allow vertical scrolling**: Essential for long form content
-- **Block horizontal movement**: Prevents unwanted sideways swiping
-- **Maintain consistency**: Match PlayerOverlay implementation
+### 1. **Database RPC Approach**
+Create `merge_players(primary_id UUID, duplicate_id UUID)` function with:
+- **SECURITY DEFINER**: Run as postgres to bypass RLS safely
+- **Transaction Wrapped**: `BEGIN/COMMIT/ROLLBACK` for atomicity
+- **Conflict Resolution**: Primary player's data wins on conflicts
+- **Safety Checks**: Prevent self-merge, cross-club merges
 
-### 2. **Implementation Approach**
-- Single property addition to existing style object
-- No structural changes to component
-- Preserves all existing functionality
-- Minimal risk of regression
+### 2. **Simplified Data Transfer Logic**
+Since duplicates are "failed matches" with minimal history:
+- **Transfer**: Availability responses, training attendance
+- **Ignore**: Match events, caps, court_fines (duplicate shouldn't have these)
+- **Update**: Team selection captain references if duplicate is captain
+- **Delete**: Duplicate player after successful transfer
 
-### 3. **Consistency Principle**
-- Match PlayerOverlay's `touch-action: pan-y` implementation
-- Maintain uniform touch behavior across all bottom sheets/modals
-- Follow established patterns in the codebase
+### 3. **Frontend UX Pattern**
+- **Trigger**: Three-dot menu (⋮) on PlayerCard → "Merge into existing player"
+- **Modal**: Simple two-part interface:
+  - Left: Duplicate player info (read-only)
+  - Right: Searchable dropdown to select real player
+- **Confirmation**: Clear warning about irreversible action
+- **Feedback**: Success toast, automatic list refresh
 
-## 📝 Implementation Plan
+### 4. **Safety First Design**
+- **Cannot merge same player**: UI validation
+- **Same club requirement**: Database validation
+- **Preview**: Show what will be transferred (counts)
+- **Undo protection**: Clear "cannot be undone" warning
 
-### **Single Step: Add Touch-Action Property (15 minutes)**
-1. **Open `PlayerFormSheet.tsx`** - Navigate to `src/components/PlayerFormSheet.tsx`
-2. **Locate sheet container** - Find main div with `position: 'fixed'` (lines 240-265)
-3. **Add `touchAction: 'pan-y'`** - Insert after `overscrollBehavior: 'contain',`
-4. **Verify syntax** - Ensure proper JSON formatting and trailing comma
-5. **Test** - Verify no horizontal movement, vertical scrolling preserved
+## 📁 Files to Create/Modify
 
-## 🔧 Files to Modify
+### 1. New Files
+- `supabase/migrations/033_merge_players_rpc.sql` - RPC function with transaction safety
+- `src/components/MergePlayerModal.tsx` - Merge interface modal
 
-### 1. `src/components/PlayerFormSheet.tsx` (Lines 240-265)
-```diff
-<div style={{
-  position: 'fixed',
-  zIndex: 51,
-  background: '#FFFFFF',
-  // Mobile: bottom sheet ~85% height
-  bottom: 0, left: 0, right: 0,
-  borderTopLeftRadius: '20px',
-  borderTopRightRadius: '20px',
-  maxHeight: '92dvh',
-  overflowY: 'auto',
-  overscrollBehavior: 'contain',
-+ touchAction: 'pan-y', // <-- ADD THIS LINE
-  // Tablet+: centred modal
-  // (override via media query below)
-}}
-  className="player-sheet"
->
+### 2. Modified Files
+- `src/components/PlayerCard.tsx` - Add three-dot menu with merge option
+- `src/pages/Roster.tsx` - Add merge state management
+- `src/lib/supabase.ts` - Add RPC function type signature
+
+## 🎨 Logic Implementation
+
+### 1. The SQL RPC Migration
+```sql
+-- Migration 033: Player Merge RPC for Public Form Duplicate Cleanup
+CREATE OR REPLACE FUNCTION merge_players(primary_id UUID, duplicate_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_same_club BOOLEAN;
+BEGIN
+  -- Safety: prevent self-merge
+  IF primary_id = duplicate_id THEN
+    RAISE EXCEPTION 'Cannot merge a player into themselves';
+  END IF;
+
+  -- Safety: ensure both players belong to same club
+  SELECT COUNT(DISTINCT club_id) = 1 INTO v_same_club
+  FROM players 
+  WHERE id IN (primary_id, duplicate_id);
+  
+  IF NOT v_same_club THEN
+    RAISE EXCEPTION 'Players must belong to the same club';
+  END IF;
+
+  BEGIN
+    -- 1. Move Availability Responses (handle week conflicts: primary wins)
+    UPDATE availability_responses
+    SET player_id = primary_id
+    WHERE player_id = duplicate_id
+    AND week_id NOT IN (
+      SELECT week_id FROM availability_responses WHERE player_id = primary_id
+    );
+
+    -- Delete any conflicting availability from duplicate
+    DELETE FROM availability_responses WHERE player_id = duplicate_id;
+
+    -- 2. Move Training Attendance (similar conflict handling)
+    UPDATE training_attendance
+    SET player_id = primary_id
+    WHERE player_id = duplicate_id
+    AND (week_id, session_id) NOT IN (
+      SELECT week_id, session_id FROM training_attendance WHERE player_id = primary_id
+    );
+    DELETE FROM training_attendance WHERE player_id = duplicate_id;
+
+    -- 3. Update Match Events (simple transfer - duplicate shouldn't have any)
+    UPDATE match_events SET player_id = primary_id WHERE player_id = duplicate_id;
+
+    -- 4. Update Team Selection captain references
+    UPDATE team_selections SET captain_id = primary_id WHERE captain_id = duplicate_id;
+
+    -- 5. Update Archive Game Notes player references
+    UPDATE archive_game_notes SET player_id = primary_id WHERE player_id = duplicate_id;
+
+    -- 6. Finally, delete the duplicate player
+    DELETE FROM players WHERE id = duplicate_id;
+
+    COMMIT;
+  EXCEPTION WHEN OTHERS THEN
+    ROLLBACK;
+    RAISE;
+  END;
+END;
+$$;
 ```
 
-## 🧪 Testing Strategy
+### 2. The React Frontend
+**MergePlayerModal Component Structure:**
+```tsx
+interface MergePlayerModalProps {
+  duplicatePlayer: Player;
+  onClose: () => void;
+  onSuccess: () => void;
+}
 
-### **Test Cases**
-1. **Horizontal Swipe Prevention**
-   - Open PlayerFormSheet on touch device
-   - Try to swipe left/right on the sheet
-   - Expected: No horizontal movement occurs
+// Key features:
+// - Searchable player dropdown (excluding the duplicate)
+// - Preview of what will transfer (e.g., "3 availability responses")
+// - Red warning confirmation button
+// - Loading state during RPC call
+```
 
-2. **Vertical Scrolling Preservation**
-   - Open PlayerFormSheet with long form content
-   - Scroll up/down through the form
-   - Expected: Smooth vertical scrolling works
+**PlayerCard Enhancement:**
+```tsx
+// Add three-dot menu with:
+// - Edit (existing via onClick)
+// - Merge Duplicate (new)
+// - Delete (existing)
+```
 
-3. **Form Interaction Integrity**
-   - Tap all form inputs, buttons, selects
-   - Expected: All elements respond normally
-   - Expected: No visual or functional regressions
+**Roster Page Integration:**
+```tsx
+// Add state for:
+const [mergingPlayer, setMergingPlayer] = useState<Player | null>(null);
+```
 
-4. **Cross-Device Consistency**
-   - Test on iPhone, Android, iPad
-   - Expected: Consistent behavior across devices
+### 3. Type Definitions Update
+Add to `src/lib/supabase.ts`:
+```typescript
+// RPC function signature
+export interface MergePlayersParams {
+  primary_id: string;
+  duplicate_id: string;
+}
+```
 
-### **Test Devices**
-- iPhone 11 (iOS 14+)
-- iPad (latest iOS)
-- Android Chrome
-- Desktop browsers (should be unaffected)
+## ✅ Acceptance Criteria
 
-## ⚠️ Risk Assessment & Rollback Plan
+### Database Layer
+- [ ] `merge_players` RPC function exists and is callable via `supabase.rpc()`
+- [ ] Function uses transaction for atomic all-or-nothing operation
+- [ ] Week conflicts are handled (primary player's data wins)
+- [ ] Same-club validation prevents cross-club merges
+- [ ] Self-merge is prevented with clear error
 
-### **Potential Risks**
-1. **Over-restriction**: Might accidentally disable legitimate touch interactions
-2. **Browser Compatibility**: Some older browsers may ignore `touch-action`
-3. **Regression**: Could affect other touch behaviors unintentionally
+### Frontend Layer  
+- [ ] Three-dot menu appears on PlayerCard in Roster view
+- [ ] "Merge into existing player" option opens modal
+- [ ] Modal shows duplicate player info (name, created date)
+- [ ] Searchable dropdown filters out duplicate player
+- [ ] Clear warning message about irreversible action
+- [ ] Success toast appears after merge
+- [ ] Player list refreshes automatically (duplicate disappears)
 
-### **Risk Mitigation**
-1. **Targeted change**: Only affects PlayerFormSheet container
-2. **Proven pattern**: Uses same `touch-action: pan-y` as PlayerOverlay (already working)
-3. **Minimal scope**: Single property addition
+### User Experience
+- [ ] Coach can identify duplicate and merge it in < 30 seconds
+- [ ] No data loss - availability responses transfer correctly
+- [ ] No database corruption from partial merges
+- [ ] Clear feedback at every step (loading, success, error)
 
-### **Rollback Procedure**
-If issues arise:
-1. **Remove `touchAction: 'pan-y'`** from PlayerFormSheet.tsx
-2. **All changes are isolated** and easily reversible
+## 🚨 Edge Cases & Error Handling
+
+1. **Network Failure During Merge**: Transaction rolls back, no partial data
+2. **Duplicate Has Match Events**: Log warning but proceed (shouldn't happen)
+3. **Primary Player Not Found**: Show error in dropdown validation
+4. **Concurrent Modification**: Database transaction isolation prevents issues
+5. **RLS Policy Conflicts**: SECURITY DEFINER bypasses safely for this operation
 
 ## 📊 Success Metrics
-- ✅ No horizontal movement on PlayerFormSheet when swiped left/right
-- ✅ Vertical scrolling preserved for form content
-- ✅ All form inputs, buttons, and interactions work normally
-- ✅ No visual changes to the sheet appearance
-- ✅ Consistent with PlayerOverlay touch behavior
-- ✅ No regression in existing functionality
+- **Reduction in duplicate player records** (tracked via admin dashboard)
+- **Coach satisfaction** with duplicate cleanup workflow
+- **Zero data corruption incidents** from merge operations
 
-## 🚀 Implementation Status
-- [ ] Add `touch-action: pan-y` to PlayerFormSheet
-- [ ] Test horizontal swipe prevention
-- [ ] Test vertical scrolling preservation
-- [ ] Test form interaction integrity
-- [ ] Test cross-device consistency
-- [ ] Mark as COMPLETED
+## 🔄 Rollback Plan
+If issues arise:
+1. **Disable feature**: Remove three-dot menu via feature flag
+2. **Database restore**: Use Supabase point-in-time recovery if data corruption
+3. **Hotfix**: Patch RPC function if logic errors found
 
 ---
 
-*This spec follows the established ARM project specification format and addresses a specific touch interaction issue affecting the PlayerFormSheet component as part of the broader Phase 18 touch lockdown initiative.*
+**Ready for Implementation**: This spec provides complete technical and UX requirements for the Player Merge feature. The approach is simplified to match the real use case: cleaning up public form duplicates, not merging two established player histories.
+
+**Next Step**: Toggle to Act mode to begin implementation.

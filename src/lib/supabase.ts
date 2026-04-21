@@ -302,6 +302,15 @@ export interface RdoFacility {
 }
 
 // ============================================================
+// Phase 19.0: Player Merge RPC Types
+// ============================================================
+
+export interface MergePlayersParams {
+  primary_id: string
+  duplicate_id: string
+}
+
+// ============================================================
 // PDF Types (Phase 13)
 // ============================================================
 

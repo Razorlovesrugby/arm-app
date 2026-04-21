@@ -13,6 +13,7 @@ interface Props {
   onClose: () => void
   onSaved: () => void
   readOnly?: boolean      // true = RDO view-only mode
+  onMerge?: (player: Player) => void  // Phase 19.0 — opens MergePlayerModal
 }
 
 interface FormState {
@@ -43,7 +44,7 @@ const EMPTY: FormState = {
   court_fines: '',
 }
 
-export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = false }: Props) {
+export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = false, onMerge }: Props) {
   const { activeClubId } = useAuth()
   const { clubSettings } = useClubSettings()
   const playerTypeOptions = clubSettings?.player_types ?? DEFAULT_PLAYER_TYPES
@@ -505,6 +506,26 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
                 </div>
               </Field>
             </>
+          )}
+
+          {/* Merge (Phase 19.0) — edit mode only, hidden for new/readOnly. Amber to signal caution. */}
+          {isEdit && !readOnly && player && onMerge && (
+            <button
+              type="button"
+              onClick={() => onMerge(player)}
+              style={{
+                width: '100%', minHeight: '44px',
+                marginTop: '8px', marginBottom: '12px',
+                background: '#FFFBEB',
+                color: '#B45309',
+                border: '1px solid #FCD34D',
+                borderRadius: '10px',
+                fontSize: '14px', fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Merge into existing player
+            </button>
           )}
 
           {/* Actions */}
