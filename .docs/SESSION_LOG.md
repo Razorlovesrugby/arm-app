@@ -2,6 +2,58 @@ ARM Session Log
 
 ---
 
+## [2026-04-29 21:03] Session Summary
+- **Primary Objective:** Phase 19.3 implementation (Export Functions Include Player Caps) — add total_caps and captain (C) badge to WhatsApp text and PDF exports
+- **Tasks Completed:**
+  - [x] Phase 19.3: Verified all 4 code changes already in-place (documentation update only)
+    1. `supabase.ts`: `PDFPlayer` interface now includes `totalCaps: number` (line 322)
+    2. `useSelectionBoard.ts`: `selectionTeamsToPDF` passes `totalCaps: player.total_caps` (line 85)
+    3. `TeamSheetPDF.tsx`: `getPlayerDisplayName` appends `(caps)` — e.g. `Jonny Wilkinson (91)` (lines 28-33)
+    4. `SelectionBoard.tsx`: WhatsApp export uses `formatPlayerLine` helper with captain `(C)` and `(total_caps)` in output
+  - [x] Updated spec `docs/phase-specs/19.3_Export_Functions_Include_Player_Caps_ACTIVE_SPEC.md` → COMPLETED with checked acceptance criteria
+  - [x] Updated `ARM-TRACKER.md` with Phase 19.3 completion row
+- **Architecture / Decisions Locked:**
+  - Format: `[Number]. [Name] ([Total Caps])` — e.g., `1. Jonny Wilkinson (91)`
+  - Captain format: `[Number]. [Name] (C) ([Total Caps])` — e.g., `10. Owen Farrell (C) (112)`
+  - Captain badge `(C)` comes before caps — matches existing PDF pattern
+  - Empty slots show "Unfilled" with no caps (WhatsApp) or underline (PDF)
+  - Fallback: `total_caps ?? 0` ensures null-safe display
+- **Next Up:** Next priority from tracker
+
+---
+
+## [2026-04-29 20:19] Session Summary
+- **Primary Objective:** Phase 19.0.1 implementation (Array Operator Bug Fix) + Migration 034 (merge_players jsonb fix) + Phase 19.1 implementation (Hard Reset, Refresh Navigation Fix & Caching Fix)
+- **Tasks Completed:**
+  - [x] Phase 19.0.1: Added defensive `Array.isArray()` guards for all `.in()` calls across 6 files (ResultDetail.tsx, Grid.tsx, Attendance.tsx, useGrid.ts, useRFCPlayerPool.ts, Archive.tsx)
+  - [x] Migration 034: Fixed merge_players RPC to use jsonb operators (jsonb_agg/jsonb_array_elements) instead of native pg array functions (array_replace/ANY)
+  - [x] Phase 19.1: Removed `navigateFallback: '/offline.html'` from vite.config.ts for hard-reset fix; added anti-caching headers to vercel.json for `/availability/*`; added anti-caching meta tags to index.html; replaced auth-gated `useClubSettings()` with direct Supabase fetch using `week.club_id` in AvailabilityForm.tsx for anonymous users
+- **Architecture / Database Decisions Locked:**
+  - Phase 19.0.1: `Array.isArray()` defensive guards as O(1) null-safety pattern for all `.in()` calls
+  - Migration 034: jsonb_agg + jsonb_array_elements for array manipulation in jsonb columns (replaces array_replace + ANY which require native pg arrays)
+  - Phase 19.1: Removed offline page fallback; Vercel `Cache-Control: no-cache` headers for `/availability/*`; anti-caching meta tags in index.html
+- **Architecture / Database Decisions Locked:**
+  - Phase 19.2: Phone update added to existing player profile block — always syncs `normPhone` on match
+  - Phase 19.2: Birthday conditional guard — only overwrites if current value is default (`2000-01-01`) or empty
+  - Phase 19.2: No database changes needed — `phone` and `date_of_birth` columns already exist on `players` table
+  - Phase 19.2: Match queries already include `date_of_birth` (no extra query needed for guard check)
+- **Next Up:** Next priority from tracker
+
+---
+
+## [2026-04-28 22:28] Session Summary
+- **Primary Objective:** Non-development session — Created Phase 19.1 and Phase 19.01 ACTIVE_SPECs, and conducted a full repository architecture audit
+- **Tasks Completed:**
+  - [x] Created `docs/phase-specs/19.01_Supabase_Array_Operator_Bug_Fix_ACTIVE_SPEC.md` — Defensive array guards for all `.in()` calls across codebase to fix `op ANY/ALL (array) requires array on right side` runtime error in ResultDetail.tsx, Grid.tsx, Attendance.tsx, useGrid.ts, useRFCPlayerPool.ts, and Archive.tsx
+  - [x] Created `docs/phase-specs/19.1_Hard_Reset_Refresh_Navigation_Fix_ACTIVE_SPEC.md` — Comprehensive spec addressing two problems: (1) Hard reset showing offline page instead of app shell, (2) Public availability form broken by caching & auth bug (club settings never load for anonymous users). Includes VitePWA config changes, Vercel caching headers, anti-caching meta tags, and direct Supabase fetch for anonymous club settings
+  - [x] Created `docs/code-reviews/2026-04-28_full_repository_audit.md` — Full architectural audit scoring 6.5/10 with 3 high-priority refactors identified: unify styling (Tailwind everywhere), extract shared UI primitives, add README + path aliases + lint config
+- **Architecture / Database Decisions Locked:**
+  - Phase 19.01: `Array.isArray()` defensive guards as O(1) null-safety pattern for all `.in()` calls; empty array defaults cause queries to return no rows gracefully
+  - Phase 19.1: Remove `navigateFallback: '/offline.html'` for hard-reset fix; Vercel `Cache-Control: no-cache` headers for `/availability/*`; anti-caching meta tags in `index.html`; direct Supabase fetch using `week.club_id` for anonymous club settings (bypasses auth-gated `useClubSettings()` hook)
+- **Next Up:** Implementation of Phase 19.01 (Array Operator Bug Fix) or Phase 19.1 (Hard Reset & Navigation Fix), or continue with next priority from tracker
+
+---
+
 ## [2026-04-20 21:30] Session Summary
 - **Primary Objective:** Phase 18.1 — Form Layer Sheet Sideways Movement Lockdown
 - **Tasks Completed:**

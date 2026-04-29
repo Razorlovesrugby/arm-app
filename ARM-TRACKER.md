@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-15**
-**Current position: Phase 17.4 complete (RDO Command Center & Team Readiness Matrix). Next: Phase 17.5 (RFC Player Pool & Master Grids).**
+**Last updated: 2026-04-29 20:26**
+**Current position: Phase 19.2 implemented (Availability Form Profile Update Phone & Birthday). All of Phase 19 (19.0, 19.0.1, 19.1, 19.2) now complete.**
 
 ---
 
@@ -50,7 +50,13 @@
 | 17.2 | RDO Command Center UX & Launchpad — RDOLayout, RDODashboard, switchTenant, God Mode banner | ✅ Done |
 | 17.3 | God Mode Hydration & Data Safety — hard remount, switching state, hook hardening, race condition protection | ✅ Done |
 | 17.4 | RDO Command Center & Team Readiness Matrix — useRDOReadiness hook, Weekly Readiness Matrix, aggregated metrics | ✅ Done |
-| **17.5** | **RFC Player Pool & Master Grids** — get_rfc_player_pool RPC, master grid with filters, read-only player panel | **▶ Next** |
+| 17.5 | RFC Player Pool & Master Grids — get_rfc_player_pool RPC, master grid with filters, read-only player panel | **▶ Next** |
+| 18.0 | Touch Zoom & Movement Lockdown — Viewport meta tag, touch-action CSS, iOS auto-zoom prevention | ✅ Done |
+| 18.1 | Form Layer Sheet Sideways Movement Lockdown — touch-action: pan-y on PlayerFormSheet | ✅ Done |
+| 19.0 | Player Merge & Public Form Duplicate Cleanup — MergePlayerModal, migration 034, duplicate cleanup | ✅ Done |
+| 19.0.1 | Supabase Array Operator Bug Fix — Defensive Array.isArray() guards for .in() calls across 6 files | ✅ Done |
+| 19.1 | Hard Reset, Refresh Navigation & Caching Fix — Remove offline fallback, Vercel anti-caching headers, auth bypass | ✅ Done |
+| 19.2 | Availability Form Profile Update Phone & Birthday — Phone sync on existing player matches, conditional birthday overwrite guard | ✅ Done |
 
 ---
 
