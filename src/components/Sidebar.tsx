@@ -59,7 +59,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <img
               src="/icons/short-form-logo.png"
               alt="ARM Logo"
-              className="h-10 w-auto object-contain"
+              className="h-10 w-auto object-contain brightness-0 invert"
             />
             <button
               onClick={onClose}
