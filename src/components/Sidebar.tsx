@@ -46,7 +46,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar panel */}
       <aside className={`
         fixed top-0 left-0 h-full z-50
-        bg-brand-accent text-white
+        bg-brand-primary text-white
         w-4/5 max-w-xs
         transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 md:w-64 md:flex-shrink-0
@@ -54,7 +54,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         flex flex-col
       `}>
         {/* Header */}
-        <div className="p-6 border-b border-brand-primary" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
+        <div className="p-6 border-b border-white/20" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
           <div className="flex items-center justify-between">
             <img
               src="/icons/short-form-logo.png"
@@ -63,7 +63,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             />
             <button
               onClick={onClose}
-              className="md:hidden text-white p-1 rounded hover:bg-brand-primary transition-colors"
+              className="md:hidden text-white p-1 rounded hover:bg-white/20 transition-colors"
               aria-label="Close menu"
             >
               <X size={24} />
@@ -91,8 +91,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               className={`
                 px-4 py-3 rounded-lg transition-colors text-sm font-medium
                 ${isActive(item.path)
-                  ? 'bg-brand-primary border-l-4 border-white font-bold'
-                  : 'text-ui-base hover:bg-brand-primary'
+                  ? 'bg-white/15 border-l-4 border-white font-bold'
+                  : 'text-ui-base hover:bg-[#E8F0FE] hover:text-brand-primary'
                 }
               `}
             >
@@ -102,7 +102,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-brand-primary/50">
+        <div className="p-4 border-t border-white/20">
           <div className="text-sm text-ui-base mb-2 truncate">
             {user?.email}
           </div>
