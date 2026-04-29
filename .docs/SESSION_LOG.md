@@ -2,6 +2,112 @@ ARM Session Log
 
 ---
 
+## [2026-04-20 21:30] Session Summary
+- **Primary Objective:** Phase 18.1 — Form Layer Sheet Sideways Movement Lockdown
+- **Tasks Completed:**
+  - [x] Added `touchAction: 'pan-y'` to PlayerFormSheet container styling (line 247)
+  - [x] Prevents horizontal swiping on the form sheet while preserving vertical scrolling
+  - [x] Matches PlayerOverlay touch behavior pattern for consistency
+  - [x] No structural changes to component, minimal risk of regression
+- **Architecture / Database Decisions Locked:**
+  - `touch-action: pan-y` restricts touch to vertical panning only
+  - Horizontal movement blocked for polished native app feel
+  - Consistent touch behavior across all bottom sheets/modals
+  - Follows established patterns from Phase 18.0 touch lockdown
+- **Next Up:** Review next priority from tracker
+
+---
+
+## [2026-04-20 21:15] Session Summary
+- **Primary Objective:** Phase 18.0 — Touch Zoom & Movement Lockdown for Native PWA Experience
+- **Tasks Completed:**
+  - [x] Updated viewport meta tag in `index.html` with `maximum-scale=1.0, user-scalable=no`
+  - [x] Added global touch-action CSS rules to `src/index.css` (lines 88-111)
+  - [x] Implemented multi-layer defense: HTML meta + CSS touch-action + critical screen lockdown
+  - [x] Added iOS-specific 16px font-size enforcement via `@supports (-webkit-touch-callout: none)`
+  - [x] Created `.fixed-overlay-lock` class for modal/overlay containers
+- **Architecture / Database Decisions Locked:**
+  - Pinch-to-zoom disabled across all screens for native app feel
+  - Touch behavior controlled via `touch-action: pan-y` on html/body
+  - Form inputs use `touch-action: manipulation` to prevent zoom
+  - iOS auto-zoom prevention with 16px minimum font size
+  - Critical overlays locked with `touch-action: none`
+- **Next Up:** Phase 18.1 — Form Layer Sheet Sideways Movement Lockdown
+
+---
+
+## [2026-04-20 21:00] Session Summary
+- **Primary Objective:** Phase 17.9.3 — PlayerFormSheet Total Caps Display Fix & Database Synchronization
+- **Tasks Completed:**
+  - [x] Fixed "Total Caps" field in PlayerFormSheet to be read-only displaying `player.total_caps`
+  - [x] Removed `historical_caps` from frontend form state management
+  - [x] Added database trigger `trg_caps_on_historical_change()` in migration `032_phase_17_9_3_caps_historical_trigger.sql`
+  - [x] Trigger automatically calls `refresh_player_caps()` when `historical_caps` changes
+  - [x] "Manual override" text removed from UI for clarity
+  - [x] Historical caps management moved to database tools only
+- **Architecture / Database Decisions Locked:**
+  - `total_caps` is now authoritative source for display (read-only in frontend)
+  - Database trigger ensures data consistency between historical_caps and total_caps
+  - Historical caps editing restricted to database tools (not frontend)
+  - Read-only fields use appropriate styling (gray background, not-allowed cursor)
+  - Backward compatibility maintained with existing caps data
+- **Next Up:** Phase 18.0 — Touch Zoom & Movement Lockdown for Native PWA Experience
+
+---
+
+## [2026-04-20 20:00] Session Summary
+- **Primary Objective:** Phase 17.9.2 — Caps Materialized Column Implementation
+- **Tasks Completed:**
+  - [x] Created migration `029_phase_17_9_2_caps_materialized.sql` with materialized `total_caps` column on players table
+  - [x] Added `refresh_player_caps(UUID)` function with `SECURITY DEFINER` for trigger-based synchronization
+  - [x] Created triggers: `trg_caps_on_selection_change()` (team_selections) and `trg_caps_on_score_change()` (week_teams)
+  - [x] Backfilled all existing players with one-time migration
+  - [x] Updated `src/lib/supabase.ts` Player interface with `total_caps: number`
+  - [x] Updated `src/components/PlayerOverlay.tsx` to read `player.total_caps` directly (removed async RPC fetch)
+  - [x] Removed `totalCaps` state and `useEffect` for caps calculation in PlayerOverlay
+  - [x] Created completed spec documentation for Phase 17.9.2
+- **Architecture / Database Decisions Locked:**
+  - Materialized column pattern replaces async compute-on-read RPC for caps calculation
+  - Instant reads with no async fetch or loading states
+  - Trigger-maintained consistency ensures caps update automatically when scores or selections change
+  - Eliminates PostgREST/RLS interaction issues from production environment
+  - Reduces database load by eliminating RPC calls on every overlay open
+- **Next Up:** Continue with Phase 17.8 — Dynamic Player Type Cascading
+
+---
+
+## [2026-04-20 19:30] Session Summary
+- **Primary Objective:** Phase 17.9.1 — Caps RPC RLS Fix
+- **Tasks Completed:**
+  - [x] Created migration `028_phase_17_9_1_caps_rpc_fix.sql` with `SECURITY DEFINER` patch for `calculate_player_caps` RPC
+  - [x] Fixed RLS blocking issue by recreating function as `SECURITY DEFINER` (runs as owner postgres)
+  - [x] Maintained original calculation logic: historical_caps + match caps (weeks where player in slots 1-23 with scores)
+  - [x] Created completed spec documentation for Phase 17.9.1
+- **Architecture / Database Decisions Locked:**
+  - RPC created pre-Phase 16 RLS as `SECURITY INVOKER`, causing internal table scans to be filtered by RLS policies
+  - `SECURITY DEFINER` bypasses RLS safely for this read-only, scoped function
+  - Caller's auth context validates player access before overlay opens, ensuring security
+  - Frontend RPC call pattern already correct, no changes needed to PlayerOverlay
+- **Next Up:** Phase 17.9.2 — Caps Materialized Column implementation
+
+---
+
+## [2026-04-16 12:20] Session Summary
+- **Primary Objective:** Phase 17.3 documentation completion and Phase 17.8 spec preparation
+- **Tasks Completed:**
+  - [x] Created Phase 17.3 COMPLETED_SPEC: `docs/phase-specs/17.3_GodMode_Hydration_DataSafety_COMPLETED_SPEC.md`
+  - [x] Updated Phase 17.8 from ACTIVE to COMPLETED by copying spec file
+  - [x] Updated ARM-TRACKER.md to reflect Phase 17.3 completion and Phase 17.8 as active
+  - [x] Updated ACTIVE_SPEC.md with Phase 17.8 technical specifications
+- **Architecture / Database Decisions Locked:**
+  - Phase 17.3 documented with comprehensive implementation details
+  - Phase 17.8 specifications finalized with database constraint removal strategy
+  - Project tracking updated to accurately reflect current state
+  - Documentation structure maintained with clear phase completion status
+- **Next Up:** Implementation of Phase 17.8 - Dynamic Player Type Cascading
+
+---
+
 ## [2026-04-13 20:30] Session Summary
 - **Primary Objective:** Phase 16.6 — Safari iPad Date Selection Fix
 - **Tasks Completed:**
@@ -444,22 +550,5 @@ src/components/DeletePlayerDialog.tsx
 
 ---
 
-## [2026-04-16 12:20] Session Summary
-- **Primary Objective:** Phase 17.3 documentation completion and Phase 17.8 spec preparation
-- **Tasks Completed:**
-  - [x] Created Phase 17.3 COMPLETED_SPEC: `docs/phase-specs/17.3_GodMode_Hydration_DataSafety_COMPLETED_SPEC.md`
-  - [x] Updated Phase 17.8 from ACTIVE to COMPLETED by copying spec file
-  - [x] Updated ARM-TRACKER.md to reflect Phase 17.3 completion and Phase 17.8 as active
-  - [x] Updated ACTIVE_SPEC.md with Phase 17.8 technical specifications
-- **Architecture / Database Decisions Locked:**
-  - Phase 17.3 documented with comprehensive implementation details
-  - Phase 17.8 specifications finalized with database constraint removal strategy
-  - Project tracking updated to accurately reflect current state
-  - Documentation structure maintained with clear phase completion status
-- **Next Up:** Implementation of Phase 17.8 - Dynamic Player Type Cascading
-
----
-
 **Paste this at the start of next session**
-"Phase 17.3 documentation completed and moved to phase specs. Phase 17.8 ACTIVE SPEC prepared with detailed technical specifications for Dynamic Player Type Cascading. The critical database constraint blocking custom player types needs to be removed via migration 024. Ready to begin implementation of Phase 17.8."
-
+"Phase 17.9.3, 18.0, and 18.1 COMPLETE — PlayerForm Total Caps Fix, Touch Zoom & Movement Lockdown, and Form Layer Sheet Sideways Movement Lockdown implementations documented. SESSION_LOG.md and ARM-TRACKER.md updated. All phase specifications moved to COMPLETED_SPEC. Ready to continue with next priority from tracker."

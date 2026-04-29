@@ -129,14 +129,14 @@ export default function Grid() {
             .from('training_attendance')
             .select('player_id, attended')
             .eq('week_id', currentWeekId)
-            .in('player_id', playerIds)
+            .in('player_id', Array.isArray(playerIds) ? playerIds : [])
             .eq('attended', true)
         : Promise.resolve({ data: [], error: null }),
       supabase
         .from('availability_responses')
         .select('player_id, week_id, availability')
-        .in('week_id', weekIds)
-        .in('player_id', playerIds),
+        .in('week_id', Array.isArray(weekIds) ? weekIds : [])
+        .in('player_id', Array.isArray(playerIds) ? playerIds : []),
     ])
 
     if (attRes.error) { setError(attRes.error.message); setLoading(false); return }
