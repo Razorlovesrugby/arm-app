@@ -1,135 +1,639 @@
-# ACTIVE_SPEC: Phase 19.0.1 — Supabase Array Operator Bug Fix
+# ACTIVE_SPEC: Phase 19.1 — Hard Reset, Page Refresh Navigation Fix & Mobile Caching Fix
 
 ## 📋 Metadata
-- **Status**: ACTIVE
-- **Priority**: Critical (Runtime Error)
-- **Phase**: 19.01
-- **Estimated Effort**: 30 minutes
-- **Dependencies**: Phase 19.0 (Player Merge)
-- **Related Specs**: 19.0 (Player Merge), 17.2 (Selection Board)
-- **Target Users**: All users (error blocks Result Detail page)
+- **Status**: ACTIVE  
+- **Priority**: Medium (User Experience Improvement)
+- **Phase**: 19.1
+- **Estimated Effort**: 2-3 hours
+- **Dependencies**: None
+- **Related Specs**: 16.5 (Logo Consistency & iOS Home Screen), 18.0 (Touch Zoom & Movement Lockdown), 15.2 (Availability Form Data Collection Mode)
+- **Target Users**: All PWA users on mobile/desktop browsers + anonymous public form visitors
 - **Implementation Date**: Pending
 
+---
+
 ## 🎯 Why This Matters
-A runtime error `op ANY/ALL (array) requires array on right side` is being thrown when the Supabase JS client translates `.in()` filters into SQL. This occurs because a variable that should be an array is potentially `null` or a scalar value, causing Postgres to reject the query with an `ANY/ALL` operator error.
 
-## 🐛 The Bug
+This spec addresses **two distinct but related problems**:
 
-### Error Message
-```
-op ANY/ALL (array) requires array on right side
-```
+### Problem 1: Hard Reset Shows Offline Page
+When users perform a hard reset (browser refresh, app restart) while offline, they currently see a static "You're offline" page instead of the familiar app interface. This breaks the native app experience and prevents users from accessing cached app resources.
 
-### Root Cause
-The Supabase JS client translates `.in('column', value)` into `column = ANY(value)`. If `value` is `null` or a scalar (string/UUID) instead of an array, Postgres throws this error.
+### Problem 2: Public Availability Form is Broken by Caching & Auth Bug
+When coaches change `club_settings` (e.g., toggle `require_birthday` on), the public availability link does not reflect the changes. This is caused by **two compounding issues**:
+1. **🐛 Bug: Club settings never load for anonymous users** — `useClubSettings()` requires `activeClubId` from auth context, but anonymous visitors have none → `clubSettings` is always `null` → birthday/email fields never render regardless of DB state.
+2. **📱 Aggressive caching** — Mobile browsers (iOS Safari, Android Chrome, Samsung Internet, in-app browsers like WhatsApp/Instagram/Facebook) and Vercel's Edge Network cache the HTML and API responses, serving stale content.
 
-### Affected Location
-**`src/pages/ResultDetail.tsx`** — lines 508-516
+---
 
-The `playerIds` variable is derived from `selData.player_order`, which is a `jsonb` column from the `team_selections` table. If `player_order` is `NULL` in the database, the cast `(selData.player_order as (string | null)[])` produces `null`, and calling `.filter()` on `null` throws a runtime error before even reaching `.in()`.
+## 🧠 Current State Analysis
 
-However, the more subtle case: if `player_order` is a JSON array stored as `jsonb` and Supabase returns it as a single string value (edge case with certain jsonb representations), the `.in('id', playerIds)` would receive a string instead of an array, triggering the Postgres `ANY/ALL` error.
-
-### The Fix
-Add a defensive guard to ensure `playerIds` is always a proper array before passing it to `.in()`. If `player_order` is null/undefined, default to an empty array.
-
-## 📁 Files to Modify
-
-### 1. `src/pages/ResultDetail.tsx`
-**Location**: Lines 508-509
-**Change**: Add null/undefined guard for `player_order`
-
+### 1. Service Worker Configuration (`vite.config.ts`)
 ```typescript
-// ❌ Before
-const playerIds = (selData.player_order as (string | null)[])
-  .filter((id): id is string => id !== null)
-
-// ✅ After
-const rawOrder = (selData?.player_order ?? []) as (string | null)[]
-const playerIds = Array.isArray(rawOrder) ? rawOrder.filter((id): id is string => id !== null) : []
+workbox: {
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/dgpplqzsukifcvddoxcd\.supabase\.co\/.*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'supabase-cache',
+        networkTimeoutSeconds: 10,
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 60 * 24, // 24 hours
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+  ],
+  navigateFallback: '/offline.html',
+  navigateFallbackDenylist: [/^\/availability\//],
+}
 ```
 
-### 2. `src/pages/Grid.tsx`
-**Location**: Lines 132, 138-139
-**Change**: Add defensive array check for `playerIds` and `weekIds`
+### 2. Vercel Configuration (`vercel.json`)
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+- **No `Cache-Control` headers** set for any route
+- Vercel Edge Network will cache HTML responses by default
 
+### 3. HTML Head (`index.html`)
+- No anti-caching meta tags present
+- Mobile browsers will aggressively cache the page
+
+### 4. Public Form Data Loading (`src/pages/AvailabilityForm.tsx`)
 ```typescript
-// ❌ Before
-.in('player_id', playerIds)
-.in('week_id', weekIds)
-
-// ✅ After
-.in('player_id', Array.isArray(playerIds) ? playerIds : [])
-.in('week_id', Array.isArray(weekIds) ? weekIds : [])
+const { clubSettings } = useClubSettings()  // Requires auth — always null for anonymous
 ```
+- `useClubSettings()` depends on `activeClubId` from `useAuth()`
+- Anonymous visitors have no session → `activeClubId` is `null`
+- `clubSettings` is always `null` → `requireBirthday` and `requireContactInfo` default to `false`
+- **Birthday and email fields never render for anonymous users**
 
-### 3. `src/pages/Attendance.tsx`
-**Location**: Lines 95-96
-**Change**: Add defensive array check for `weekIds` and `playerIds`
+### 5. Offline Page (`public/offline.html`)
+- Static HTML page with "You're offline" message
+- "Try again" button that reloads the same page
+- No navigation back to main app interface
 
+### 6. App Routing (`src/App.tsx`)
+- Default route redirects to `/roster` for authenticated users
+- RDO users have special routing to `/rdo-dashboard`
+- Login page at `/login` for unauthenticated users
+- Authentication state preserved via AuthContext
+
+### 7. User Pain Points
+Users refreshing the page or restarting the app while offline see:
+1. Static "You're offline" page instead of app interface
+2. No way to navigate back to cached app routes
+3. Broken native app experience
+4. Confusion about app functionality
+
+Coaches changing club settings see:
+5. Public form doesn't reflect changes (birthday/email fields missing)
+6. Mobile users see stale cached version for hours/days
+7. No way to force-refresh without `?v=N` URL hack
+
+---
+
+## 🏗️ Architecture Decisions
+
+### 1. **Service Worker Strategy (Hard Reset Fix)**
+- **Current**: `navigateFallback: '/offline.html'` shows static offline page
+- **New**: Remove `navigateFallback` configuration
+- **Result**: Browser will attempt to load cached app resources instead of showing offline page
+
+### 2. **Authentication State Preservation**
+- The app already uses React Router and AuthContext
+- Last authentication state is preserved in localStorage/session
+- On refresh, app will attempt to restore last state automatically
+- No changes needed to existing auth logic
+
+### 3. **Graceful Offline Handling**
+- Main app will show its own offline indicators (if implemented)
+- Better UX than static "You're offline" page
+- Users stay in familiar app interface
+- Availability forms still require network (denylist preserved)
+
+### 4. **Public Form Club Settings Loading (Bug Fix)**
+- **Current**: Uses `useClubSettings()` which requires auth
+- **New**: Fetch club settings directly via Supabase using `week.club_id` after token resolution
+- **Result**: Anonymous visitors see the correct form fields based on DB state
+
+### 5. **Vercel Edge Caching Prevention**
+- Add explicit `Cache-Control` headers for `/availability/*` route
+- Prevent Vercel Edge Network from caching public form HTML
+- No impact on authenticated app routes
+
+### 6. **Mobile Browser Caching Prevention**
+- Add anti-caching meta tags to `index.html`
+- These are respected by iOS Safari, Android Chrome, and most in-app browsers
+- Fallback for browsers that ignore meta tags: Vercel headers + URL version parameter
+
+### 7. **Service Worker Cache Tuning**
+- Reduce `networkTimeoutSeconds` from 10s → 3s for faster failover on slow mobile connections
+- Reduce `maxAgeSeconds` from 24h → 1h to limit stale data serving
+- `NetworkFirst` strategy already tries network first, so this is a safety net
+
+---
+
+## 📁 Files to Touch
+
+### 1. `vite.config.ts` (Primary Change — Hard Reset Fix)
+**Location**: VitePWA plugin configuration (lines 8-36)
+
+**Current Code** (lines 32-35):
 ```typescript
-// ❌ Before
-.in('week_id', weekIds)
-.in('player_id', playerIds)
-
-// ✅ After
-.in('week_id', Array.isArray(weekIds) ? weekIds : [])
-.in('player_id', Array.isArray(playerIds) ? playerIds : [])
+workbox: {
+  // NetworkFirst for all Supabase API calls
+  runtimeCaching: [...],
+  // Offline fallback
+  navigateFallback: '/offline.html',
+  navigateFallbackDenylist: [/^\/availability\//],
+}
 ```
 
-### 4. `src/hooks/useGrid.ts`
-**Location**: Lines 96-97
-**Change**: Add defensive array check for `playerIds` and `weekIds`
-
+**Proposed Change**:
 ```typescript
-// ❌ Before
-.in('player_id', playerIds)
-.in('week_id', weekIds)
-
-// ✅ After
-.in('player_id', Array.isArray(playerIds) ? playerIds : [])
-.in('week_id', Array.isArray(weekIds) ? weekIds : [])
+workbox: {
+  // NetworkFirst for all Supabase API calls
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/dgpplqzsukifcvddoxcd\.supabase\.co\/.*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'supabase-cache',
+        networkTimeoutSeconds: 3,       // REDUCED: 10s → 3s for mobile
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 60,       // REDUCED: 24h → 1h
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+  ],
+  // Availability form always needs network
+  navigateFallbackDenylist: [/^\/availability\//],
+  // REMOVED: navigateFallback: '/offline.html',
+}
 ```
 
-### 5. `src/hooks/useRFCPlayerPool.ts`
-**Location**: Line 52
-**Change**: Add defensive array check for `clubIds`
+### 2. `vercel.json` (New — Edge Caching Fix)
+**Current**:
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
 
+**Proposed**:
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/availability/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 3. `index.html` (New — Mobile Browser Caching Fix)
+Add inside `<head>` after line 5 (after the viewport meta tag):
+
+```html
+    <!-- Anti-caching for mobile browsers (public form) -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+```
+
+### 4. `src/pages/AvailabilityForm.tsx` (Bug Fix — Club Settings for Anonymous Users)
+**Current** (line 78):
 ```typescript
-// ❌ Before
-.in('club_id', clubIds)
-
-// ✅ After
-.in('club_id', Array.isArray(clubIds) ? clubIds : [])
+const { clubSettings } = useClubSettings()
 ```
 
-### 6. `src/pages/Archive.tsx`
-**Location**: Line 542
-**Change**: Add defensive array check for `teamIds`
+**Problem**: `useClubSettings()` requires `activeClubId` from auth context. Anonymous visitors have no session → `activeClubId` is `null` → `clubSettings` is always `null` → `requireBirthday` and `requireContactInfo` default to `false` → birthday/email fields never render.
 
+**Fix**: After resolving the token → week (which gives us `week.club_id`), fetch club settings directly using that `club_id`. This is a direct Supabase query, not via the auth-gated hook.
+
+**Implementation**:
+1. Remove `import { useClubSettings } from '../hooks/useClubSettings'`
+2. Add a new `useEffect` that fires after `week` is resolved:
 ```typescript
-// ❌ Before
-.in('week_team_id', teamIds)
+// ── Step 1b: Fetch club settings using week's club_id ──────
+const [clubSettings, setClubSettings] = useState<ClubSettings | null>(null)
 
-// ✅ After
-.in('week_team_id', Array.isArray(teamIds) ? teamIds : [])
+useEffect(() => {
+  if (!week?.club_id) return
+
+  async function fetchSettings() {
+    const { data } = await supabase
+      .from('club_settings')
+      .select('*')
+      .eq('club_id', week.club_id)
+      .limit(1)
+      .maybeSingle()
+
+    if (data) setClubSettings(data as ClubSettings)
+  }
+
+  fetchSettings()
+}, [week?.club_id])
 ```
 
-## ✅ Acceptance Criteria
-- [ ] `ResultDetail.tsx` no longer throws `op ANY/ALL (array) requires array on right side` error
-- [ ] All `.in()` calls across the codebase have defensive `Array.isArray()` guards
-- [ ] Build compiles without TypeScript errors
-- [ ] Result Detail page loads successfully with teams that have null `player_order`
-- [ ] Grid, Attendance, Archive, and RFC Player Pool pages continue to work normally
+### 5. `public/offline.html` (No changes needed)
+- Keep as backup for extreme cases
+- May be shown by browser if no cached resources available
+- Still better than browser's default offline page
 
-## 🚨 Edge Cases & Error Handling
-1. **Null player_order**: Defaults to empty array `[]`, `.in()` receives `[]`, query returns no results gracefully
-2. **Empty arrays**: `.in('column', [])` is handled correctly by Supabase (returns no rows)
-3. **Non-array values**: `Array.isArray()` guard catches any unexpected scalar values and defaults to `[]`
-4. **Performance**: `Array.isArray()` is O(1) — negligible overhead
+### 6. `src/App.tsx` (No changes needed)
+- Already handles authentication state restoration
+- Default routing to `/roster` for authenticated users
+- `/login` for unauthenticated users
+- RDO routing logic intact
 
-## 🔄 Rollback Plan
-If the defensive guards cause unexpected behavior:
-1. Revert the changes to the specific file causing issues
-2. Investigate the root data issue (why `player_order` is null)
-3. Apply a targeted fix instead of broad defensive guards
+---
+
+## 🎨 Implementation Details
+
+### Phase 1: Service Worker Configuration Update
+1. Remove `navigateFallback: '/offline.html'` from `vite.config.ts`
+2. Reduce `networkTimeoutSeconds` from 10 → 3
+3. Reduce `maxAgeSeconds` from 24h → 1h
+4. Build project to generate updated service worker
+5. Test service worker registration and update
+
+### Phase 2: Vercel Edge Caching Fix
+1. Add `headers` block to `vercel.json` targeting `/availability/*`
+2. Set `Cache-Control: no-cache, no-store, must-revalidate, max-age=0`
+3. Set `Pragma: no-cache` and `Expires: 0` for legacy browser support
+4. Deploy to Vercel and verify headers are sent
+
+### Phase 3: Mobile Browser Caching Fix
+1. Add 3 anti-caching meta tags to `index.html` `<head>`
+2. These are respected by iOS Safari, Android Chrome, Samsung Internet
+3. In-app browsers (WhatsApp, Instagram, Facebook) may ignore meta tags — Vercel headers cover this
+
+### Phase 4: Public Form Club Settings Bug Fix
+1. Remove `useClubSettings()` import and usage from `AvailabilityForm.tsx`
+2. Add direct Supabase fetch for club settings using `week.club_id`
+3. Ensure the fetch only runs after `week` is resolved (not during loading state)
+4. Test with anonymous browser tab (no auth session)
+
+### Phase 5: Testing Scenarios
+1. **Online Refresh**: App loads normally → `/roster` or last route
+2. **Offline Refresh**: App shell loads (may show loading/offline state)
+3. **Authentication State**: Last auth state preserved across refreshes
+4. **Availability Forms**: Still require network (denylist preserved)
+5. **RDO Users**: Proper routing to `/rdo-dashboard` maintained
+6. **Public Form (Anonymous)**: Birthday/email fields render based on DB settings
+7. **Public Form (After Settings Change)**: Changes reflect immediately without cache busting
+8. **Mobile Safari**: Form loads fresh after settings change
+9. **Android Chrome**: Form loads fresh after settings change
+10. **In-app browsers**: Form loads fresh (Vercel headers handle this)
+
+### Phase 6: Validation & Edge Cases
+1. **First Visit Offline**: Browser may show default offline page (acceptable)
+2. **Cleared Cache**: App may not load (same as before)
+3. **Service Worker Update**: Existing users get automatic update
+4. **Browser Compatibility**: Modern browsers handle gracefully
+5. **Vercel Header Propagation**: Verify with `curl -I` or browser devtools
+6. **Meta Tag Effectiveness**: Test on iOS Safari private browsing
+
+---
+
+## 🔧 Technical Considerations
+
+### Service Worker Cache Strategy
+- **NetworkFirst** for API calls (already configured for Supabase)
+- **CacheFirst** for static assets (default VitePWA behavior)
+- **No fallback** for navigation = browser handles offline gracefully
+- Reduced timeout (3s) means faster failover on slow mobile connections
+- Reduced max age (1h) limits stale data serving
+
+### Vercel Edge Network
+- Vercel's Edge Network respects `Cache-Control` headers
+- `no-cache` = must revalidate with origin before serving cached copy
+- `no-store` = must not store any copy of the response
+- `must-revalidate` = must check with origin if cache is stale
+- `max-age=0` = response is immediately stale
+- These headers only apply to `/availability/*` route — authenticated routes unaffected
+
+### Mobile Browser Caching
+- **iOS Safari**: Respects `Cache-Control` meta tags and HTTP headers. Known for aggressive caching of GET requests. The `?v=N` URL parameter trick works because Safari treats different URLs as different pages.
+- **Android Chrome**: Respects HTTP headers. May ignore meta tags in some versions. Vercel headers provide the fallback.
+- **Samsung Internet**: Based on Chromium — same behavior as Chrome.
+- **In-app browsers (WhatsApp, Instagram, Facebook)**: These use WKWebView (iOS) or WebView (Android). They have the most aggressive caching and may ignore meta tags entirely. Vercel HTTP headers are the only reliable defense.
+- **Windows Edge**: Respects standard caching headers. No special handling needed.
+- **Desktop Chrome/Firefox/Safari**: Standard caching behavior. Headers + meta tags provide defense in depth.
+
+### PWA Installation Impact
+- No impact on PWA installation or manifest
+- Service worker update required for existing users
+- Automatic update via `registerType: 'autoUpdate'` in VitePWA config
+- Users may need to refresh twice to get updated service worker
+
+### Public Form Data Loading
+- Club settings are fetched directly from Supabase using `week.club_id`
+- No auth required — the query uses the anon key with RLS policies
+- RLS on `club_settings` table must allow anonymous SELECT (already configured for public forms)
+- Fetch happens after token → week resolution, so `week.club_id` is always available
+- No caching of club settings in component state — re-fetches on token change
+
+---
+
+## 📋 Acceptance Criteria
+
+### Must Have
+- [ ] Hard refresh (Ctrl+F5/Cmd+R) loads app instead of offline page
+- [ ] Page refresh (F5) loads app instead of offline page  
+- [ ] App restart (closing/reopening PWA) loads app instead of offline page
+- [ ] Last authentication state preserved across refreshes
+- [ ] Availability forms still require network connection (denylist working)
+- [ ] No regression in existing PWA functionality
+- [ ] Public availability form shows birthday field when `require_birthday` is enabled in club settings
+- [ ] Public availability form shows email field when `require_contact_info` is enabled
+- [ ] Changing club settings immediately reflects on public form (no cache delay)
+- [ ] Vercel returns `Cache-Control: no-cache, no-store, must-revalidate` for `/availability/*` routes
+- [ ] Anti-caching meta tags present in `index.html`
+
+### Should Have
+- [ ] Service worker updates correctly for existing users
+- [ ] App loads cached shell when offline
+- [ ] RDO routing preserved during refreshes
+- [ ] Public form works in iOS Safari private browsing mode
+- [ ] Public form works in Android Chrome incognito mode
+- [ ] Public form works when shared via WhatsApp/Instagram link
+
+### Nice to Have
+- [ ] Offline indicators in main app (future enhancement)
+- [ ] Better loading states during offline (future enhancement)
+- [ ] `?v=N` URL parameter documented as manual cache-busting workaround for coaches
+
+---
+
+## ⚠️ Risks & Mitigations
+
+### Risk 1: Browser Shows Default Offline Page
+- **Likelihood**: Low (only when no cached resources)
+- **Impact**: Low (default browser page is acceptable)
+- **Mitigation**: Acceptable trade-off for simpler solution
+- **Fallback**: Can implement minimal app shell later if needed
+
+### Risk 2: Service Worker Update Delay
+- **Likelihood**: Medium (existing users need update)
+- **Impact**: Low (temporary issue)
+- **Mitigation**: `autoUpdate` ensures eventual update
+- **Workaround**: Users can manually update via browser devtools
+
+### Risk 3: Cached App Resources Missing
+- **Likelihood**: Low (VitePWA caches app shell)
+- **Impact**: Medium (app won't load)
+- **Mitigation**: Test with cleared cache scenario
+- **Verification**: Ensure service worker caches critical resources
+
+### Risk 4: Authentication State Loss
+- **Likelihood**: Low (existing auth logic unchanged)
+- **Impact**: High (user frustration)
+- **Mitigation**: Thorough testing of auth state preservation
+- **Verification**: Test login → refresh → still logged in
+
+### Risk 5: Vercel Headers Not Applied
+- **Likelihood**: Low (standard Vercel feature)
+- **Impact**: Medium (mobile caching not fully prevented)
+- **Mitigation**: Verify with `curl -I https://arm-app-black.vercel.app/availability/test-token`
+- **Fallback**: Meta tags + `?v=N` workaround still available
+
+### Risk 6: RLS Blocks Anonymous Club Settings Query
+- **Likelihood**: Low (already configured for public forms in Phase 15.2)
+- **Impact**: High (club settings won't load for anonymous users)
+- **Mitigation**: Test with anonymous browser tab before deployment
+- **Verification**: Check RLS policy on `club_settings` table allows SELECT for anon role
+
+### Risk 7: In-app Browser Ignores All Cache Controls
+- **Likelihood**: Medium (WhatsApp/Instagram WebView known for this)
+- **Impact**: Medium (users may see stale form)
+- **Mitigation**: Document `?v=N` workaround for coaches
+- **Workaround**: "If you're testing via WhatsApp, add `?v=2` to the URL"
+
+---
+
+## 🚀 Implementation Timeline
+
+**Estimated Effort**: 2-3 hours
+
+### Phase 1: Configuration Changes (30 minutes)
+1. Update `vite.config.ts` (remove `navigateFallback`, reduce cache params)
+2. Update `vercel.json` (add headers for `/availability/*`)
+3. Update `index.html` (add anti-caching meta tags)
+4. Commit changes with descriptive message
+
+### Phase 2: Bug Fix — Public Form Club Settings (30 minutes)
+1. Update `src/pages/AvailabilityForm.tsx` (replace `useClubSettings()` with direct fetch)
+2. Test with anonymous browser tab
+3. Test with authenticated coach session (no regression)
+
+### Phase 3: Build & Deploy (15 minutes)
+1. Build project locally
+2. Deploy to Vercel
+3. Verify headers with `curl`
+
+### Phase 4: Testing & Validation (45 minutes)
+1. Test online refresh scenarios
+2. Test offline refresh scenarios  
+3. Test authentication state preservation
+4. Test RDO user routing
+5. Test availability form network requirement
+6. Test public form with various club settings configurations
+7. Test on mobile devices (iOS Safari, Android Chrome)
+8. Test via in-app browsers (WhatsApp, Instagram)
+
+### Phase 5: Documentation & Deployment (15 minutes)
+1. Update this spec to COMPLETED status
+2. Update any related documentation
+3. Verify in production environment
+
+---
+
+## 📝 Migration & Backward Compatibility
+
+### Database Changes
+- None required
+
+### API Changes  
+- None required
+
+### Frontend Changes
+- `vite.config.ts`: Remove `navigateFallback`, reduce cache params
+- `vercel.json`: Add headers for `/availability/*`
+- `index.html`: Add anti-caching meta tags
+- `src/pages/AvailabilityForm.tsx`: Replace `useClubSettings()` with direct Supabase fetch
+
+### Service Worker Update
+- Existing users get automatic update
+- May require app refresh to take effect
+- No data loss or breaking changes
+
+### Vercel Deployment
+- No deployment downtime
+- Headers apply immediately on redeploy
+- Existing cached responses at edge will be invalidated by new headers
+
+---
+
+## 🔍 Testing Checklist
+
+### Manual Testing — Hard Reset Fix
+- [ ] Chrome: Online refresh → app loads
+- [ ] Chrome: Offline refresh → app loads (cached) or browser offline page
+- [ ] Safari: Online refresh → app loads  
+- [ ] Safari: Offline refresh → app loads (cached) or browser offline page
+- [ ] Firefox: Online refresh → app loads
+- [ ] Firefox: Offline refresh → app loads (cached) or browser offline page
+- [ ] Edge: Online refresh → app loads
+- [ ] Edge: Offline refresh → app loads (cached) or browser offline page
+- [ ] Mobile Chrome: Online refresh → app loads
+- [ ] Mobile Safari: Online refresh → app loads
+- [ ] Authentication: Login → refresh → still logged in
+- [ ] Authentication: Logout → refresh → still at login page
+- [ ] RDO Users: Refresh → still at `/rdo-dashboard`
+- [ ] Coach Users: Refresh → still at `/roster` or last route
+- [ ] Availability Form: `/availability/:token` requires network
+
+### Manual Testing — Caching Fix
+- [ ] Vercel headers: `curl -I https://arm-app-black.vercel.app/availability/test-token` returns `Cache-Control: no-cache, no-store, must-revalidate`
+- [ ] Vercel headers: Authenticated route `/roster` does NOT have anti-cache headers
+- [ ] Meta tags: `index.html` contains all 3 anti-caching meta tags
+- [ ] Public form (anonymous): Birthday field shows when `require_birthday` is enabled
+- [ ] Public form (anonymous): Email field shows when `require_contact_info` is enabled
+- [ ] Public form (anonymous): No fields show when all toggles are off
+- [ ] Public form (anonymous): Changing settings → refreshing form → changes reflected
+- [ ] Public form (anonymous): Works in iOS Safari private browsing
+- [ ] Public form (anonymous): Works in Android Chrome incognito
+- [ ] Public form (anonymous): Works after sharing link via WhatsApp (test with `?v=2`)
+
+### Automated Testing
+- [ ] Build passes without errors
+- [ ] TypeScript compilation passes
+- [ ] Service worker generates successfully
+- [ ] No console errors in development mode
+- [ ] Vite dev server starts without warnings
+
+---
+
+## 📚 References
+
+### Related Documentation
+- `docs/phase-specs/15.2_Availability_Form_Data_Collection_Mode_COMPLETED_SPEC.md`
+- `docs/phase-specs/16.5_Logo_Consistency_iOS_Home_Screen_ACTIVE_SPEC.md`
+- `docs/phase-specs/18.0_Touch_Zoom_Movement_Lockdown_COMPLETED_SPEC.md`
+- `docs/UAT_PHASE_12_1.md` (PWA testing section)
+
+### Technical References
+- [VitePWA Documentation](https://vite-pwa-org.netlify.app/)
+- [Workbox Navigation Fallback](https://developer.chrome.com/docs/workbox/modules/workbox-routing/#how-to-register-a-navigation-route)
+- [PWA Offline Strategies](https://web.dev/offline-cookbook/)
+- [Vercel Headers Documentation](https://vercel.com/docs/edge-network/headers)
+- [MDN: Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)
+- [WebKit Caching (iOS Safari)](https://webkit.org/blog/7675/understanding-web-content-caching-on-ios/)
+- [Chrome Android Caching](https://developer.chrome.com/docs/devtools/network/reference/#cache)
+
+---
+
+## 🎯 Success Metrics
+
+### Quantitative
+- 100% of hard refreshes load app instead of offline page
+- 0% increase in support tickets about offline issues
+- Service worker update success rate > 95%
+- 100% of public form visits show correct club settings (birthday/email fields)
+- Vercel returns anti-cache headers for 100% of `/availability/*` requests
+
+### Qualitative
+- User reports improved app experience during refreshes
+- No confusion about "offline" page vs app interface
+- Maintained native app feel of PWA
+- Coaches report that settings changes reflect immediately on public form
+- No support tickets about "birthday field not showing up" on public form
+
+---
+
+## 👥 Team Responsibilities
+
+### Developer
+- Implement configuration changes
+- Implement public form bug fix
+- Test all scenarios
+- Update documentation
+
+### Product Owner  
+- Review and approve spec
+- Validate user experience improvements
+- Prioritize future offline enhancements
+- Test public form on personal mobile device
+
+### QA Tester
+- Execute testing checklist
+- Test on iOS Safari, Android Chrome, in-app browsers
+- Test with anonymous browser tab (no auth)
+- Report any issues found
+- Verify production deployment
+
+---
+
+## 📊 Rollback Plan
+
+If issues arise:
+1. **Minor Issue**: Hotfix with enhanced offline handling or cache configuration
+2. **Major Issue**: Revert `vite.config.ts` change (restore `navigateFallback` and old cache params)
+3. **Critical Issue**: Rollback deployment to previous version
+
+Rollback steps:
+1. Restore `navigateFallback: '/offline.html'` in `vite.config.ts`
+2. Restore original cache params (10s timeout, 24h max age)
+3. Remove headers from `vercel.json`
+4. Remove meta tags from `index.html`
+5. Restore `useClubSettings()` import in `AvailabilityForm.tsx`
+6. Build and deploy
+
+---
+
+## 🏁 Conclusion
+
+This spec addresses two critical user experience issues:
+
+1. **Hard Reset Fix**: Removes the static offline page fallback so users always return to the app interface on refresh, maintaining the PWA's native app feel.
+
+2. **Mobile Caching & Public Form Bug Fix**: Fixes the root cause of club settings not appearing on the public form (auth-gated data loading) and implements multi-layered cache-busting (Vercel headers, HTML meta tags, Service Worker tuning) to ensure changes propagate instantly across all devices and browsers.
+
+The solution is comprehensive, low-risk, and preserves all existing functionality while making the public availability form work correctly for anonymous users on any device.
+
+**Ready for implementation when Phase 19.0 is complete or as a standalone fix.**

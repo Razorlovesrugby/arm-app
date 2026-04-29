@@ -4,7 +4,6 @@ import {
   supabase, Week, Position, Availability, ClubSettings,
   POSITIONS, normalisePhone,
 } from '../lib/supabase'
-import { useClubSettings } from '../hooks/useClubSettings'
 import { getContrastColor } from '../lib/colorUtils'
 
 // ── Types ────────────────────────────────────────────────────
@@ -75,11 +74,30 @@ const AVAILABILITY_OPTIONS: {
 
 export default function AvailabilityForm() {
   const { token } = useParams<{ token: string }>()
-  const { clubSettings } = useClubSettings()
 
   // Token / week resolution state
   const [week, setWeek] = useState<Week | null>(null)
   const [tokenState, setTokenState] = useState<'loading' | 'invalid' | 'closed' | 'open'>('loading')
+
+  // Club settings — fetched directly after week resolves (no auth required)
+  const [clubSettings, setClubSettings] = useState<ClubSettings | null>(null)
+
+  useEffect(() => {
+    if (!week?.club_id) return
+
+    async function fetchSettings() {
+      const { data } = await supabase
+        .from('club_settings')
+        .select('*')
+        .eq('club_id', week!.club_id)
+        .limit(1)
+        .maybeSingle()
+
+      if (data) setClubSettings(data as ClubSettings)
+    }
+
+    fetchSettings()
+  }, [week?.club_id])
 
   // Club settings flags — derived early so validate() and handleSubmit() can use them
   const requireContactInfo = clubSettings?.require_contact_info ?? false

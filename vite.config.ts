@@ -17,10 +17,10 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-cache',
-              networkTimeoutSeconds: 10,
+              networkTimeoutSeconds: 3,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
+                maxAgeSeconds: 60 * 60, // 1 hour
               },
               cacheableResponse: {
                 statuses: [0, 200],
@@ -28,10 +28,8 @@ export default defineConfig({
             },
           },
         ],
-        // CacheFirst for static assets (handled automatically by vite-plugin-pwa)
-        // Offline fallback
-        navigateFallback: '/offline.html',
-        navigateFallbackDenylist: [/^\/availability\//], // availability form always needs network
+        // Availability form always needs network
+        navigateFallbackDenylist: [/^\/availability\//],
       },
     }),
   ],
