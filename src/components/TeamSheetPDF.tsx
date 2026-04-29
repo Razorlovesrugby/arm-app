@@ -27,7 +27,9 @@ const organizePlayersByNumber = (players: PDFPlayer[]): (PDFPlayer | null)[] => 
 
 const getPlayerDisplayName = (player: PDFPlayer | null): string | null => {
   if (!player) return null
-  return player.isCaptain ? `${player.fullName} (C)` : player.fullName
+  const caps = player.totalCaps ?? 0
+  const base = player.isCaptain ? `${player.fullName} (C)` : player.fullName
+  return `${base} (${caps})`
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────

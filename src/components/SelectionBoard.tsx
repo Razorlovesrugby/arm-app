@@ -814,11 +814,18 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     const bench         = activeTeam.players.slice(startersCount, squadSize)
     const weekLabel     = formatWeekDate(activeWeek.start_date)
 
+    const formatPlayerLine = (p: Player | null, slot: number, captainId: string | null): string => {
+      if (!p) return `${slot}. Unfilled`
+      const captainBadge = captainId === p.id ? ' (C)' : ''
+      const caps = p.total_caps ?? 0
+      return `${slot}. ${p.name}${captainBadge} (${caps})`
+    }
+
     const text =
       `FIRST XV - SQUAD LIST\nWeek of ${weekLabel}\n\nSTARTERS\n` +
-      starters.map((p, i) => `${i + 1}. ${p ? p.name : 'Unfilled'}`).join('\n') +
+      starters.map((p, i) => formatPlayerLine(p, i + 1, activeTeam.captainId)).join('\n') +
       `\n\nBENCH\n` +
-      bench.map((p, i) => `${startersCount + i + 1}. ${p ? p.name : 'Unfilled'}`).join('\n')
+      bench.map((p, i) => formatPlayerLine(p, startersCount + i + 1, activeTeam.captainId)).join('\n')
 
     if (!navigator.clipboard) {
       setToastMessage('Copying not supported in this browser')
