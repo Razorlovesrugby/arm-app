@@ -46,7 +46,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar panel */}
       <aside className={`
         fixed top-0 left-0 h-full z-50
-        bg-purple-900 text-white
+        bg-brand-dark text-white
         w-4/5 max-w-xs
         transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 md:w-64 md:flex-shrink-0
@@ -54,23 +54,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         flex flex-col
       `}>
         {/* Header */}
-        <div className="p-6 border-b border-purple-800" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
+        <div className="p-6 border-b border-brand" style={{ paddingTop: 'max(env(safe-area-inset-top), 24px)' }}>
           <div className="flex items-center justify-between">
             <img
-              src="/icons/Logo.png"
+              src="/icons/short-form-logo.png"
               alt="ARM Logo"
               className="h-10 w-auto object-contain"
             />
             <button
               onClick={onClose}
-              className="md:hidden text-white p-1 rounded hover:bg-purple-800 transition-colors"
+              className="md:hidden text-white p-1 rounded hover:bg-brand transition-colors"
               aria-label="Close menu"
             >
               <X size={24} />
             </button>
           </div>
           <div className="mt-2">
-            <div className="text-xs uppercase tracking-wider text-purple-300">
+            <div className="text-xs uppercase tracking-wider text-brand-light">
               ATHLETE RELATIONSHIP MANAGEMENT
             </div>
             <div className="text-lg font-bold mt-1">
@@ -91,8 +91,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               className={`
                 px-4 py-3 rounded-lg transition-colors text-sm font-medium
                 ${isActive(item.path)
-                  ? 'bg-purple-800 border-l-4 border-white font-bold'
-                  : 'text-purple-200 hover:bg-purple-800'
+                  ? 'bg-brand border-l-4 border-white font-bold'
+                  : 'text-brand-light hover:bg-brand'
                 }
               `}
             >
@@ -102,13 +102,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-purple-800/50">
-          <div className="text-sm text-purple-300 mb-2 truncate">
+        <div className="p-4 border-t border-brand/50">
+          <div className="text-sm text-brand-light mb-2 truncate">
             {user?.email}
           </div>
           <button
             onClick={() => signOut()}
-            className="w-full py-2 px-4 bg-purple-800 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors"
+            className="w-full py-2 px-4 bg-brand hover:bg-brand-dark rounded-lg text-white font-medium transition-colors"
           >
             Sign Out
           </button>

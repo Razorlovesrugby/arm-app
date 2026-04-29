@@ -67,7 +67,7 @@ export default function InstallPrompt() {
     return (
       <div
         style={{
-          background: '#6B21A8',
+          background: '#0062F4',
           color: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
@@ -84,7 +84,7 @@ export default function InstallPrompt() {
           onClick={handleAndroidInstall}
           style={{
             background: '#FFFFFF',
-            color: '#6B21A8',
+            color: '#0062F4',
             border: 'none',
             borderRadius: '6px',
             padding: '6px 14px',
@@ -124,8 +124,8 @@ export default function InstallPrompt() {
     return (
       <div
         style={{
-          background: '#F3E8FF',
-          color: '#6B21A8',
+          background: '#E8F0FE',
+          color: '#0062F4',
           display: 'flex',
           alignItems: 'flex-start',
           gap: '12px',
@@ -145,7 +145,7 @@ export default function InstallPrompt() {
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#6B21A8',
+            color: '#0062F4',
             cursor: 'pointer',
             padding: '2px',
             display: 'flex',

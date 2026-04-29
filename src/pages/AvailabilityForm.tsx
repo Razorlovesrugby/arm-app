@@ -632,7 +632,7 @@ function Logo({ clubSettings }: { clubSettings: ClubSettings | null }) {
         />
       ) : (
         <img
-          src="/icons/Logo.png"
+          src="/icons/short-form-logo.png"
           alt="ARM Logo"
           style={{ maxHeight: '52px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }}
         />

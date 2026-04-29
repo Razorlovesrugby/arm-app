@@ -6,9 +6,9 @@
    ARM Design Tokens
    ============================================================ */
 :root {
-  --primary:        #6B21A8;
-  --primary-dark:   #581C87;
-  --primary-light:  #F3E8FF;
+  --primary:        #0062F4;
+  --primary-dark:   #7B2FFF;
+  --primary-light:  #E8F0FE;
   --surface:        #FFFFFF;
   --background:     #F8F8F8;
   --border:         #E5E7EB;
