@@ -104,10 +104,10 @@ function ReadinessRow({ club }: { club: ClubReadiness }) {
             />
           ) : (
             <div
-              className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0"
+              className="w-8 h-8 rounded-full bg-ui-base flex items-center justify-center flex-shrink-0"
               aria-hidden="true"
             >
-              <Building2 size={14} className="text-purple-400" />
+              <Building2 size={14} className="text-brand-primary" />
             </div>
           )}
           <span className="text-sm font-medium text-gray-900">{club.clubName}</span>
@@ -167,7 +167,7 @@ export default function ReadinessMatrix({ data, loading, error, onRetry }: Readi
           {onRetry && (
             <button
               onClick={onRetry}
-              className="text-xs text-purple-600 hover:text-purple-800 underline underline-offset-2"
+              className="text-xs text-brand-primary hover:text-brand-accent underline underline-offset-2"
             >
               Retry
             </button>

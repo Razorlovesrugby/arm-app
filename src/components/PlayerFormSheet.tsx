@@ -364,9 +364,9 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
                       padding: '5px 10px',
                       borderRadius: '999px',
                       border: '1px solid',
-                      borderColor: active ? '#6B21A8' : '#E5E7EB',
-                      background: active ? '#F3E8FF' : '#FFFFFF',
-                      color: active ? '#6B21A8' : '#6B7280',
+                      borderColor: active ? '#0062F4' : '#E5E7EB',
+                      background: active ? '#E8F0FE' : '#FFFFFF',
+                      color: active ? '#0062F4' : '#6B7280',
                       fontSize: '12px',
                       fontWeight: active ? '600' : '400',
                       cursor: 'pointer',
@@ -408,7 +408,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
               id="sub-paid"
               checked={form.subscription_paid}
               onChange={e => set('subscription_paid', e.target.checked)}
-              style={{ width: '18px', height: '18px', accentColor: '#6B21A8', cursor: 'pointer' }}
+              style={{ width: '18px', height: '18px', accentColor: '#0062F4', cursor: 'pointer' }}
             />
             <label htmlFor="sub-paid" style={{ fontSize: '14px', color: '#111827', cursor: 'pointer' }}>
               Subscription paid
@@ -441,7 +441,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
                   <div style={{
                     width: 24, height: 24,
                     border: '3px solid #E5E7EB',
-                    borderTopColor: '#6B21A8',
+                    borderTopColor: '#0062F4',
                     borderRadius: '50%',
                     animation: 'spin 0.8s linear infinite',
                   }} />
@@ -548,7 +548,7 @@ export default function PlayerFormSheet({ player, onClose, onSaved, readOnly = f
                 disabled={saving}
                 style={{
                   flex: 2, minHeight: '48px',
-                  background: saving ? '#9333EA' : '#6B21A8',
+                  background: saving ? '#7B2FFF' : '#0062F4',
                   color: '#FFFFFF', border: 'none', borderRadius: '10px',
                   fontSize: '15px', fontWeight: '600',
                   cursor: saving ? 'not-allowed' : 'pointer',

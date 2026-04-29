@@ -294,8 +294,8 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
                 style={{
                   display: 'flex', alignItems: 'center', gap: '4px',
                   padding: '4px 10px', borderRadius: '6px',
-                  border: '1px solid #6B21A8', background: 'transparent',
-                  color: '#6B21A8', fontSize: '13px', fontWeight: '600',
+                  border: '1px solid #0062F4', background: 'transparent',
+                  color: '#0062F4', fontSize: '13px', fontWeight: '600',
                   cursor: 'pointer', minHeight: '32px',
                 }}
               >
@@ -391,7 +391,7 @@ function CreateWeekForm({ onClose, onCreated, createWeek, defaultTeams }: Create
                 flex: 2, padding: '12px',
                 borderRadius: '10px',
                 border: 'none',
-                background: saving ? '#9CA3AF' : '#6B21A8',
+                background: saving ? '#9CA3AF' : '#0062F4',
                 fontSize: '15px', fontWeight: '600', color: '#FFFFFF',
                 cursor: saving ? 'not-allowed' : 'pointer', minHeight: '44px',
               }}
@@ -520,7 +520,7 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
       }}>
         {/* Editable label row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <Calendar size={16} color="#6B21A8" style={{ flexShrink: 0 }} />
+          <Calendar size={16} color="#0062F4" style={{ flexShrink: 0 }} />
 
           {editing ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -534,7 +534,7 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
                   style={{
                     flex: 1,
                     fontSize: '17px', fontWeight: '700', color: '#111827',
-                    border: `1px solid ${saveError ? '#DC2626' : '#6B21A8'}`,
+                    border: `1px solid ${saveError ? '#DC2626' : '#0062F4'}`,
                     borderRadius: '6px', padding: '4px 8px',
                     outline: 'none', background: '#FFFFFF',
                     minHeight: '36px',
@@ -664,7 +664,7 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
               padding: '10px 12px', minHeight: '44px',
               borderRadius: '8px',
               border: 'none',
-              background: '#6B21A8',
+              background: '#0062F4',
               color: '#FFFFFF',
               fontSize: '14px', fontWeight: '600',
               cursor: 'pointer',
@@ -689,8 +689,8 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
               padding: '3px 10px',
               borderRadius: '999px',
               fontSize: '12px', fontWeight: '500',
-              background: '#F3E8FF',
-              color: '#6B21A8',
+              background: '#E8F0FE',
+              color: '#0062F4',
             }}
           >
             {team.team_name}
@@ -729,7 +729,7 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: '8px 10px', borderRadius: '8px',
-                border: '1px solid #6B21A8',
+                border: '1px solid #0062F4',
                 fontSize: '13px', color: '#111827', background: '#FFFFFF',
                 outline: 'none', resize: 'vertical',
               }}
@@ -754,7 +754,7 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
                 disabled={notesSaving}
                 style={{
                   padding: '6px 12px', borderRadius: '6px',
-                  border: 'none', background: notesSaving ? '#9CA3AF' : '#6B21A8',
+                  border: 'none', background: notesSaving ? '#9CA3AF' : '#0062F4',
                   fontSize: '13px', fontWeight: '600', color: '#FFFFFF',
                   cursor: notesSaving ? 'not-allowed' : 'pointer', minHeight: '36px',
                 }}
@@ -773,7 +773,7 @@ function WeekCard({ week, counts, updateWeek, onOpenBoard, clubName }: WeekCardP
           style={{
             width: '100%',
             height: '48px',
-            background: '#6B21A8',
+            background: '#0062F4',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: '10px',
@@ -825,7 +825,7 @@ export default function Weeks() {
           <div style={{
             width: '32px', height: '32px',
             border: '3px solid #E5E7EB',
-            borderTopColor: '#6B21A8',
+            borderTopColor: '#0062F4',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
             margin: '0 auto 12px',
@@ -872,7 +872,7 @@ export default function Weeks() {
               padding: '10px 14px', minHeight: '44px',
               borderRadius: '8px',
               border: 'none',
-              background: '#6B21A8',
+              background: '#0062F4',
               color: '#FFFFFF',
               fontSize: '14px', fontWeight: '600',
               cursor: 'pointer',
@@ -902,7 +902,7 @@ export default function Weeks() {
                 padding: '6px 14px', minHeight: '44px',
                 borderRadius: '999px',
                 border: selectedMonth === null ? 'none' : '1px solid #E5E7EB',
-                background: selectedMonth === null ? '#6B21A8' : '#FFFFFF',
+                background: selectedMonth === null ? '#0062F4' : '#FFFFFF',
                 color: selectedMonth === null ? '#FFFFFF' : '#374151',
                 fontSize: '13px', fontWeight: '600',
                 cursor: 'pointer',
@@ -921,7 +921,7 @@ export default function Weeks() {
                   padding: '6px 14px', minHeight: '44px',
                   borderRadius: '999px',
                   border: selectedMonth === ym ? 'none' : '1px solid #E5E7EB',
-                  background: selectedMonth === ym ? '#6B21A8' : '#FFFFFF',
+                  background: selectedMonth === ym ? '#0062F4' : '#FFFFFF',
                   color: selectedMonth === ym ? '#FFFFFF' : '#374151',
                   fontSize: '13px', fontWeight: '600',
                   cursor: 'pointer',

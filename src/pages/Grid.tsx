@@ -187,7 +187,7 @@ export default function Grid() {
         <div style={{
           width: 36, height: 36,
           border: '3px solid #E5E7EB',
-          borderTopColor: '#6B21A8',
+          borderTopColor: '#0062F4',
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
@@ -246,8 +246,8 @@ export default function Grid() {
             onClick={() => setShowInactive(v => !v)}
             style={{
               fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', border: 'none',
-              background: showInactive ? '#EDE9FE' : '#F3F4F6',
-              color: showInactive ? '#6B21A8' : '#6B7280',
+              background: showInactive ? '#E8F0FE' : '#F3F4F6',
+              color: showInactive ? '#0062F4' : '#6B7280',
             }}
           >
             {showInactive ? 'Active + Inactive' : 'Active only'}

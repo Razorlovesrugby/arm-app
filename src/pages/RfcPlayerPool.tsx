@@ -83,7 +83,7 @@ function FilterBar({ data, filters, onChange, playerTypeOptions }: FilterBarProp
           <select
             value={filters.team ?? ''}
             onChange={e => onChange({ ...filters, team: e.target.value || undefined })}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
           >
             <option value="">All Teams</option>
             {teams.map(t => <option key={t} value={t}>{t}</option>)}
@@ -95,7 +95,7 @@ function FilterBar({ data, filters, onChange, playerTypeOptions }: FilterBarProp
           <select
             value={filters.playerType ?? ''}
             onChange={e => onChange({ ...filters, playerType: e.target.value || undefined })}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
           >
             <option value="">All Types</option>
             {playerTypes.map(t => <option key={t} value={t}>{t}</option>)}
@@ -107,7 +107,7 @@ function FilterBar({ data, filters, onChange, playerTypeOptions }: FilterBarProp
           <select
             value={filters.status ?? ''}
             onChange={e => onChange({ ...filters, status: e.target.value || undefined })}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
           >
             <option value="">All Statuses</option>
             {statuses.map(s => <option key={s} value={s}>{s}</option>)}
@@ -119,7 +119,7 @@ function FilterBar({ data, filters, onChange, playerTypeOptions }: FilterBarProp
           <select
             value={filters.position ?? ''}
             onChange={e => onChange({ ...filters, position: e.target.value || undefined })}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
           >
             <option value="">All Positions</option>
             {positions.map(p => <option key={p} value={p}>{p}</option>)}
@@ -131,7 +131,7 @@ function FilterBar({ data, filters, onChange, playerTypeOptions }: FilterBarProp
           <select
             value={filters.availability ?? ''}
             onChange={e => onChange({ ...filters, availability: e.target.value || undefined })}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
           >
             <option value="">All</option>
             {availabilities.map(a => <option key={a} value={a}>{a}</option>)}
@@ -205,8 +205,8 @@ function PlayerPanel({ player, onClose }: { player: PlayerPoolRow; onClose: () =
               borderRadius: '999px',
               fontSize: '11px',
               fontWeight: '600',
-              background: '#F3E8FF',
-              color: '#6B21A8',
+              background: '#E8F0FE',
+              color: '#0062F4',
             }}>
               Read-Only View
             </span>
@@ -348,7 +348,7 @@ export default function RfcPlayerPool() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <Users size={22} className="text-purple-600" />
+          <Users size={22} className="text-brand-primary" />
           <h1 className="text-2xl font-bold text-gray-900">RFC Player Pool</h1>
         </div>
         <p className="text-gray-500 text-sm ml-9">

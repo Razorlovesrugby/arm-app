@@ -25,7 +25,7 @@ export function ProtectedRoute({ children }: Props) {
             width: 40,
             height: 40,
             border: '3px solid #E5E7EB',
-            borderTopColor: '#6B21A8',
+            borderTopColor: '#0062F4',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}

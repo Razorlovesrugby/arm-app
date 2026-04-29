@@ -44,7 +44,7 @@ function typeBadgeStyle(type: string | null): React.CSSProperties {
 }
 
 function posBadgeStyle(): React.CSSProperties {
-  return { background: '#F3E8FF', color: '#6B21A8' }
+  return { background: '#E8F0FE', color: '#0062F4' }
 }
 
 function Badge({ text, style }: { text: string; style: React.CSSProperties }) {
@@ -105,7 +105,7 @@ function GameNoteRow({ note, isDeepLinkTarget, onSave }: NoteRowProps) {
       style={{
         borderBottom: '1px solid #F3F4F6',
         background: isDeepLinkTarget ? '#FAFAFF' : '#FFFFFF',
-        outline: isDeepLinkTarget ? '2px solid #6B21A8' : 'none',
+        outline: isDeepLinkTarget ? '2px solid #0062F4' : 'none',
         outlineOffset: '-2px',
         transition: 'outline 0.3s',
       }}
@@ -121,8 +121,8 @@ function GameNoteRow({ note, isDeepLinkTarget, onSave }: NoteRowProps) {
         {/* Avatar circle */}
         <div style={{
           width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-          background: '#F3E8FF', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#6B21A8',
+          background: '#E8F0FE', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#0062F4',
         }}>
           {(note.player_name_snapshot ?? '?').charAt(0).toUpperCase()}
         </div>
@@ -181,7 +181,7 @@ function GameNoteRow({ note, isDeepLinkTarget, onSave }: NoteRowProps) {
               fontFamily: 'inherit',
               lineHeight: 1.5,
             }}
-            onFocus={e => (e.target.style.borderColor = '#6B21A8')}
+            onFocus={e => (e.target.style.borderColor = '#0062F4')}
             onBlur={e  => (e.target.style.borderColor = '#E5E7EB')}
           />
           {saving && (
@@ -268,7 +268,7 @@ function WeekArchiveCard({
                     style={{
                       padding: '5px 14px', borderRadius: 999, border: 'none',
                       cursor: 'pointer', fontSize: 13, fontWeight: 600, flexShrink: 0,
-                      background: isActive ? '#6B21A8' : '#F3F4F6',
+                      background: isActive ? '#0062F4' : '#F3F4F6',
                       color:      isActive ? '#FFFFFF' : '#374151',
                     }}
                   >
@@ -383,7 +383,7 @@ function SearchTab({ initialQuery, onNavigateToPlayer }: SearchTabProps) {
             border: '1px solid #E5E7EB', fontSize: 15,
             color: '#111827', background: '#FFFFFF', outline: 'none',
           }}
-          onFocus={e  => (e.target.style.borderColor = '#6B21A8')}
+          onFocus={e  => (e.target.style.borderColor = '#0062F4')}
           onBlur={e   => (e.target.style.borderColor = '#E5E7EB')}
         />
       </div>
@@ -393,7 +393,7 @@ function SearchTab({ initialQuery, onNavigateToPlayer }: SearchTabProps) {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
           <div style={{
             width: 28, height: 28, border: '3px solid #E5E7EB',
-            borderTopColor: '#6B21A8', borderRadius: '50%',
+            borderTopColor: '#0062F4', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -631,8 +631,8 @@ export default function Archive() {
             style={{
               padding: '13px 18px', border: 'none', background: 'none',
               cursor: 'pointer', fontSize: 14, fontWeight: 600,
-              color:       activeSubTab === tab ? '#6B21A8' : '#6B7280',
-              borderBottom: activeSubTab === tab ? '2px solid #6B21A8' : '2px solid transparent',
+              color:       activeSubTab === tab ? '#0062F4' : '#6B7280',
+              borderBottom: activeSubTab === tab ? '2px solid #0062F4' : '2px solid transparent',
               transition:  'color 0.15s',
             }}
           >
@@ -647,7 +647,7 @@ export default function Archive() {
             style={{
               marginLeft: 'auto', padding: '0 8px',
               border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, color: '#6B21A8',
+              fontSize: 13, fontWeight: 600, color: '#0062F4',
               display: 'flex', alignItems: 'center', gap: 4,
             }}
           >
@@ -663,7 +663,7 @@ export default function Archive() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
               <div style={{
                 width: 32, height: 32, border: '3px solid #E5E7EB',
-                borderTopColor: '#6B21A8', borderRadius: '50%',
+                borderTopColor: '#0062F4', borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
               }} />
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

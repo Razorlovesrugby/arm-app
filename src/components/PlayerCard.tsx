@@ -16,7 +16,7 @@ const STATUS_BADGE: Record<string, { bg: string; color: string }> = {
 }
 
 const TYPE_BADGE: Record<string, { bg: string; color: string }> = {
-  Performance: { bg: '#F3E8FF', color: '#6B21A8' },
+  Performance: { bg: '#E8F0FE', color: '#0062F4' },
   Open:        { bg: '#DBEAFE', color: '#1D4ED8' },
   "Women's":   { bg: '#FCE7F3', color: '#BE185D' },
 }
@@ -48,8 +48,8 @@ export default function PlayerCard({ player, onEdit }: Props) {
         width: '40px',
         height: '40px',
         borderRadius: '50%',
-        background: '#F3E8FF',
-        color: '#6B21A8',
+        background: '#E8F0FE',
+        color: '#0062F4',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

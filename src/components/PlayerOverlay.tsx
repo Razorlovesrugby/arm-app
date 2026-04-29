@@ -45,7 +45,7 @@ function CaptainToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) 
       onClick={onToggle}
       style={{
         width: 44, height: 26,
-        background: on ? '#6B21A8' : '#333',
+        background: on ? '#0062F4' : '#333',
         borderRadius: 13, position: 'relative', cursor: 'pointer',
         transition: 'background 0.2s', flexShrink: 0,
       }}
@@ -276,9 +276,9 @@ export default function PlayerOverlay({
                     key={pos}
                     style={{
                       padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                      background: i === 0 ? 'rgba(107,33,168,0.15)' : '#1a1a1a',
-                      border: i === 0 ? '1px solid rgba(107,33,168,0.35)' : '1px solid #2a2a2a',
-                      color: i === 0 ? '#a855f7' : 'rgba(255,255,255,0.7)',
+                      background: i === 0 ? 'rgba(0,98,244,0.15)' : '#1a1a1a',
+                      border: i === 0 ? '1px solid rgba(0,98,244,0.35)' : '1px solid #2a2a2a',
+                      color: i === 0 ? '#0062F4' : 'rgba(255,255,255,0.7)',
                     }}
                   >
                     {pos}
@@ -315,7 +315,7 @@ export default function PlayerOverlay({
                 minHeight: 72,
                 transition: 'border-color 0.15s',
               }}
-              onFocus={e => (e.target.style.borderColor = 'rgba(107,33,168,0.5)')}
+              onFocus={e => (e.target.style.borderColor = 'rgba(0,98,244,0.5)')}
               onBlur={e => (e.target.style.borderColor = '#2a2a2a')}
             />
           </div>
