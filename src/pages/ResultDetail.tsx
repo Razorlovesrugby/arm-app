@@ -553,6 +553,7 @@ export default function ResultDetail() {
           shirtNumber,
           fullName:    p.name,
           isCaptain:   captainId === p.id,
+          totalCaps:   p.total_caps ?? 0,
           position:    RUGBY_POSITIONS[shirtNumber],
         }
       })
