@@ -92,8 +92,8 @@ export default function Attendance() {
     const { data: attData, error: attError } = await supabase
       .from('training_attendance')
       .select('player_id, week_id, session_id, attended')
-      .in('week_id', weekIds)
-      .in('player_id', playerIds)
+      .in('week_id', Array.isArray(weekIds) ? weekIds : [])
+      .in('player_id', Array.isArray(playerIds) ? playerIds : [])
 
     if (attError) { setError(attError.message); setLoading(false); return }
 

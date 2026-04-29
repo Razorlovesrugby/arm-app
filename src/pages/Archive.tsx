@@ -539,7 +539,7 @@ export default function Archive() {
     const { data } = await supabase
       .from('archive_game_notes')
       .select('*')
-      .in('week_team_id', teamIds)
+      .in('week_team_id', Array.isArray(teamIds) ? teamIds : [])
 
     const teamNameMap = Object.fromEntries(week.week_teams.map(t => [t.id, t.team_name]))
 

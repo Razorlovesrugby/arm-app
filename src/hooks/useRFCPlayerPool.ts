@@ -49,7 +49,7 @@ export function useRFCPlayerPool() {
           const { data: settingsData } = await supabase
             .from('club_settings')
             .select('player_types')
-            .in('club_id', clubIds)
+            .in('club_id', Array.isArray(clubIds) ? clubIds : [])
 
           if (!ignore && settingsData) {
             const allTypes = [...new Set(settingsData.flatMap(s => (s.player_types as string[]) ?? []))]

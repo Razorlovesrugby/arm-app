@@ -93,8 +93,8 @@ export function useGrid(): UseGridResult {
     const { data: respData, error: respError } = await supabase
       .from('availability_responses')
       .select('player_id, week_id, availability')
-      .in('player_id', playerIds)
-      .in('week_id', weekIds)
+      .in('player_id', Array.isArray(playerIds) ? playerIds : [])
+      .in('week_id', Array.isArray(weekIds) ? weekIds : [])
 
     if (sig?.cancelled) return
     if (respError) {

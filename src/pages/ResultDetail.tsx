@@ -505,8 +505,8 @@ export default function ResultDetail() {
 
           if (!selData) return { teamId: team.id, players: [] as Player[], captainId: null }
 
-          const playerIds = (selData.player_order as (string | null)[])
-            .filter((id): id is string => id !== null)
+          const rawOrder = (selData?.player_order ?? []) as (string | null)[]
+          const playerIds = Array.isArray(rawOrder) ? rawOrder.filter((id): id is string => id !== null) : []
 
           if (playerIds.length === 0) return { teamId: team.id, players: [] as Player[], captainId: selData.captain_id ?? null }
 
