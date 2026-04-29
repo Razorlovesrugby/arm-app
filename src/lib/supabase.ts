@@ -319,6 +319,7 @@ export interface PDFPlayer {
   shirtNumber: number
   fullName: string
   isCaptain: boolean
+  totalCaps: number
   position?: string
 }
 

@@ -177,27 +177,29 @@ export default function AvailabilityForm() {
       // 2a. Match player by name + phone (case-insensitive name)
       let playerId: string | null = null
       let isNewPlayer = false
+      let byPhone: { id: string; name: string; phone: string; date_of_birth: string } | null = null
+      let byName: { id: string; name: string; date_of_birth: string } | null = null
 
       if (normPhone) {
-        const { data: byPhone } = await supabase
+        const { data } = await supabase
           .from('players')
-          .select('id, name, phone')
+          .select('id, name, phone, date_of_birth')
           .eq('phone', normPhone)
           .limit(1)
           .single()
-
+        byPhone = data
         if (byPhone) playerId = byPhone.id
       }
 
       if (!playerId) {
         // Try name match (case-insensitive)
-        const { data: byName } = await supabase
+        const { data } = await supabase
           .from('players')
-          .select('id, name')
+          .select('id, name, date_of_birth')
           .ilike('name', form.name.trim())
           .limit(1)
           .single()
-
+        byName = data
         if (byName) playerId = byName.id
       }
 
@@ -225,12 +227,19 @@ export default function AvailabilityForm() {
         playerId = newPlayer.id
       }
 
-      // 2c. Update existing player profile with collected contact/birthday data
+      // 2c. Update existing player profile with collected contact/birthday/phone data
       // NOTE: club_id derived from the token-fetched week, not auth (public form)
       if (!isNewPlayer) {
         const profileUpdate: Record<string, unknown> = {}
         if (requireContactInfo && form.email) profileUpdate.email = form.email
-        if (requireBirthday && form.birthday) profileUpdate.date_of_birth = form.birthday
+        if (requireBirthday && form.birthday) {
+          const defaultBirthday = '2000-01-01'
+          const currentDob = byName?.date_of_birth || byPhone?.date_of_birth
+          if (!currentDob || currentDob === defaultBirthday) {
+            profileUpdate.date_of_birth = form.birthday
+          }
+        }
+        if (normPhone) profileUpdate.phone = normPhone
         if (Object.keys(profileUpdate).length > 0) {
           await supabase
             .from('players')

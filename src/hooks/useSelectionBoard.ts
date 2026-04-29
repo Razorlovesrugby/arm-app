@@ -82,6 +82,7 @@ export function selectionTeamsToPDF(
           shirtNumber,
           fullName:    player.name,
           isCaptain:   team.captainId === player.id,
+          totalCaps:   player.total_caps,
           position:    RUGBY_POSITIONS[shirtNumber],
         }
       })
