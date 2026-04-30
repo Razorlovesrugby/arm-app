@@ -371,9 +371,11 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
   const assignPlayer = useCallback(async (teamId: string, playerId: string) => {
     if (!activeWeekId) return
 
+    const squadSize = clubSettings?.default_squad_size ?? 22
     const prevSelections = [...selections]
     const existing = findPlayerTeam(playerId)
 
+    // ── Step 1: Remove player from any existing team ──────────────────────
     let newSelections = selections.map(s => {
       if (existing && s.week_team_id === existing.teamId) {
         return { ...s, player_order: s.player_order.filter(id => id !== playerId) }
@@ -382,14 +384,8 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     })
 
     const targetSel = newSelections.find(s => s.week_team_id === teamId)
-    if (targetSel) {
-      newSelections = newSelections.map(s =>
-        s.week_team_id === teamId
-          // Trim trailing nulls so "+" always appends at the next contiguous slot
-          ? { ...s, player_order: [...trimTrailingNulls(s.player_order ?? []), playerId] }
-          : s
-      )
-    } else {
+    if (!targetSel) {
+      // No selection exists yet — create one with just this player
       newSelections = [
         ...newSelections,
         {
@@ -403,6 +399,35 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
           updated_at:    new Date().toISOString(),
         } as TeamSelection,
       ]
+    } else {
+      const currentOrder = targetSel.player_order ?? []
+      const trimmed = trimTrailingNulls(currentOrder)
+
+      // ── Capacity Check 1: Append if room ──────────────────────────────
+      if (trimmed.length < squadSize) {
+        newSelections = newSelections.map(s =>
+          s.week_team_id === teamId
+            ? { ...s, player_order: [...trimmed, playerId] }
+            : s
+        )
+      } else {
+        // ── Capacity Check 2: Backfill null gaps ────────────────────────
+        const gapIndex = currentOrder.slice(0, squadSize).indexOf(null)
+        if (gapIndex !== -1) {
+          const newOrder = [...currentOrder]
+          newOrder[gapIndex] = playerId
+          newSelections = newSelections.map(s =>
+            s.week_team_id === teamId
+              ? { ...s, player_order: newOrder }
+              : s
+          )
+        } else {
+          // ── Capacity Check 3: Team is completely full ─────────────────
+          flashError()
+          setError('Team is full (maximum squad size reached)')
+          return
+        }
+      }
     }
 
     setSelections(newSelections)
@@ -422,7 +447,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
       setError('Save failed')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWeekId, selections, allPlayers])
+  }, [activeWeekId, selections, allPlayers, clubSettings])
 
   // ── Mutation: removePlayer ────────────────────────────────────────────────
 

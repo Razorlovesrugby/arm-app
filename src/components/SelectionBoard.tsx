@@ -790,16 +790,8 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
       reorderTeam(weekTeam.id, newOrder)
 
     } else {
-      // ── Drop onto another filled player row (normal reorder) ─────────────
-      // Compact reorder among filled slots — slot numbers shift accordingly.
-      const filledIds = players
-        .filter((p): p is Player => p !== null)
-        .map(p => p.id)
-      const oldIndex = filledIds.indexOf(activeId)
-      const newIndex = filledIds.indexOf(overId)
-      if (oldIndex === -1 || newIndex === -1) return
-
-      reorderTeam(weekTeam.id, arrayMove(filledIds, oldIndex, newIndex))
+      // Drop onto a filled slot — cancelled. Player snaps back.
+      return
     }
   }
 
