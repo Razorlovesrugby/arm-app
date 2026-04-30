@@ -120,9 +120,9 @@
 ### Design Tokens (CSS Custom Properties)
 
 #### Primary Colors
-- **Primary**: `#6B21A8` (Purple)
-- **Primary Dark**: `#581C87` (Dark Purple)
-- **Primary Light**: `#F3E8FF` (Light Purple)
+- **Primary**: `#0062F4` (Blue)
+- **Primary Dark**: `#7B2FFF` (Ultraviolet)
+- **Primary Light**: `#E8F0FE` (Light Blue)
 - **Secondary**: `#DC2626` (Red) - From club_settings table
 
 #### Surface & Background
@@ -144,7 +144,7 @@
 - **Injured/TBC**: Background `#FEF3C7`, Text `#B45309`
 - **Unavailable**: Background `#FEE2E2`, Text `#B91C1C`
 - **Retired**: Background `#F3F4F6`, Text `#4B5563`
-- **Performance**: Background `#F3E8FF`, Text `#6B21A8`
+- **Performance**: Background `#E8F0FE`, Text `#0062F4`
 - **Open**: Background `#DBEAFE`, Text `#1D4ED8`
 - **Womens**: Background `#FCE7F3`, Text `#BE185D`
 

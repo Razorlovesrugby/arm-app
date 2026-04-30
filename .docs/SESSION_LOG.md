@@ -2,6 +2,23 @@ ARM Session Log
 
 ---
 
+## [2026-04-30 10:00] Session Summary
+- **Primary Objective:** Phase 20.1.x documentation sweep — Update architecture.md, clinerules, ARM-TRACKER.md, and SESSION_LOG.md to reflect the purple-to-blue brand color migration
+- **Tasks Completed:**
+  - [x] Phase 20.1.1: Full Purple-to-Blue Color Migration implemented across 17 files (components, pages, styles) — all purple references (`#6B21A8`, `#581C87`, `#F3E8FF`, `#9333EA`, `purple-*`) replaced with blue brand tokens (`#0062F4` primary, `#7B2FFF` dark, `#E8F0FE` light)
+  - [x] Phase 20.1.2: Sidebar Color Correction — sidebar background changed from `bg-brand-dark` to `bg-brand`, nav link hover uses `hover:bg-[#E8F0FE] hover:text-brand`, borders changed to `border-white/20` for visual separation on blue background
+  - [x] Updated `.docs/architecture.md` — Design Tokens section now reflects blue: `--primary: #0062F4` (Blue), `--primary-dark: #7B2FFF` (Ultraviolet), `--primary-light: #E8F0FE` (Light Blue); Performance badge colors updated
+  - [x] Updated `clinerules` — UX Guardianship section strengthened with proactive maintenance rule, sweep rule, and review gate for brand/color/theme changes
+  - [x] Updated `ARM-TRACKER.md` — Added Phase 19.3, 20.0, 20.1, 20.1.1, 20.1.2 as Done; added 20.1.3 as ▶ Next; added 20.1.4 and 20.1.5 as ⏳ Pending
+- **Architecture / Decisions Locked:**
+  - Brand tokens: `--primary: #0062F4` (blue), `--primary-dark: #7B2FFF` (ultraviolet), `--primary-light: #E8F0FE` (light blue)
+  - Sidebar: `bg-brand` background with `border-white/20` separators and `hover:bg-[#E8F0FE] hover:text-brand` nav links
+  - Performance badge: `background: #E8F0FE`, `text: #0062F4`
+  - UX Guardianship: Tech Lead must proactively update architecture.md on any brand/color/theme change (sweep rule + review gate)
+- **Next Up:** Phase 20.1.3 — Selection Board Drag & Drop / Capacity Fixes
+
+---
+
 ## [2026-04-29 21:03] Session Summary
 - **Primary Objective:** Phase 19.3 implementation (Export Functions Include Player Caps) — add total_caps and captain (C) badge to WhatsApp text and PDF exports
 - **Tasks Completed:**
