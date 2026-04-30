@@ -21,6 +21,7 @@ export default function ClubSettings() {
   const [requirePositions, setRequirePositions] = useState(true)
   const [requireContactInfo, setRequireContactInfo] = useState(false)
   const [requireBirthday, setRequireBirthday] = useState(false)
+  const [showCapsOnExports, setShowCapsOnExports] = useState(true)
   const [trainingDays, setTrainingDays] = useState<{ id: string; label: string }[]>([{ id: '1', label: 'Wednesday' }])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -63,6 +64,7 @@ export default function ClubSettings() {
     setRequirePositions(clubSettings.require_positions_in_form ?? true)
     setRequireContactInfo(clubSettings.require_contact_info ?? false)
     setRequireBirthday(clubSettings.require_birthday ?? false)
+    setShowCapsOnExports(clubSettings.show_caps_on_exports ?? true)
     const days = clubSettings.training_days
     setTrainingDays(
       days && days.length > 0 ? days : [{ id: '1', label: 'Wednesday' }]
@@ -227,6 +229,7 @@ export default function ClubSettings() {
       require_positions_in_form: requirePositions,
       require_contact_info: requireContactInfo,
       require_birthday: requireBirthday,
+      show_caps_on_exports: showCapsOnExports,
       training_days: trimmedDays.length > 0 ? trimmedDays : [{ id: '1', label: 'Wednesday' }],
     })
 
@@ -565,6 +568,24 @@ export default function ClubSettings() {
               >
                 <span
                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${requireBirthday ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Show Player Caps on Team Exports</label>
+                <p className="text-xs text-gray-500">Include the player's total caps next to their name when copying the team sheet or exporting to PDF</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCapsOnExports(v => !v)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${showCapsOnExports ? 'bg-brand-accent' : 'bg-gray-200'}`}
+                role="switch"
+                aria-checked={showCapsOnExports}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${showCapsOnExports ? 'translate-x-5' : 'translate-x-0'}`}
                 />
               </button>
             </div>

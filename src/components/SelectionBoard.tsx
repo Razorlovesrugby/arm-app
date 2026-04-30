@@ -821,8 +821,9 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     const formatPlayerLine = (p: Player | null, slot: number, captainId: string | null): string => {
       if (!p) return `${slot}. Unfilled`
       const captainBadge = captainId === p.id ? ' (C)' : ''
-      const caps = p.total_caps ?? 0
-      return `${slot}. ${p.name}${captainBadge} (${caps})`
+      const showCaps = clubSettings?.show_caps_on_exports ?? true
+      const capsString = showCaps ? ` (${p.total_caps ?? 0})` : ''
+      return `${slot}. ${p.name}${captainBadge}${capsString}`
     }
 
     const text =
@@ -907,6 +908,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
                 brandColor={clubSettings?.primary_color ?? '#1e40af'}
                 clubName={clubSettings?.club_name}
                 fileName="team-sheet.pdf"
+                showCaps={clubSettings?.show_caps_on_exports ?? true}
                 dark
               />
               <button
