@@ -124,6 +124,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
   const [loading,    setLoading]                = useState(true)
   const [error,      setError]                  = useState<string | null>(null)
   const [saveStatus, setSaveStatus]             = useState<'idle' | 'saved' | 'error'>('idle')
+  const [toast,      setToast]                  = useState<string | null>(null)
 
   const setActiveWeekId = useCallback((id: string | null) => {
     setActiveWeekIdState(id)
@@ -349,6 +350,11 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     setSaveStatus('error')
   }
 
+  function flashToast(message: string) {
+    setToast(message)
+    setTimeout(() => setToast(null), 3500)
+  }
+
   // ── Upsert helper ─────────────────────────────────────────────────────────
 
   async function upsertSelection(weekTeamId: string, patch: Partial<TeamSelection>) {
@@ -423,8 +429,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
           )
         } else {
           // ── Capacity Check 3: Team is completely full ─────────────────
-          flashError()
-          setError('Team is full (maximum squad size reached)')
+          flashToast('Team is full (maximum squad size reached)')
           return
         }
       }
@@ -599,6 +604,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
     playerHistory,
     loading,
     error,
+    toast,
     saveStatus,
     setSaveStatus,
     assignPlayer,

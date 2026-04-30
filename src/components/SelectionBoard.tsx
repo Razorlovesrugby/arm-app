@@ -686,7 +686,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     teams, allWeekTeams,
     unassignedPlayers, availabilityMap, allPlayers,
     playerHistory,
-    loading, error, saveStatus,
+    loading, error, toast, saveStatus,
     assignPlayer, removePlayer, reorderTeam, setCaptain, saveTeamSettings,
   } = board
 
@@ -724,6 +724,11 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const sheetOpen = poolOpen || overlayPlayerId !== null || teamMgmtOpen || weekPickerOpen
+
+  // Pipe hook-level toasts (e.g. "Team is full") into the existing toast UI
+  useEffect(() => {
+    if (toast) setToastMessage(toast)
+  }, [toast])
 
   // Close pool if week switches (stale team data)
   useEffect(() => {
