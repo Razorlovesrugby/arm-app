@@ -727,7 +727,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
 
   // Pipe hook-level toasts (e.g. "Team is full") into the existing toast UI
   useEffect(() => {
-    if (toast) setToastMessage(toast)
+    setToastMessage(toast)
   }, [toast])
 
   // Close pool if week switches (stale team data)
@@ -1076,20 +1076,23 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
 
       {/* ── Toast notification ─────────────────────────────────────────────── */}
       {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: 100,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#111827',
-          color: '#fff',
-          padding: '8px 16px',
-          borderRadius: 20,
-          fontSize: 13,
-          fontWeight: 600,
-          zIndex: 100,
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        }}>
+        <div
+          onClick={() => setToastMessage(null)}
+          style={{
+            position: 'fixed',
+            bottom: 100,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#111827',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: 20,
+            fontSize: 13,
+            fontWeight: 600,
+            zIndex: 100,
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            cursor: 'pointer',
+          }}>
           {toastMessage}
         </div>
       )}
