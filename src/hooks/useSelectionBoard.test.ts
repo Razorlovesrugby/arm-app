@@ -112,7 +112,7 @@ const mockHistoryData = [
 ]
 
 // ── Mock the supabase chain for a given week fetch ───────────────
-function mockSupabaseForWeek(weekId: string, _clubId: string, responses: {
+function mockSupabaseForWeek(_weekId: string, _clubId: string, responses: {
   visibleTeams?: { data: WeekTeam[] | null; error: null | { message: string } }
   allTeams?: { data: WeekTeam[] | null; error: null | { message: string } }
   selections?: { data: TeamSelection[] | null; error: null | { message: string } }
@@ -143,14 +143,12 @@ function mockSupabaseForWeek(weekId: string, _clubId: string, responses: {
   const visibleEqVisible = vi.fn().mockReturnValue({ order: visibleOrder })
   const visibleEqClub = vi.fn().mockReturnValue({ eq: visibleEqVisible })
   const visibleEqWeek = vi.fn().mockReturnValue({ eq: visibleEqClub })
-  const visibleSelect = vi.fn().mockReturnValue({ eq: visibleEqWeek })
 
   // Build chain for all teams:
   // from('week_teams').select('*').eq('week_id',id).eq('club_id',cid).order('sort_order')
   const allOrder = vi.fn().mockResolvedValue(allTeams)
   const allEqClub = vi.fn().mockReturnValue({ order: allOrder })
   const allEqWeek = vi.fn().mockReturnValue({ eq: allEqClub })
-  const allSelect = vi.fn().mockReturnValue({ eq: allEqWeek })
 
   // Build chain for selections:
   // from('team_selections').select('*').eq('week_id',id).eq('club_id',cid)
