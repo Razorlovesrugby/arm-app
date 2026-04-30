@@ -69,7 +69,7 @@ function FacilityForm({ initial, onSubmit, onCancel, submitting }: FacilityFormP
             onChange={e => setName(e.target.value)}
             placeholder="e.g. Main Pitch"
             required
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
           />
         </div>
         <div>
@@ -79,7 +79,7 @@ function FacilityForm({ initial, onSubmit, onCancel, submitting }: FacilityFormP
           <select
             value={facilityType}
             onChange={e => setFacilityType(e.target.value as FacilityType)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary bg-white"
           >
             {FACILITY_TYPES.map(t => (
               <option key={t} value={t}>{t}</option>
@@ -91,7 +91,7 @@ function FacilityForm({ initial, onSubmit, onCancel, submitting }: FacilityFormP
         <button
           type="submit"
           disabled={submitting || !name.trim()}
-          className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:bg-brand-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {submitting ? 'Saving…' : initial ? 'Save Changes' : 'Add Facility'}
         </button>
@@ -260,7 +260,7 @@ function FacilitiesTab() {
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-primary border border-brand-primary/30 rounded-lg hover:bg-ui-base transition-colors"
         >
           <Plus size={16} />
           Add Facility
@@ -273,7 +273,7 @@ function FacilitiesTab() {
           <p className="text-gray-500 text-sm">No facilities yet.</p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="mt-3 text-sm font-medium text-purple-600 hover:underline"
+            className="mt-3 text-sm font-medium text-brand-primary hover:underline"
           >
             Add your first facility
           </button>
@@ -376,7 +376,7 @@ export default function RDOSettings() {
               className={[
                 'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
                 activeTab === tab
-                  ? 'border-purple-600 text-purple-600'
+                  ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
               ].join(' ')}
             >

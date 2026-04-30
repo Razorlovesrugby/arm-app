@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-20 21:30**
-**Current position: Phase 18.1 COMPLETE — Form Layer Sheet Sideways Movement Lockdown implementation. Phases 17.9.3, 18.0, and 18.1 moved to completed specs.**
+**Last updated: 2026-04-29 21:03**
+**Current position: Phase 19.3 implemented (Export Functions Include Player Caps). All of Phase 19 (19.0, 19.0.1, 19.1, 19.2, 19.3) now complete.**
 
 ---
 
@@ -44,6 +44,11 @@
 | 17.8 | Dynamic Player Type Cascading — Database constraint removal, safe batch RPC, dynamic filters | ✅ Done (2026-04-20) |
 | 18.0 | Touch Zoom & Movement Lockdown — Viewport meta tag, touch-action CSS, iOS auto-zoom prevention | ✅ Done (2026-04-20) |
 | 18.1 | Form Layer Sheet Sideways Movement Lockdown — touch-action: pan-y on PlayerFormSheet, horizontal swipe prevention | ✅ Done (2026-04-20) |
+| 19.0 | Player Merge & Public Form Duplicate Cleanup — MergePlayerModal, migration 034 jsonb fix, duplicate cleanup | ✅ Done |
+| 19.0.1 | Supabase Array Operator Bug Fix — Defensive Array.isArray() guards for .in() calls across 6 files | ✅ Done (2026-04-29) |
+| 19.1 | Hard Reset, Refresh Navigation & Caching Fix — Remove offline fallback, Vercel anti-caching headers, auth bypass | ✅ Done (2026-04-29) |
+| 19.2 | Availability Form Profile Update Phone & Birthday — Phone sync on existing player matches, conditional birthday overwrite guard | ✅ Done (2026-04-29) |
+| 19.3 | Export Functions Include Player Caps — PDF + WhatsApp export now shows total_caps and captain (C) badge | ✅ Done (2026-04-29) |
 
 **Note:** Project has pivoted to v2.0 architecture. Phase 10 (Exports) deferred to focus on v2.0 features. Archive functionality is no longer a standalone locked tab; historical data is now accessed via the concurrent 'Results' toggle on the Selection Board.
 

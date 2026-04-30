@@ -158,10 +158,10 @@ export default function Roster() {
             gap: '4px',
             padding: '9px 12px',
             border: '1px solid',
-            borderColor: activeFilters > 0 ? '#6B21A8' : '#E5E7EB',
+            borderColor: activeFilters > 0 ? '#0062F4' : '#E5E7EB',
             borderRadius: '8px',
-            background: activeFilters > 0 ? '#F3E8FF' : '#FFFFFF',
-            color: activeFilters > 0 ? '#6B21A8' : '#6B7280',
+            background: activeFilters > 0 ? '#E8F0FE' : '#FFFFFF',
+            color: activeFilters > 0 ? '#0062F4' : '#6B7280',
             fontSize: '14px',
             fontWeight: '500',
             cursor: 'pointer',
@@ -181,7 +181,7 @@ export default function Roster() {
             alignItems: 'center',
             gap: '4px',
             padding: '9px 14px',
-            background: '#6B21A8',
+            background: '#0062F4',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: '8px',
@@ -241,18 +241,18 @@ export default function Roster() {
             fontSize: '13px', color: '#374151', cursor: 'pointer',
             padding: '7px 10px',
             border: '1px solid',
-            borderColor: showArchived ? '#6B21A8' : '#E5E7EB',
+            borderColor: showArchived ? '#0062F4' : '#E5E7EB',
             borderRadius: '8px',
-            background: showArchived ? '#F3E8FF' : '#FFFFFF',
+            background: showArchived ? '#E8F0FE' : '#FFFFFF',
             userSelect: 'none',
           }}>
             <input
               type="checkbox"
               checked={showArchived}
               onChange={e => setShowArchived(e.target.checked)}
-              style={{ accentColor: '#6B21A8', width: '14px', height: '14px', cursor: 'pointer' }}
+              style={{ accentColor: '#0062F4', width: '14px', height: '14px', cursor: 'pointer' }}
             />
-            <span style={{ color: showArchived ? '#6B21A8' : '#374151', fontWeight: showArchived ? '600' : '400' }}>
+            <span style={{ color: showArchived ? '#0062F4' : '#374151', fontWeight: showArchived ? '600' : '400' }}>
               Show Archived
             </span>
           </label>
@@ -263,18 +263,18 @@ export default function Roster() {
             fontSize: '13px', color: '#374151', cursor: 'pointer',
             padding: '7px 10px',
             border: '1px solid',
-            borderColor: showRetired ? '#6B21A8' : '#E5E7EB',
+            borderColor: showRetired ? '#0062F4' : '#E5E7EB',
             borderRadius: '8px',
-            background: showRetired ? '#F3E8FF' : '#FFFFFF',
+            background: showRetired ? '#E8F0FE' : '#FFFFFF',
             userSelect: 'none',
           }}>
             <input
               type="checkbox"
               checked={showRetired}
               onChange={e => setShowRetired(e.target.checked)}
-              style={{ accentColor: '#6B21A8', width: '14px', height: '14px', cursor: 'pointer' }}
+              style={{ accentColor: '#0062F4', width: '14px', height: '14px', cursor: 'pointer' }}
             />
-            <span style={{ color: showRetired ? '#6B21A8' : '#374151', fontWeight: showRetired ? '600' : '400' }}>
+            <span style={{ color: showRetired ? '#0062F4' : '#374151', fontWeight: showRetired ? '600' : '400' }}>
               Show Retired
             </span>
           </label>
@@ -323,7 +323,7 @@ export default function Roster() {
             <div style={{
               width: 36, height: 36,
               border: '3px solid #E5E7EB',
-              borderTopColor: '#6B21A8',
+              borderTopColor: '#0062F4',
               borderRadius: '50%',
               animation: 'spin 0.8s linear infinite',
             }} />
@@ -362,7 +362,7 @@ export default function Roster() {
             <button
               onClick={openAdd}
               style={{
-                background: '#6B21A8', color: '#fff',
+                background: '#0062F4', color: '#fff',
                 border: 'none', borderRadius: 8,
                 padding: '10px 20px',
                 fontSize: 14, fontWeight: 600, cursor: 'pointer',
@@ -389,8 +389,8 @@ export default function Roster() {
               onClick={() => { setSearch(''); clearFilters() }}
               style={{
                 marginTop: '4px', padding: '9px 18px',
-                background: 'transparent', color: '#6B21A8',
-                border: '1px solid #6B21A8', borderRadius: '8px',
+                background: 'transparent', color: '#0062F4',
+                border: '1px solid #0062F4', borderRadius: '8px',
                 fontSize: '14px', fontWeight: '500', cursor: 'pointer',
               }}
             >

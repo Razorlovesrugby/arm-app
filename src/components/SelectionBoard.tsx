@@ -25,7 +25,6 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
-  arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Week, WeekTeam, Player } from '../lib/supabase'
@@ -82,7 +81,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       onClick={onToggle}
       style={{
         width: 44, height: 26,
-        background: on ? '#6B21A8' : '#D1D5DB',
+        background: on ? '#0062F4' : '#D1D5DB',
         borderRadius: 13, position: 'relative', cursor: 'pointer',
         transition: 'background 0.2s', flexShrink: 0,
       }}
@@ -113,18 +112,18 @@ function DroppableGhostRow({ slot, startersCount }: { slot: number; startersCoun
       style={{
         height: 52, display: 'flex', alignItems: 'center', gap: 8,
         padding: '0 12px', borderBottom: '1px solid #E5E7EB',
-        background: isOver ? 'rgba(107,33,168,0.08)' : '#FFFFFF',
-        outline: isOver ? '1px dashed rgba(107,33,168,0.55)' : 'none',
+        background: isOver ? 'rgba(0,98,244,0.08)' : '#FFFFFF',
+        outline: isOver ? '1px dashed rgba(0,98,244,0.55)' : 'none',
         outlineOffset: '-1px',
         transition: 'background 0.1s',
         opacity: isOver ? 0.9 : 0.35,
       }}
     >
-      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: isOver ? 'rgba(107,33,168,0.9)' : '#9CA3AF', flexShrink: 0, transition: 'color 0.1s' }}>
+      <span style={{ width: 22, textAlign: 'right', fontSize: 12, fontWeight: 700, color: isOver ? 'rgba(0,98,244,0.9)' : '#9CA3AF', flexShrink: 0, transition: 'color 0.1s' }}>
         {slot}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 13, fontStyle: 'italic', color: isOver ? 'rgba(107,33,168,0.7)' : '#9CA3AF', transition: 'color 0.1s' }}>
+        <span style={{ fontSize: 13, fontStyle: 'italic', color: isOver ? 'rgba(0,98,244,0.7)' : '#9CA3AF', transition: 'color 0.1s' }}>
           {isOver ? 'Drop here' : 'Unfilled'}
         </span>
         {hint && !isOver && (
@@ -186,7 +185,7 @@ function FilledRow({
             {playerName}
           </span>
           {isCaptain && (
-            <span style={{ background: '#6B21A8', color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 3, flexShrink: 0 }}>C</span>
+            <span style={{ background: '#0062F4', color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 3, flexShrink: 0 }}>C</span>
           )}
         </div>
         <div style={{ fontSize: 11, color: '#6B7280', whiteSpace: 'normal', wordBreak: 'break-word' }}>
@@ -325,7 +324,7 @@ function PoolSheet({ teamName, unassigned, availabilityMap, playerTypeOptions, o
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeFilter === f ? '#6B21A8' : '#F3F4F6', color: activeFilter === f ? '#fff' : '#6B7280' }}
+              style={{ padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeFilter === f ? '#0062F4' : '#F3F4F6', color: activeFilter === f ? '#fff' : '#6B7280' }}
             >{f}</button>
           ))}
         </div>
@@ -333,13 +332,13 @@ function PoolSheet({ teamName, unassigned, availabilityMap, playerTypeOptions, o
           <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto', flexShrink: 0, borderBottom: '1px solid #E5E7EB', WebkitOverflowScrolling: 'touch' }}>
             <button
               onClick={() => setActiveTypeFilter('all')}
-              style={{ padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeTypeFilter === 'all' ? 'rgba(107,33,168,0.15)' : '#F3F4F6', color: activeTypeFilter === 'all' ? '#6B21A8' : '#9CA3AF' }}
+              style={{ padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeTypeFilter === 'all' ? 'rgba(0,98,244,0.15)' : '#F3F4F6', color: activeTypeFilter === 'all' ? '#0062F4' : '#9CA3AF' }}
             >All Types</button>
             {playerTypeOptions.map(type => (
               <button
                 key={type}
                 onClick={() => setActiveTypeFilter(type)}
-                style={{ padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeTypeFilter === type ? 'rgba(107,33,168,0.15)' : '#F3F4F6', color: activeTypeFilter === type ? '#6B21A8' : '#9CA3AF' }}
+                style={{ padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: activeTypeFilter === type ? 'rgba(0,98,244,0.15)' : '#F3F4F6', color: activeTypeFilter === type ? '#0062F4' : '#9CA3AF' }}
               >{type}</button>
             ))}
           </div>
@@ -512,7 +511,7 @@ function TeamManagementSheet({ team, saveStatus, onSave, onClose }: TeamManageme
             disabled={!canSave || saving}
             style={{
               width: '100%', height: 46,
-              background: canSave && !saving ? '#6B21A8' : '#F3F4F6',
+              background: canSave && !saving ? '#0062F4' : '#F3F4F6',
               border: 'none', borderRadius: 12,
               cursor: canSave && !saving ? 'pointer' : 'not-allowed',
               fontSize: 15, fontWeight: 700, color: canSave && !saving ? '#fff' : '#9CA3AF',
@@ -592,7 +591,7 @@ function WeekPickerSheet({ weeks, activeWeekId, onSelect, onClose }: WeekPickerS
                     </div>
                   </div>
                   {/* Purple checkmark — opacity 0 when inactive (preserves layout) */}
-                  <span style={{ fontSize: 16, color: '#6B21A8', opacity: isActive ? 1 : 0, flexShrink: 0 }}>✓</span>
+                  <span style={{ fontSize: 16, color: '#0062F4', opacity: isActive ? 1 : 0, flexShrink: 0 }}>✓</span>
                 </div>
               )
             })
@@ -687,7 +686,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     teams, allWeekTeams,
     unassignedPlayers, availabilityMap, allPlayers,
     playerHistory,
-    loading, error, saveStatus,
+    loading, error, toast, saveStatus,
     assignPlayer, removePlayer, reorderTeam, setCaptain, saveTeamSettings,
   } = board
 
@@ -725,6 +724,19 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const sheetOpen = poolOpen || overlayPlayerId !== null || teamMgmtOpen || weekPickerOpen
+
+  // Pipe hook-level toasts (e.g. "Team is full") into the existing toast UI
+  useEffect(() => {
+    setToastMessage(toast)
+  }, [toast])
+
+  // Dismiss toast on any screen tap/click
+  useEffect(() => {
+    if (!toastMessage) return
+    const dismiss = () => setToastMessage(null)
+    document.addEventListener('click', dismiss, { once: true })
+    return () => document.removeEventListener('click', dismiss)
+  }, [toastMessage])
 
   // Close pool if week switches (stale team data)
   useEffect(() => {
@@ -790,16 +802,8 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
       reorderTeam(weekTeam.id, newOrder)
 
     } else {
-      // ── Drop onto another filled player row (normal reorder) ─────────────
-      // Compact reorder among filled slots — slot numbers shift accordingly.
-      const filledIds = players
-        .filter((p): p is Player => p !== null)
-        .map(p => p.id)
-      const oldIndex = filledIds.indexOf(activeId)
-      const newIndex = filledIds.indexOf(overId)
-      if (oldIndex === -1 || newIndex === -1) return
-
-      reorderTeam(weekTeam.id, arrayMove(filledIds, oldIndex, newIndex))
+      // Drop onto a filled slot — cancelled. Player snaps back.
+      return
     }
   }
 
@@ -817,8 +821,9 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     const formatPlayerLine = (p: Player | null, slot: number, captainId: string | null): string => {
       if (!p) return `${slot}. Unfilled`
       const captainBadge = captainId === p.id ? ' (C)' : ''
-      const caps = p.total_caps ?? 0
-      return `${slot}. ${p.name}${captainBadge} (${caps})`
+      const showCaps = clubSettings?.show_caps_on_exports ?? true
+      const capsString = showCaps ? ` (${p.total_caps ?? 0})` : ''
+      return `${slot}. ${p.name}${captainBadge}${capsString}`
     }
 
     const text =
@@ -882,7 +887,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
           ) : (
             <span style={{ fontSize: 15, color: '#6B7280' }}>Select a week</span>
           )}
-          <span style={{ color: '#6B21A8', fontSize: 14 }}>▾</span>
+          <span style={{ color: '#0062F4', fontSize: 14 }}>▾</span>
         </button>
 
         {/* Right: save badge + PDF + gear */}
@@ -903,6 +908,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
                 brandColor={clubSettings?.primary_color ?? '#1e40af'}
                 clubName={clubSettings?.club_name}
                 fileName="team-sheet.pdf"
+                showCaps={clubSettings?.show_caps_on_exports ?? true}
                 dark
               />
               <button
@@ -947,7 +953,7 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: 14, fontWeight: 600,
                 color: isActive ? '#111827' : '#6B7280',
-                borderBottom: isActive ? '2px solid #6B21A8' : '2px solid transparent',
+                borderBottom: isActive ? '2px solid #0062F4' : '2px solid transparent',
                 whiteSpace: 'nowrap', WebkitTapHighlightColor: 'transparent',
               }}
             >
@@ -1018,10 +1024,10 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
         <div style={{ flexShrink: 0, padding: '10px 16px 16px', background: 'linear-gradient(to top, #F8F8F8 55%, transparent)', position: 'relative', zIndex: 10 }}>
           <button
             onClick={() => setPoolOpen(true)}
-            style={{ width: '100%', height: 50, background: '#6B21A8', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
-            onPointerDown={e => (e.currentTarget.style.background = '#581c87')}
-            onPointerUp={e   => (e.currentTarget.style.background = '#6B21A8')}
-            onPointerLeave={e => (e.currentTarget.style.background = '#6B21A8')}
+            style={{ width: '100%', height: 50, background: '#0062F4', border: 'none', borderRadius: 14, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
+            onPointerDown={e => (e.currentTarget.style.background = '#7B2FFF')}
+            onPointerUp={e   => (e.currentTarget.style.background = '#0062F4')}
+            onPointerLeave={e => (e.currentTarget.style.background = '#0062F4')}
           >
             + Add Players
           </button>

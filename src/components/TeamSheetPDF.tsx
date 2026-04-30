@@ -11,6 +11,7 @@ export interface TeamSheetPDFProps {
   brandColor?: string
   clubName?: string
   coachName?: string
+  showCaps?: boolean
 }
 
 // ─── Player Numbering Logic ───────────────────────────────────────────────────
@@ -25,10 +26,11 @@ const organizePlayersByNumber = (players: PDFPlayer[]): (PDFPlayer | null)[] => 
   return result
 }
 
-const getPlayerDisplayName = (player: PDFPlayer | null): string | null => {
+const getPlayerDisplayName = (player: PDFPlayer | null, showCaps: boolean): string | null => {
   if (!player) return null
-  const caps = player.totalCaps ?? 0
   const base = player.isCaptain ? `${player.fullName} (C)` : player.fullName
+  if (!showCaps) return base
+  const caps = player.totalCaps ?? 0
   return `${base} (${caps})`
 }
 
@@ -148,6 +150,7 @@ export default function TeamSheetPDF({
   brandColor = '#1e40af',
   clubName,
   coachName,
+  showCaps = true,
 }: TeamSheetPDFProps) {
   const styles = createStyles(brandColor)
   const generatedAt = new Date().toLocaleDateString('en-GB', {
@@ -189,7 +192,7 @@ export default function TeamSheetPDF({
 
             {organizedPlayers.map((player, idx) => {
               const shirtNum = idx + 1
-              const displayName = getPlayerDisplayName(player)
+              const displayName = getPlayerDisplayName(player, showCaps)
 
               return (
                 <View key={idx} style={styles.playerRow}>

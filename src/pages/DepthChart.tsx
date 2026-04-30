@@ -54,7 +54,7 @@ function SortablePlayerChip({ player, onTap }: ChipProps) {
     justifyContent: 'space-between',
     width: '100%',
     background: '#FFFFFF',
-    border: isDragging ? '1px solid #6B21A8' : '1px solid #E5E7EB',
+    border: isDragging ? '1px solid #0062F4' : '1px solid #E5E7EB',
     borderRadius: '8px',
     padding: '8px 10px',
     marginBottom: '6px',
@@ -164,7 +164,7 @@ function Column({ col, onTap, onReorder }: ColumnProps) {
         <span style={{
           fontSize: '12px',
           fontWeight: '700',
-          color: '#6B21A8',
+          color: '#0062F4',
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
           overflow: 'hidden',
@@ -176,8 +176,8 @@ function Column({ col, onTap, onReorder }: ColumnProps) {
         <span style={{
           fontSize: '11px',
           fontWeight: '600',
-          background: '#F3E8FF',
-          color: '#6B21A8',
+          background: '#E8F0FE',
+          color: '#0062F4',
           borderRadius: '10px',
           padding: '1px 7px',
           flexShrink: 0,
@@ -245,7 +245,7 @@ export default function DepthChart() {
           width: '32px',
           height: '32px',
           border: '3px solid #E5E7EB',
-          borderTopColor: '#6B21A8',
+          borderTopColor: '#0062F4',
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />

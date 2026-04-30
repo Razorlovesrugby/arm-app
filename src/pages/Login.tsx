@@ -56,7 +56,7 @@ export default function Login() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <img 
-            src="/icons/Logo.png" 
+            src="/icons/short-form-logo.png"
             alt="ARM Logo" 
             style={{ 
               maxHeight: '56px', 
@@ -115,7 +115,7 @@ export default function Login() {
                 outline: 'none',
                 background: '#FFFFFF',
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = '#6B21A8')}
+              onFocus={e => (e.currentTarget.style.borderColor = '#0062F4')}
               onBlur={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
             />
           </div>
@@ -144,7 +144,7 @@ export default function Login() {
                 outline: 'none',
                 background: '#FFFFFF',
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = '#6B21A8')}
+              onFocus={e => (e.currentTarget.style.borderColor = '#0062F4')}
               onBlur={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
             />
           </div>
@@ -155,7 +155,7 @@ export default function Login() {
             style={{
               width: '100%',
               minHeight: '48px',
-              background: loading ? '#9333EA' : '#6B21A8',
+              background: loading ? '#3B82F6' : '#0062F4',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '10px',

@@ -12,7 +12,7 @@ export default function ClubSettings() {
   const { activeClubId } = useAuth()
 
   const [clubName, setClubName] = useState('')
-  const [brandColor, setBrandColor] = useState('#6B21A8')
+  const [brandColor, setBrandColor] = useState('#0062F4')
   const [logoUrl, setLogoUrl] = useState('')
   const [logoValid, setLogoValid] = useState(false)
   const [playerTypes, setPlayerTypes] = useState<string[]>(DEFAULT_PLAYER_TYPES)
@@ -21,6 +21,7 @@ export default function ClubSettings() {
   const [requirePositions, setRequirePositions] = useState(true)
   const [requireContactInfo, setRequireContactInfo] = useState(false)
   const [requireBirthday, setRequireBirthday] = useState(false)
+  const [showCapsOnExports, setShowCapsOnExports] = useState(true)
   const [trainingDays, setTrainingDays] = useState<{ id: string; label: string }[]>([{ id: '1', label: 'Wednesday' }])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -40,7 +41,7 @@ export default function ClubSettings() {
   useEffect(() => {
     if (!clubSettings) return
     setClubName(clubSettings.club_name ?? '')
-    setBrandColor(clubSettings.primary_color ?? '#6B21A8')
+    setBrandColor(clubSettings.primary_color ?? '#0062F4')
     setLogoUrl(clubSettings.logo_url ?? '')
     if (clubSettings.logo_url) {
       const testImg = new Image()
@@ -63,6 +64,7 @@ export default function ClubSettings() {
     setRequirePositions(clubSettings.require_positions_in_form ?? true)
     setRequireContactInfo(clubSettings.require_contact_info ?? false)
     setRequireBirthday(clubSettings.require_birthday ?? false)
+    setShowCapsOnExports(clubSettings.show_caps_on_exports ?? true)
     const days = clubSettings.training_days
     setTrainingDays(
       days && days.length > 0 ? days : [{ id: '1', label: 'Wednesday' }]
@@ -123,7 +125,7 @@ export default function ClubSettings() {
   function validate(): boolean {
     const e: Record<string, string> = {}
     if (!clubName.trim()) e.clubName = 'Club name is required'
-    if (brandColor && !isValidHexColor(brandColor)) e.brandColor = 'Invalid hex color (e.g. #6B21A8)'
+    if (brandColor && !isValidHexColor(brandColor)) e.brandColor = 'Invalid hex color (e.g. #0062F4)'
     const trimmedTypes = playerTypes.map(t => t.trim())
     if (trimmedTypes.some(t => !t)) e.playerTypes = 'Player type names cannot be empty'
     const uniqueTypes = new Set(trimmedTypes.map(t => t.toLowerCase()))
@@ -219,7 +221,7 @@ export default function ClubSettings() {
 
     const { error } = await updateClubSettings({
       club_name: clubName.trim(),
-      primary_color: brandColor || '#6B21A8',
+      primary_color: brandColor || '#0062F4',
       logo_url: logoUrl.trim() || null,
       player_types: trimmedTypes.length > 0 ? trimmedTypes : DEFAULT_PLAYER_TYPES,
       default_teams: trimmedTeams,
@@ -227,6 +229,7 @@ export default function ClubSettings() {
       require_positions_in_form: requirePositions,
       require_contact_info: requireContactInfo,
       require_birthday: requireBirthday,
+      show_caps_on_exports: showCapsOnExports,
       training_days: trimmedDays.length > 0 ? trimmedDays : [{ id: '1', label: 'Wednesday' }],
     })
 
@@ -240,13 +243,13 @@ export default function ClubSettings() {
     }
   }
 
-  const safeColor = isValidHexColor(brandColor) ? brandColor : '#6B21A8'
+  const safeColor = isValidHexColor(brandColor) ? brandColor : '#0062F4'
   const textClass = getContrastColor(safeColor)
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[40vh]">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-purple-800 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-brand-accent rounded-full animate-spin" />
       </div>
     )
   }
@@ -292,12 +295,12 @@ export default function ClubSettings() {
                   setErrors(prev => { const { brandColor: _, ...rest } = prev; return rest })
                 }
               }}
-              placeholder="#6B21A8"
+              placeholder="#0062F4"
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
             />
             <input
               type="color"
-              value={brandColor.startsWith('#') ? brandColor : '#6B21A8'}
+              value={brandColor.startsWith('#') ? brandColor : '#0062F4'}
               onChange={e => setBrandColor(e.target.value)}
               className="w-12 h-12 p-1 border border-gray-300 rounded-lg cursor-pointer"
             />
@@ -374,7 +377,7 @@ export default function ClubSettings() {
             <button
               type="button"
               onClick={() => setTrainingDays(prev => [...prev, { id: String(Date.now()), label: '' }])}
-              className="w-full rounded-lg bg-purple-100 px-4 py-3 text-sm font-medium text-purple-700"
+              className="w-full rounded-lg bg-ui-base px-4 py-3 text-sm font-medium text-brand-accent"
             >
               + Add Training Day
             </button>
@@ -420,7 +423,7 @@ export default function ClubSettings() {
               type="button"
               onClick={addTeam}
               disabled={defaultTeams.length >= 10}
-              className="text-sm font-medium text-purple-700 hover:text-purple-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="text-sm font-medium text-brand-primary hover:text-brand-accent disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               + Add Team
             </button>
@@ -479,7 +482,7 @@ export default function ClubSettings() {
               type="button"
               onClick={addPlayerType}
               disabled={playerTypes.length >= 8}
-              className="text-sm font-medium text-purple-700 hover:text-purple-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="text-sm font-medium text-brand-primary hover:text-brand-accent disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               + Add Player Type
             </button>
@@ -523,7 +526,7 @@ export default function ClubSettings() {
               <button
                 type="button"
                 onClick={() => setRequirePositions(v => !v)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requirePositions ? 'bg-purple-700' : 'bg-gray-200'}`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requirePositions ? 'bg-brand-accent' : 'bg-gray-200'}`}
                 role="switch"
                 aria-checked={requirePositions}
               >
@@ -541,7 +544,7 @@ export default function ClubSettings() {
               <button
                 type="button"
                 onClick={() => setRequireContactInfo(v => !v)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requireContactInfo ? 'bg-purple-700' : 'bg-gray-200'}`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requireContactInfo ? 'bg-brand-accent' : 'bg-gray-200'}`}
                 role="switch"
                 aria-checked={requireContactInfo}
               >
@@ -559,12 +562,30 @@ export default function ClubSettings() {
               <button
                 type="button"
                 onClick={() => setRequireBirthday(v => !v)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requireBirthday ? 'bg-purple-700' : 'bg-gray-200'}`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${requireBirthday ? 'bg-brand-accent' : 'bg-gray-200'}`}
                 role="switch"
                 aria-checked={requireBirthday}
               >
                 <span
                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${requireBirthday ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Show Player Caps on Team Exports</label>
+                <p className="text-xs text-gray-500">Include the player's total caps next to their name when copying the team sheet or exporting to PDF</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCapsOnExports(v => !v)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${showCapsOnExports ? 'bg-brand-accent' : 'bg-gray-200'}`}
+                role="switch"
+                aria-checked={showCapsOnExports}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${showCapsOnExports ? 'translate-x-5' : 'translate-x-0'}`}
                 />
               </button>
             </div>
@@ -636,7 +657,7 @@ export default function ClubSettings() {
                   <button
                     type="button"
                     onClick={confirmRename}
-                    className="flex-1 h-11 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800"
+                    className="flex-1 h-11 bg-brand-accent text-white rounded-xl text-sm font-semibold hover:bg-brand-accent/90"
                   >
                     Confirm Rename
                   </button>
@@ -651,7 +672,7 @@ export default function ClubSettings() {
                   {renameModal.renames.map((r, i) => (
                     <div key={i} className="bg-gray-50 rounded-lg px-4 py-3">
                       <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                        <div className="w-4 h-4 border-2 border-brand-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
                         <span>"{r.from}" → "{r.to}"</span>
                       </div>
                       {r.playerCount > 0 && (
@@ -680,7 +701,7 @@ export default function ClubSettings() {
                   <button
                     type="button"
                     onClick={confirmRename}
-                    className="flex-1 h-11 bg-purple-700 text-white rounded-xl text-sm font-semibold hover:bg-purple-800"
+                    className="flex-1 h-11 bg-brand-accent text-white rounded-xl text-sm font-semibold hover:bg-brand-accent/90"
                   >
                     Try Again
                   </button>

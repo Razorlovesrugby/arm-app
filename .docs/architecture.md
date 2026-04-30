@@ -7,10 +7,10 @@
 - **Build Tool**: Vite 5.1.4
 - **Styling**: Tailwind CSS 3.4.1
 - **Routing**: React Router DOM 6.22.0
-- **Drag & Drop**: @dnd-kit/core 6.1.0, @dnd-kit/sortable 8.0.0
+- **Drag & Drop**: @dnd-kit/core 6.1.0, @dnd-kit/sortable 8.0.0, @dnd-kit/utilities 3.2.2
 - **Icons**: Lucide React 0.344.0
-- **PDF Generation**: jsPDF 2.5.1
-- **PWA Support**: Vite Plugin PWA 0.19.2
+- **PDF Generation**: jsPDF 2.5.1, @react-pdf/renderer 4.3.0
+- **PWA Support**: Vite Plugin PWA 0.19.2, workbox-window 7.0.0
 
 ### Backend
 - **Database**: Supabase (PostgreSQL)
@@ -42,23 +42,37 @@
 ```
 
 ### Key Components
-- **Layout.tsx**: Main application layout with Sidebar
+- **Layout.tsx**: Main application layout with Sidebar (coach view)
+- **RDOLayout.tsx**: RDO-specific layout with sidebar navigation rail (Phase 17.2)
 - **Sidebar.tsx**: Navigation sidebar
 - **SelectionBoard.tsx**: Drag-and-drop team selection interface
 - **PlayerCard.tsx**: Individual player display component
+- **PlayerFormSheet.tsx**: Player add/edit form sheet
+- **DeletePlayerDialog.tsx**: Delete player confirmation dialog
+- **MergePlayerModal.tsx**: Player merge modal (Phase 19.0)
+- **PlayerOverlay.tsx**: Player detail overlay
+- **ReadinessMatrix.tsx**: Weekly readiness matrix component (Phase 17.4)
+- **PDFDownloadLink.tsx** / **TeamSheetPDF.tsx**: PDF generation components
 - **ProtectedRoute.tsx**: Authentication wrapper
 - **ErrorBoundary.tsx**: Global error boundary for graceful render failure handling (Phase 16.3)
+- **InstallPrompt.tsx**: PWA install prompt
 
 ### Pages
 - **Login.tsx**: Authentication page
-- **Players.tsx**: Player management
+- **Roster.tsx**: Player management (replaces legacy `/players` route)
 - **Weeks.tsx**: Week/availability management  
 - **Board.tsx**: Selection board interface
 - **Results.tsx**: Match results tracking
+- **ResultDetail.tsx**: Per-week match result detail with scoring stepper
 - **DepthChart.tsx**: Player depth visualization
 - **ClubSettings.tsx**: Branding configuration
 - **Attendance.tsx**: Training attendance matrix with sticky columns
 - **Grid.tsx**: Availability Dashboard combining training + match availability data
+- **Archive.tsx**: Archive/search for closed weeks and game notes
+- **AvailabilityForm.tsx**: Public availability submission form
+- **RDODashboard.tsx**: RDO Command Center with Launchpad + Weekly Readiness Matrix (Phase 17.4)
+- **RfcPlayerPool.tsx**: RFC Player Pool master grid across managed clubs (Phase 17.5)
+- **RDOSettings.tsx**: RDO Settings & Data Governance (Phase 17.6)
 
 ### Hooks
 - **usePlayers.ts**: Player data management
@@ -68,6 +82,9 @@
 - **useDepthChart.ts**: Depth chart visualization
 - **useMatchEvents.ts**: Match event tracking
 - **useGrid.ts**: Master availability grid data (Phase 12.6+)
+- **usePlayerDetails.ts**: Player detail data
+- **useRDOReadiness.ts**: Aggregated club readiness data for RDO dashboard (Phase 17.4)
+- **useRFCPlayerPool.ts**: Fetches all players across RDO-managed clubs via RPC (Phase 17.5)
 
 ## Data Architecture
 
@@ -96,15 +113,16 @@
 - **RLS Expansion**: All 10 core tables have OR-based RLS policies allowing RDO access to mapped clubs
 - **God Mode Banner**: RDOs impersonating clubs see prominent banner with "Exit to Command Center" option
 - **Separate Layout**: RDOs use `RDOLayout` with sidebar navigation, coaches use standard `Layout`
+- **Routing**: `ProtectedShell` in App.tsx selects layout based on role + activeClubId; RDO paths include `/rdo-dashboard`, `/rdo-dashboard/player-pool`, `/rdo-settings`
 
 ## UI/UX Guidelines
 
 ### Design Tokens (CSS Custom Properties)
 
 #### Primary Colors
-- **Primary**: `#6B21A8` (Purple)
-- **Primary Dark**: `#581C87` (Dark Purple)
-- **Primary Light**: `#F3E8FF` (Light Purple)
+- **Primary**: `#0062F4` (Blue)
+- **Primary Dark**: `#7B2FFF` (Ultraviolet)
+- **Primary Light**: `#E8F0FE` (Light Blue)
 - **Secondary**: `#DC2626` (Red) - From club_settings table
 
 #### Surface & Background
@@ -126,7 +144,7 @@
 - **Injured/TBC**: Background `#FEF3C7`, Text `#B45309`
 - **Unavailable**: Background `#FEE2E2`, Text `#B91C1C`
 - **Retired**: Background `#F3F4F6`, Text `#4B5563`
-- **Performance**: Background `#F3E8FF`, Text `#6B21A8`
+- **Performance**: Background `#E8F0FE`, Text `#0062F4`
 - **Open**: Background `#DBEAFE`, Text `#1D4ED8`
 - **Womens**: Background `#FCE7F3`, Text `#BE185D`
 

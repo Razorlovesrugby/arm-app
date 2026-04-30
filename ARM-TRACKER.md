@@ -1,6 +1,6 @@
 # ARM — Build Tracker
-**Last updated: 2026-04-15**
-**Current position: Phase 17.4 complete (RDO Command Center & Team Readiness Matrix). Next: Phase 17.5 (RFC Player Pool & Master Grids).**
+**Last updated: 2026-04-29 20:26**
+**Current position: Phase 19.2 implemented (Availability Form Profile Update Phone & Birthday). All of Phase 19 (19.0, 19.0.1, 19.1, 19.2) now complete.**
 
 ---
 
@@ -50,7 +50,21 @@
 | 17.2 | RDO Command Center UX & Launchpad — RDOLayout, RDODashboard, switchTenant, God Mode banner | ✅ Done |
 | 17.3 | God Mode Hydration & Data Safety — hard remount, switching state, hook hardening, race condition protection | ✅ Done |
 | 17.4 | RDO Command Center & Team Readiness Matrix — useRDOReadiness hook, Weekly Readiness Matrix, aggregated metrics | ✅ Done |
-| **17.5** | **RFC Player Pool & Master Grids** — get_rfc_player_pool RPC, master grid with filters, read-only player panel | **▶ Next** |
+| 17.5 | RFC Player Pool & Master Grids — get_rfc_player_pool RPC, master grid with filters, read-only player panel | ⏳ Pending |
+| 18.0 | Touch Zoom & Movement Lockdown — Viewport meta tag, touch-action CSS, iOS auto-zoom prevention | ✅ Done |
+| 18.1 | Form Layer Sheet Sideways Movement Lockdown — touch-action: pan-y on PlayerFormSheet | ✅ Done |
+| 19.0 | Player Merge & Public Form Duplicate Cleanup — MergePlayerModal, migration 034, duplicate cleanup | ✅ Done |
+| 19.0.1 | Supabase Array Operator Bug Fix — Defensive Array.isArray() guards for .in() calls across 6 files | ✅ Done |
+| 19.1 | Hard Reset, Refresh Navigation & Caching Fix — Remove offline fallback, Vercel anti-caching headers, auth bypass | ✅ Done |
+| 19.2 | Availability Form Profile Update Phone & Birthday — Phone sync on existing player matches, conditional birthday overwrite guard | ✅ Done |
+| 19.3 | Export Functions Include Player Caps — total_caps and captain badge in WhatsApp text and PDF exports | ✅ Done |
+| 20.0 | Remove CloseWeek, Archive & Migrate GameNotes — [scope TBD] | ⏳ Pending |
+| 20.1 | Logo & Theme Color Overhaul — Brand color palette defined in tailwind.config.js | ✅ Done |
+| 20.1.1 | Full Purple-to-Blue Color Migration — 17 files migrated from purple (#6B21A8) to blue (#0062F4) brand tokens | ✅ Done |
+| 20.1.2 | Sidebar Color Correction — Sidebar bg-brand-dark → bg-brand, nav hover restyled, borders use white/20 | ✅ Done |
+| 20.1.3 | Selection Board Bug Fixes — Drag & drop snaps back on filled slots, capacity-aware "+" assign | **▶ Next** |
+| 20.1.4 | Customizable Export Caps — [scope defined in spec] | ⏳ Pending |
+| 20.1.5 | Selection Indicators — [scope defined in spec] | ⏳ Pending |
 
 ---
 

@@ -12,6 +12,7 @@ interface PDFDownloadButtonProps {
   clubName?: string
   coachName?: string
   fileName?: string
+  showCaps?: boolean
   /** Dark variant for use on dark backgrounds (SelectionBoard header) */
   dark?: boolean
 }
@@ -22,6 +23,7 @@ export function PDFDownloadButton({
   clubName,
   coachName,
   fileName = 'team-sheet.pdf',
+  showCaps = true,
   dark = false,
 }: PDFDownloadButtonProps) {
   if (teams.length === 0) return null
@@ -66,6 +68,7 @@ export function PDFDownloadButton({
           brandColor={brandColor}
           clubName={clubName}
           coachName={coachName}
+          showCaps={showCaps}
         />
       }
       fileName={fileName}

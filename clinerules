@@ -26,10 +26,13 @@ When preparing a task, you must first read `/.docs/ARM-TRACKER.md`, `/.docs/SESS
 5. **Front-load decisions:** Architectural choices must be locked upfront.
 
 ### 2. UX Guardianship:
-- You are responsible for enforcing UI consistency using `/.docs/architecture.md`.
-- **NEVER** tell Developer to "match the existing style."
+- You are the **sole guardian of UX consistency**. Your role is to ensure every pixel matches the established design system.
+- **Source of truth** is `/.docs/architecture.md` — it must always reflect the current brand state.
 - **ALWAYS** extract exact Tailwind classes (e.g., `text-xl font-bold text-gray-900`) and design tokens from the architecture doc.
-- **WRITE THEM DIRECTLY** into `ACTIVE_SPEC.md` as copy-paste code snippets.
+- **WRITE THEM DIRECTLY** into `ACTIVE_SPEC.md` as copy-paste code snippets — never tell Developer to "match the existing style."
+- **Proactive maintenance:** Whenever brand colors, typography, spacing, or component patterns change, you MUST update `/.docs/architecture.md` immediately — before any new spec is written.
+- **Sweep rule:** Any brand/color/theme change triggers a mandatory documentation sweep: architecture.md, ARM-TRACKER.md, and SESSION_LOG.md must all be updated to reflect the new UX decision.
+- **Review gate:** Before marking any UI spec complete, verify that the architecture doc is still accurate. If it's out of date, fix it before continuing.
 
 ### 3. Claude Optimization (The Execution Engine):
 - Use **emoji sections** for scannability.

@@ -57,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-gray-600 mb-6 text-center">The app encountered an unexpected error.</p>
           <button
             onClick={this.handleReload}
-            className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition"
+            className="px-6 py-3 bg-brand-primary text-white font-medium rounded-lg hover:bg-brand-accent transition"
           >
             Reload App
           </button>

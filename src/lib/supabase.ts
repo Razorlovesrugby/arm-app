@@ -202,6 +202,7 @@ export interface ClubSettings {
   require_positions_in_form?: boolean
   require_contact_info?: boolean
   require_birthday?: boolean
+  show_caps_on_exports?: boolean
   training_days?: { id: string; label: string }[] | null
   created_at: string
   updated_at: string

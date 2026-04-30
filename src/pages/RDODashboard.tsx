@@ -29,10 +29,10 @@ function ClubCard({ name, logoUrl, onManage }: ClubCardProps) {
           />
         ) : (
           <div
-            className="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0"
+            className="w-14 h-14 rounded-full bg-ui-base flex items-center justify-center flex-shrink-0"
             aria-hidden="true"
           >
-            <Building2 size={24} className="text-purple-400" />
+            <Building2 size={24} className="text-brand-primary" />
           </div>
         )}
         <div className="min-w-0">
@@ -43,7 +43,7 @@ function ClubCard({ name, logoUrl, onManage }: ClubCardProps) {
 
       <button
         onClick={onManage}
-        className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+        className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-brand-primary hover:bg-brand-accent text-white text-sm font-medium rounded-lg transition-colors"
       >
         Manage Club
         <ChevronRight size={16} aria-hidden="true" />
@@ -138,7 +138,7 @@ export default function RDODashboard() {
             <p className="text-sm text-gray-500 mb-6 max-w-sm">{clubsError}</p>
             <button
               onClick={fetchClubs}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-accent transition-colors"
             >
               <RefreshCw size={15} aria-hidden="true" />
               Retry

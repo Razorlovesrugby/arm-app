@@ -95,7 +95,7 @@ function MatchEventsSheet({
                   <div>
                     <span className="text-sm font-semibold text-gray-900">{player.name}</span>
                     {hasEvents && (
-                      <span className="ml-2 text-xs text-purple-700 font-medium">●</span>
+                      <span className="ml-2 text-xs text-brand-accent font-medium">●</span>
                     )}
                   </div>
                   <span className="text-gray-400 text-sm">{isExpanded ? '▲' : '▼'}</span>
@@ -204,7 +204,7 @@ function MatchEventsSheet({
           <button
             onClick={() => onSave(counts)}
             disabled={saving}
-            className="w-full h-12 bg-purple-800 disabled:bg-gray-300 text-white font-bold rounded-xl text-sm tracking-wide"
+            className="w-full h-12 bg-brand-accent disabled:bg-gray-300 text-white font-bold rounded-xl text-sm tracking-wide"
           >
             {saving ? 'Saving…' : 'SAVE EVENTS'}
           </button>
@@ -285,7 +285,7 @@ function OpponentInput({ team, weekTeamId }: OpponentInputProps) {
         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm"
       />
       {isSaving && (
-        <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-800 rounded-full animate-spin" />
+        <div className="w-4 h-4 border-2 border-gray-300 border-t-brand-accent rounded-full animate-spin" />
       )}
     </div>
   )
@@ -398,7 +398,7 @@ function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: Te
       <div className="px-4 pb-3">
         <button
           onClick={() => setShowEvents(true)}
-          className="w-full h-10 border border-purple-200 text-purple-800 rounded-lg text-sm font-semibold hover:bg-purple-50 transition-colors"
+          className="w-full h-10 border border-brand-primary/20 text-brand-accent rounded-lg text-sm font-semibold hover:bg-ui-base transition-colors"
         >
           + Add Match Events
         </button>
@@ -432,7 +432,7 @@ function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: Te
       {/* Match notes */}
       <div className="px-4 pb-4 border-t border-gray-100 pt-3">
         <textarea
-          className="w-full h-32 border border-gray-300 rounded-lg p-3 text-sm text-gray-900 resize-none focus:outline-none focus:border-purple-400"
+          className="w-full h-32 border border-gray-300 rounded-lg p-3 text-sm text-gray-900 resize-none focus:outline-none focus:border-brand-primary"
           placeholder="MATCH NOTES (OPTIONAL)"
           value={report}
           onChange={e => setReport(e.target.value)}
@@ -444,7 +444,7 @@ function TeamResultCard({ weekId, team, players, onScoreSave, onReportSave }: Te
         <button
           onClick={handleSaveResult}
           disabled={scoreSaving}
-          className="w-full h-12 bg-purple-800 disabled:bg-gray-300 text-white font-bold rounded-xl tracking-wide"
+          className="w-full h-12 bg-brand-accent disabled:bg-gray-300 text-white font-bold rounded-xl tracking-wide"
         >
           {scoreSaving ? 'Saving…' : 'SAVE RESULT'}
         </button>
@@ -533,7 +533,7 @@ export default function ResultDetail() {
   if (!week) {
     return (
       <div className="flex justify-center items-center min-h-[40vh]">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-purple-800 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-brand-accent rounded-full animate-spin" />
       </div>
     )
   }

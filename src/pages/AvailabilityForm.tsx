@@ -284,7 +284,7 @@ export default function AvailabilityForm() {
     }
   }
 
-  const brandColor = clubSettings?.primary_color || '#6B21A8'
+  const brandColor = clubSettings?.primary_color || '#0062F4'
   const contrastClass = getContrastColor(brandColor)
   const btnTextColor = contrastClass === 'text-white' ? '#FFFFFF' : '#111827'
 
@@ -518,9 +518,9 @@ export default function AvailabilityForm() {
                         padding: '7px 13px',
                         borderRadius: '999px',
                         border: '1px solid',
-                        borderColor: active ? '#6B21A8' : '#E5E7EB',
-                        background: active ? '#F3E8FF' : '#FFFFFF',
-                        color: active ? '#6B21A8' : '#6B7280',
+                        borderColor: active ? '#0062F4' : '#E5E7EB',
+                        background: active ? '#E8F0FE' : '#FFFFFF',
+                        color: active ? '#0062F4' : '#6B7280',
                         fontSize: '13px',
                         fontWeight: active ? '600' : '400',
                         cursor: 'pointer',
@@ -632,7 +632,7 @@ function Logo({ clubSettings }: { clubSettings: ClubSettings | null }) {
         />
       ) : (
         <img
-          src="/icons/Logo.png"
+          src="/icons/short-form-logo.png"
           alt="ARM Logo"
           style={{ maxHeight: '52px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }}
         />
@@ -715,7 +715,7 @@ function inputStyle(hasError: boolean): React.CSSProperties {
 const spinnerStyle: React.CSSProperties = {
   width: '36px', height: '36px',
   border: '3px solid #E5E7EB',
-  borderTopColor: '#6B21A8',
+  borderTopColor: '#0062F4',
   borderRadius: '50%',
   animation: 'spin 0.8s linear infinite',
 }
