@@ -730,6 +730,14 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
     setToastMessage(toast)
   }, [toast])
 
+  // Dismiss toast on any screen tap/click
+  useEffect(() => {
+    if (!toastMessage) return
+    const dismiss = () => setToastMessage(null)
+    document.addEventListener('click', dismiss, { once: true })
+    return () => document.removeEventListener('click', dismiss)
+  }, [toastMessage])
+
   // Close pool if week switches (stale team data)
   useEffect(() => {
     setPoolOpen(false)
@@ -1076,23 +1084,20 @@ export default function SelectionBoard({ initialWeekId, weeks }: SelectionBoardP
 
       {/* ── Toast notification ─────────────────────────────────────────────── */}
       {toastMessage && (
-        <div
-          onClick={() => setToastMessage(null)}
-          style={{
-            position: 'fixed',
-            bottom: 100,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#111827',
-            color: '#fff',
-            padding: '8px 16px',
-            borderRadius: 20,
-            fontSize: 13,
-            fontWeight: 600,
-            zIndex: 100,
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            cursor: 'pointer',
-          }}>
+        <div style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#111827',
+          color: '#fff',
+          padding: '8px 16px',
+          borderRadius: 20,
+          fontSize: 13,
+          fontWeight: 600,
+          zIndex: 100,
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        }}>
           {toastMessage}
         </div>
       )}

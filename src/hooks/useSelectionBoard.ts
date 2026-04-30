@@ -353,7 +353,7 @@ export function useSelectionBoard(initialWeekId: string | null): UseSelectionBoa
 
   function flashToast(message: string) {
     setToast(message)
-    setTimeout(() => setToast(null), 3500)
+    setTimeout(() => setToast(null), 1000)
   }
 
   // ── Upsert helper ─────────────────────────────────────────────────────────
