@@ -39,6 +39,7 @@ export interface UseSelectionBoardReturn {
   playerHistory: Record<string, PlayerHistoryEntry>
   loading: boolean
   error: string | null
+  toast: string | null
   saveStatus: 'idle' | 'saved' | 'error'
   setSaveStatus: (s: 'idle' | 'saved' | 'error') => void
   assignPlayer: (teamId: string, playerId: string) => Promise<void>
